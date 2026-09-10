@@ -125,6 +125,7 @@
     margin-bottom: 10px;
   }
   .prompt-banner .num { color: var(--blue); }
+  .diff-badge { font-size: 12px; color: var(--amber); margin-left: 4px; vertical-align: middle; }
 
   .controls {
     display: flex;
@@ -213,6 +214,12 @@
 
   <!-- クイズモード -->
   <section id="panel-quiz" class="panel" hidden>
+    <div class="hwy-list" id="quiz-diff-list">
+      <button data-diff="">すべて</button>
+      <button data-diff="1">かんたん</button>
+      <button data-diff="2">ふつう</button>
+      <button data-diff="3">むずかしい</button>
+    </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
     <div class="map-wrap">
       <canvas id="quiz-canvas"></canvas>
@@ -443,6 +450,45 @@ let tracing = false;
 let projectorRef = null;
 let answered = false;
 
+/* ---- 難易度フィルター ---- */
+const DIFF_KEY = "kokudoQuizDifficulty.v1";
+const DIFF_LABEL = { 1: "かんたん", 2: "ふつう", 3: "むずかしい" };
+const diffListEl = document.getElementById("quiz-diff-list");
+
+function loadDifficulty() {
+  try {
+    const v = localStorage.getItem(DIFF_KEY);
+    return v ? Number(v) : null;
+  } catch (e) { return null; }
+}
+function saveDifficulty(v) {
+  try {
+    if (v) localStorage.setItem(DIFF_KEY, String(v)); else localStorage.removeItem(DIFF_KEY);
+  } catch (e) { /* ignore */ }
+}
+let selectedDifficulty = loadDifficulty();
+
+function highlightDiffButtons() {
+  [...diffListEl.children].forEach(b => {
+    const v = b.dataset.diff ? Number(b.dataset.diff) : null;
+    b.classList.toggle("active", v === selectedDifficulty);
+  });
+}
+diffListEl.addEventListener("click", evt => {
+  const btn = evt.target.closest("button");
+  if (!btn) return;
+  selectedDifficulty = btn.dataset.diff ? Number(btn.dataset.diff) : null;
+  saveDifficulty(selectedDifficulty);
+  highlightDiffButtons();
+});
+highlightDiffButtons();
+
+function diffStars(level) {
+  const filled = "★".repeat(level);
+  const empty = "☆".repeat(3 - level);
+  return ` <span class="diff-badge" title="${DIFF_LABEL[level]}">${filled}${empty}</span>`;
+}
+
 const STATS_KEY = "kokudoQuizStats.v1";
 function loadStats() {
   try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { total: 0, correct: 0, byHighway: {} }; }
@@ -459,9 +505,11 @@ function renderStats() {
 renderStats();
 
 function pickHighway() {
+  const pool = selectedDifficulty ? HIGHWAYS.filter(h => h.difficulty === selectedDifficulty) : HIGHWAYS;
+  const list = pool.length ? pool : HIGHWAYS;
   let h;
-  do { h = HIGHWAYS[Math.floor(Math.random() * HIGHWAYS.length)]; }
-  while (HIGHWAYS.length > 1 && h.id === lastHighwayId);
+  do { h = list[Math.floor(Math.random() * list.length)]; }
+  while (list.length > 1 && h.id === lastHighwayId);
   lastHighwayId = h.id;
   return h;
 }
@@ -477,7 +525,7 @@ function startQuestion() {
   btnHint.disabled = false;
   btnRetry.disabled = true;
   btnNext.disabled = true;
-  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
+  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
   renderQuiz();
 }
 
