@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>国道クイズ - 指でなぞって覚える</title>
+<style>
+  :root {
+    --blue: #2c5f9e;
+    --blue-light: #4a90d9;
+    --bg: #f4f7fb;
+    --panel: #ffffff;
+    --border: #dbe4f0;
+    --text: #1a1a1a;
+    --muted: #667;
+    --green: #2e9e4f;
+    --amber: #c98a11;
+    --red: #d0473e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  header {
+    background: var(--blue);
+    color: #fff;
+    padding: 14px 16px 10px;
+    text-align: center;
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: 0.85; }
+
+  .tabs {
+    display: flex;
+    max-width: 720px;
+    margin: 12px auto 0;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .tabs button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 10px 10px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .tabs button.active {
+    background: var(--blue-light);
+    color: #fff;
+    border-color: var(--blue-light);
+  }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 12px 32px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+    padding: 14px;
+  }
+  [hidden] { display: none !important; }
+
+  .map-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    max-height: 62vh;
+    background: #eaf1fb;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    touch-action: none;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  .hwy-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .hwy-list button {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--blue-light);
+    background: #fff;
+    color: var(--blue);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .hwy-list button.active {
+    background: var(--blue-light);
+    color: #fff;
+  }
+
+  .info-box {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.7;
+    background: #f0f7ff;
+    border-left: 4px solid var(--blue-light);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+  }
+  .info-box .pref { color: var(--muted); }
+
+  .prompt-banner {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    padding: 10px;
+    background: #f0f7ff;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .prompt-banner .num { color: var(--blue); }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .controls button {
+    flex: 1;
+    min-width: 90px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--blue-light);
+    background: #fff;
+    color: var(--blue);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .controls button.primary {
+    background: var(--blue-light);
+    color: #fff;
+  }
+  .controls button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .result {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+  }
+  .result.show { display: block; }
+  .result.correct { background: #e9f8ee; border: 1px solid var(--green); color: #1d6b34; }
+  .result.partial { background: #fdf5e3; border: 1px solid var(--amber); color: #8a6209; }
+  .result.incorrect { background: #fdecea; border: 1px solid var(--red); color: #9c2f27; }
+
+  .stats {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .hint-text {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+    min-height: 16px;
+  }
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 16px 0 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>国道クイズ</h1>
+  <p>国道がどこからどこまで続いているか、指でなぞって覚えよう</p>
+</header>
+
+<div class="tabs">
+  <button id="tab-study" class="active">学習モード</button>
+  <button id="tab-quiz">クイズモード</button>
+</div>
+
+<main>
+  <!-- 学習モード -->
+  <section id="panel-study" class="panel">
+    <div class="hwy-list" id="study-hwy-list"></div>
+    <div class="map-wrap">
+      <canvas id="study-canvas"></canvas>
+    </div>
+    <div class="info-box" id="study-info">左のボタンから国道を選んでください。</div>
+    <div class="controls">
+      <button id="study-replay">ルートをもう一度再生</button>
+    </div>
+  </section>
+
+  <!-- クイズモード -->
+  <section id="panel-quiz" class="panel" hidden>
+    <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
+    <div class="map-wrap">
+      <canvas id="quiz-canvas"></canvas>
+    </div>
+    <div class="hint-text" id="quiz-hint"></div>
+    <div class="controls">
+      <button id="quiz-start" class="primary">クイズを始める</button>
+      <button id="quiz-hint-btn" disabled>ヒント（終点を表示）</button>
+      <button id="quiz-retry" disabled>もう一度なぞる</button>
+      <button id="quiz-next" disabled>次の問題へ</button>
+    </div>
+    <div class="result" id="quiz-result"></div>
+    <div class="stats" id="quiz-stats"></div>
+  </section>
+</main>
+
+<footer>
+  データはすべて端末内(localStorage)にのみ保存されます。ルートは学習用に主要都市を結んだ簡略ルートです。
+</footer>
+
+<script src="highways-data.js"></script>
+<script>
+"use strict";
+
+/* ---------- 座標変換（日本全体を固定の範囲で描画。ズームせず常に同じ位置感覚で学べる） ---------- */
+const BOUNDS = { latMin: 24.0, latMax: 45.9, lngMin: 122.5, lngMax: 146.5 };
+const COS_LAT = Math.cos((BOUNDS.latMin + BOUNDS.latMax) / 2 * Math.PI / 180);
+
+function makeProjector(width, height) {
+  const pad = Math.min(width, height) * 0.06;
+  const lngSpan = (BOUNDS.lngMax - BOUNDS.lngMin) * COS_LAT;
+  const latSpan = (BOUNDS.latMax - BOUNDS.latMin);
+  const scale = Math.min((width - 2 * pad) / lngSpan, (height - 2 * pad) / latSpan);
+  const offX = pad + ((width - 2 * pad) - lngSpan * scale) / 2;
+  const offY = pad + ((height - 2 * pad) - latSpan * scale) / 2;
+  return {
+    scale,
+    project(lat, lng) {
+      return {
+        x: offX + (lng - BOUNDS.lngMin) * COS_LAT * scale,
+        y: offY + (BOUNDS.latMax - lat) * scale
+      };
+    }
+  };
+}
+
+/* ---------- Canvas 共通描画 ---------- */
+function setupCanvas(canvas) {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, width: rect.width, height: rect.height };
+}
+
+function drawBase(ctx, width, height, projector) {
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#eaf1fb";
+  ctx.fillRect(0, 0, width, height);
+
+  // 簡略化した日本列島シルエット
+  ctx.fillStyle = "#d7e5f7";
+  ctx.strokeStyle = "#c3d6ee";
+  ctx.lineWidth = 1;
+  JAPAN_SILHOUETTE.forEach(island => {
+    ctx.beginPath();
+    island.points.forEach((p, i) => {
+      const pt = projector.project(p[0], p[1]);
+      if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // 参考都市
+  ctx.fillStyle = "#9fb3cc";
+  REFERENCE_CITIES.forEach(c => {
+    const pt = projector.project(c[0], c[1]);
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawRoute(ctx, projector, waypoints, opts) {
+  opts = opts || {};
+  const color = opts.color || "#2e9e4f";
+  const width = opts.width || 4;
+  const dashed = opts.dashed || false;
+  const upTo = opts.upTo === undefined ? waypoints.length : opts.upTo;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  if (dashed) ctx.setLineDash([8, 6]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  for (let i = 0; i < upTo; i++) {
+    const p = projector.project(waypoints[i][0], waypoints[i][1]);
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMarker(ctx, projector, lat, lng, label, opts) {
+  opts = opts || {};
+  const p = projector.project(lat, lng);
+  ctx.save();
+  ctx.fillStyle = opts.color || "#2c5f9e";
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, opts.r || 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (label) {
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(label, p.x + 8, p.y - 4);
+  }
+  ctx.restore();
+}
+
+/* ================= 学習モード ================= */
+const studyCanvas = document.getElementById("study-canvas");
+const studyList = document.getElementById("study-hwy-list");
+const studyInfo = document.getElementById("study-info");
+let studyHighway = null;
+let studyAnimId = null;
+
+HIGHWAYS.forEach(h => {
+  const btn = document.createElement("button");
+  btn.textContent = h.number;
+  btn.addEventListener("click", () => selectStudyHighway(h, btn));
+  studyList.appendChild(btn);
+});
+
+function selectStudyHighway(h, btn) {
+  studyHighway = h;
+  [...studyList.children].forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  studyInfo.innerHTML =
+    `<strong>${h.number}</strong>：${h.startLabel} → ${h.endLabel}<br>` +
+    `<span class="pref">通過：${h.prefectures.join(" → ")}</span><br>` +
+    `${h.fact}`;
+  renderStudy(h, true);
+}
+
+function renderStudy(h, animate) {
+  const { ctx, width, height } = setupCanvas(studyCanvas);
+  const projector = makeProjector(width, height);
+  drawBase(ctx, width, height, projector);
+  if (!h) return;
+
+  if (studyAnimId) cancelAnimationFrame(studyAnimId);
+
+  if (!animate) {
+    drawRoute(ctx, projector, h.waypoints, { color: "#2e9e4f", width: 5 });
+    h.waypoints.forEach((w, i) => {
+      drawMarker(ctx, projector, w[0], w[1], w[2], {
+        color: i === 0 ? "#2c5f9e" : (i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f"),
+        r: i === 0 || i === h.waypoints.length - 1 ? 7 : 4
+      });
+    });
+    return;
+  }
+
+  let step = 0;
+  const totalSteps = 60;
+  function frame() {
+    const { ctx, width, height } = setupCanvas(studyCanvas);
+    const projector = makeProjector(width, height);
+    drawBase(ctx, width, height, projector);
+    const upToFloat = (step / totalSteps) * (h.waypoints.length - 1);
+    const upToIdx = Math.floor(upToFloat);
+    // 直線区間を部分的に補間して滑らかに見せる
+    const partial = h.waypoints.slice(0, upToIdx + 1).map(w => [w[0], w[1]]);
+    if (upToIdx < h.waypoints.length - 1) {
+      const a = h.waypoints[upToIdx], b = h.waypoints[upToIdx + 1];
+      const t = upToFloat - upToIdx;
+      partial.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+    }
+    drawRoute(ctx, projector, partial, { color: "#2e9e4f", width: 5 });
+    drawMarker(ctx, projector, h.waypoints[0][0], h.waypoints[0][1], h.waypoints[0][2], { color: "#2c5f9e", r: 7 });
+    if (step >= totalSteps) {
+      h.waypoints.forEach((w, i) => {
+        if (i === 0) return;
+        drawMarker(ctx, projector, w[0], w[1], w[2], {
+          color: i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f",
+          r: i === h.waypoints.length - 1 ? 7 : 4
+        });
+      });
+      return;
+    }
+    step++;
+    studyAnimId = requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+document.getElementById("study-replay").addEventListener("click", () => {
+  if (studyHighway) renderStudy(studyHighway, true);
+});
+
+/* ================= クイズモード ================= */
+const quizCanvas = document.getElementById("quiz-canvas");
+const quizPrompt = document.getElementById("quiz-prompt");
+const quizHintText = document.getElementById("quiz-hint");
+const quizResult = document.getElementById("quiz-result");
+const quizStatsEl = document.getElementById("quiz-stats");
+const btnStart = document.getElementById("quiz-start");
+const btnHint = document.getElementById("quiz-hint-btn");
+const btnRetry = document.getElementById("quiz-retry");
+const btnNext = document.getElementById("quiz-next");
+
+let currentHighway = null;
+let lastHighwayId = null;
+let hintUsed = false;
+let userPath = [];
+let tracing = false;
+let projectorRef = null;
+let answered = false;
+
+const STATS_KEY = "kokudoQuizStats.v1";
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { total: 0, correct: 0, byHighway: {} }; }
+  catch (e) { return { total: 0, correct: 0, byHighway: {} }; }
+}
+function saveStats(s) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) { /* ignore */ }
+}
+function renderStats() {
+  const s = loadStats();
+  const rate = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+  quizStatsEl.textContent = `正解 ${s.correct} / 出題 ${s.total}（正解率 ${rate}%）`;
+}
+renderStats();
+
+function pickHighway() {
+  let h;
+  do { h = HIGHWAYS[Math.floor(Math.random() * HIGHWAYS.length)]; }
+  while (HIGHWAYS.length > 1 && h.id === lastHighwayId);
+  lastHighwayId = h.id;
+  return h;
+}
+
+function startQuestion() {
+  currentHighway = pickHighway();
+  hintUsed = false;
+  userPath = [];
+  answered = false;
+  quizResult.className = "result";
+  quizResult.textContent = "";
+  quizHintText.textContent = "";
+  btnHint.disabled = false;
+  btnRetry.disabled = true;
+  btnNext.disabled = true;
+  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const { ctx, width, height } = setupCanvas(quizCanvas);
+  const projector = makeProjector(width, height);
+  projectorRef = projector;
+  drawBase(ctx, width, height, projector);
+  if (!currentHighway) return;
+
+  const h = currentHighway;
+  drawMarker(ctx, projector, h.waypoints[0][0], h.waypoints[0][1], h.waypoints[0][2], { color: "#2c5f9e", r: 8 });
+  if (hintUsed || answered) {
+    drawMarker(ctx, projector, h.waypoints[h.waypoints.length - 1][0], h.waypoints[h.waypoints.length - 1][1],
+      h.waypoints[h.waypoints.length - 1][2], { color: "#d0473e", r: 8 });
+  }
+  if (answered) {
+    drawRoute(ctx, projector, h.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
+  }
+  if (userPath.length > 1) {
+    ctx.save();
+    ctx.strokeStyle = "#2c5f9e";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    userPath.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ---- 採点ロジック ---- */
+function distPointToSeg(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = a.x + dx * t, cy = a.y + dy * t;
+  return Math.hypot(p.x - cx, p.y - cy);
+}
+function minDistToPath(p, path) {
+  let min = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    min = Math.min(min, distPointToSeg(p, path[i], path[i + 1]));
+  }
+  if (path.length === 1) min = Math.hypot(p.x - path[0].x, p.y - path[0].y);
+  return min;
+}
+function densify(points, step) {
+  if (points.length < 2) return points.slice();
+  const out = [points[0]];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i], b = points[i + 1];
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.max(1, Math.floor(d / step));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n;
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
+  }
+  return out;
+}
+
+function scoreAttempt(canvasWidth, canvasHeight) {
+  const h = currentHighway;
+  const officialPts = h.waypoints.map(w => projectorRef.project(w[0], w[1]));
+  const tolerance = Math.min(canvasWidth, canvasHeight) * 0.05;
+  const officialDense = densify(officialPts, 6);
+  const userDense = densify(userPath, 6);
+
+  let covered = 0;
+  officialDense.forEach(p => { if (minDistToPath(p, userDense.length ? userDense : [p]) <= tolerance) covered++; });
+  const coverage = officialDense.length ? covered / officialDense.length : 0;
+
+  let onRoute = 0;
+  userDense.forEach(p => { if (minDistToPath(p, officialDense) <= tolerance) onRoute++; });
+  const accuracy = userDense.length ? onRoute / userDense.length : 0;
+
+  const startPt = officialPts[0], endPt = officialPts[officialPts.length - 1];
+  const startOk = userPath.length && Math.hypot(userPath[0].x - startPt.x, userPath[0].y - startPt.y) <= tolerance * 1.6;
+  const endOk = userPath.length && Math.hypot(userPath[userPath.length - 1].x - endPt.x, userPath[userPath.length - 1].y - endPt.y) <= tolerance * 1.8;
+
+  let score = Math.round((coverage * 0.6 + accuracy * 0.4) * 100);
+  if (!startOk) score = Math.max(0, score - 15);
+  if (hintUsed) score = Math.min(score, 79);
+
+  let grade = "incorrect";
+  if (score >= 75 && endOk) grade = "correct";
+  else if (score >= 45) grade = "partial";
+
+  return { score, coverage, accuracy, startOk, endOk, grade };
+}
+
+function finishAttempt() {
+  const { width, height } = quizCanvas.parentElement.getBoundingClientRect();
+  const result = scoreAttempt(width, height);
+  answered = true;
+  renderQuiz();
+
+  const s = loadStats();
+  s.total++;
+  if (result.grade === "correct") s.correct++;
+  const hs = s.byHighway[currentHighway.id] || { attempts: 0, correct: 0 };
+  hs.attempts++;
+  if (result.grade === "correct") hs.correct++;
+  s.byHighway[currentHighway.id] = hs;
+  saveStats(s);
+  renderStats();
+
+  quizResult.className = "result show " + result.grade;
+  const pct = result.score;
+  if (result.grade === "correct") {
+    quizResult.innerHTML = `<strong>正解！</strong>（一致度 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${currentHighway.prefectures.slice(1).join("→")} を通り ${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
+  } else if (result.grade === "partial") {
+    quizResult.innerHTML = `<strong>惜しい！</strong>（一致度 ${pct}%）実際のルート（緑の点線）と見比べてみましょう。`;
+  } else {
+    quizResult.innerHTML = `<strong>もう少し！</strong>（一致度 ${pct}%）実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`;
+  }
+  btnHint.disabled = true;
+  btnRetry.disabled = false;
+  btnNext.disabled = false;
+}
+
+/* ---- ポインター操作 ---- */
+function getLocalPos(evt) {
+  const rect = quizCanvas.getBoundingClientRect();
+  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+}
+
+quizCanvas.addEventListener("pointerdown", evt => {
+  if (!currentHighway || answered) return;
+  const pos = getLocalPos(evt);
+  const start = projectorRef.project(currentHighway.waypoints[0][0], currentHighway.waypoints[0][1]);
+  const rect = quizCanvas.getBoundingClientRect();
+  const tolerance = Math.min(rect.width, rect.height) * 0.09;
+  if (Math.hypot(pos.x - start.x, pos.y - start.y) > tolerance) {
+    quizHintText.textContent = "青い始点マーカーからなぞり始めてください";
+    return;
+  }
+  tracing = true;
+  userPath = [pos];
+  quizHintText.textContent = "";
+  quizCanvas.setPointerCapture(evt.pointerId);
+  renderQuiz();
+});
+quizCanvas.addEventListener("pointermove", evt => {
+  if (!tracing) return;
+  userPath.push(getLocalPos(evt));
+  renderQuiz();
+});
+function endTrace(evt) {
+  if (!tracing) return;
+  tracing = false;
+  if (userPath.length < 2) { userPath = []; renderQuiz(); return; }
+  finishAttempt();
+}
+quizCanvas.addEventListener("pointerup", endTrace);
+quizCanvas.addEventListener("pointercancel", endTrace);
+
+btnStart.addEventListener("click", () => {
+  btnStart.textContent = "別の国道で挑戦";
+  startQuestion();
+});
+btnHint.addEventListener("click", () => {
+  hintUsed = true;
+  btnHint.disabled = true;
+  quizHintText.textContent = "終点を表示しました（正解の判定は少し厳しくなります）";
+  renderQuiz();
+});
+btnRetry.addEventListener("click", () => {
+  userPath = [];
+  answered = false;
+  quizResult.className = "result";
+  quizResult.textContent = "";
+  btnRetry.disabled = true;
+  btnNext.disabled = true;
+  renderQuiz();
+});
+btnNext.addEventListener("click", startQuestion);
+
+/* ================= タブ切替 ================= */
+const tabStudy = document.getElementById("tab-study");
+const tabQuiz = document.getElementById("tab-quiz");
+const panelStudy = document.getElementById("panel-study");
+const panelQuiz = document.getElementById("panel-quiz");
+tabStudy.addEventListener("click", () => {
+  tabStudy.classList.add("active"); tabQuiz.classList.remove("active");
+  panelStudy.hidden = false; panelQuiz.hidden = true;
+  if (studyHighway) renderStudy(studyHighway, false);
+});
+tabQuiz.addEventListener("click", () => {
+  tabQuiz.classList.add("active"); tabStudy.classList.remove("active");
+  panelQuiz.hidden = false; panelStudy.hidden = true;
+  if (currentHighway) renderQuiz();
+});
+
+/* ================= リサイズ対応 ================= */
+window.addEventListener("resize", () => {
+  if (!panelStudy.hidden) renderStudy(studyHighway, false);
+  if (!panelQuiz.hidden) renderQuiz();
+});
+
+/* 初期表示 */
+selectStudyHighway(HIGHWAYS[0], studyList.children[0]);
+</script>
+</body>
+</html>
