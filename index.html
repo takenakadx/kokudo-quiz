@@ -101,6 +101,27 @@
   }
   .leaflet-tooltip.route-label::before { display: none; }
 
+  .map-mode-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 600; /* オーバーレイcanvas(500)より前面に出し、どちらのモードでも押せるようにする */
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--blue-light);
+    background: #fff;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    touch-action: manipulation;
+  }
+  .map-mode-toggle.active {
+    background: var(--blue-light);
+    color: #fff;
+  }
+
   .hwy-list {
     display: flex;
     flex-wrap: wrap;
@@ -297,6 +318,7 @@
     <div class="map-wrap">
       <div id="quiz-map" class="leaflet-map"></div>
       <canvas id="quiz-overlay" class="overlay-canvas"></canvas>
+      <button id="map-mode-toggle" class="map-mode-toggle" type="button">🗺️ 地図を動かす</button>
     </div>
     <div class="hint-text" id="quiz-hint"></div>
     <div class="controls">
@@ -321,16 +343,18 @@
 
 const JAPAN_BOUNDS = [[24.0, 122.5], [45.9, 146.5]];
 
-/* ---------- Leaflet地図の初期化（パン/ズーム操作は無効化し、常に日本全体を同じ位置感覚で表示） ---------- */
-function createMap(containerId) {
+/* ---------- Leaflet地図の初期化 ----------
+   学習モードは常にpan/zoom自由。クイズモードは「なぞる」操作と1本指ドラッグが
+   衝突するため、既定ではpan/zoomを無効化し、モード切替ボタンで明示的に切り替える。 */
+function createMap(containerId, interactive) {
   const map = L.map(containerId, {
     zoomControl: false,
-    dragging: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    touchZoom: false,
+    dragging: !!interactive,
+    scrollWheelZoom: !!interactive,
+    doubleClickZoom: !!interactive,
+    boxZoom: !!interactive,
+    keyboard: !!interactive,
+    touchZoom: !!interactive,
     tap: false,
     attributionControl: true
   });
@@ -345,6 +369,13 @@ function createMap(containerId) {
 function refitMap(map) {
   map.invalidateSize();
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
+}
+
+// dragging/zoom系ハンドラーは常に存在するので、生成時のオプションに関わらずいつでも有効/無効を切り替えられる
+function setMapInteractive(map, enabled) {
+  ["dragging", "scrollWheelZoom", "doubleClickZoom", "touchZoom", "boxZoom"].forEach(key => {
+    if (map[key]) { enabled ? map[key].enable() : map[key].disable(); }
+  });
 }
 
 function projectorFor(map) {
@@ -422,7 +453,7 @@ function pathLength(points) {
 }
 
 /* ================= 学習モード ================= */
-const studyMap = createMap("study-map");
+const studyMap = createMap("study-map", true);
 const studyLayerGroup = L.layerGroup().addTo(studyMap);
 const studyList = document.getElementById("study-hwy-list");
 const studyInfo = document.getElementById("study-info");
@@ -502,7 +533,7 @@ document.getElementById("study-replay").addEventListener("click", () => {
 });
 
 /* ================= クイズモード ================= */
-const quizMap = createMap("quiz-map");
+const quizMap = createMap("quiz-map", false);
 const quizLayerGroup = L.layerGroup().addTo(quizMap);
 const quizProjector = projectorFor(quizMap);
 const quizOverlay = document.getElementById("quiz-overlay");
@@ -514,6 +545,29 @@ const btnStart = document.getElementById("quiz-start");
 const btnHint = document.getElementById("quiz-hint-btn");
 const btnRetry = document.getElementById("quiz-retry");
 const btnNext = document.getElementById("quiz-next");
+
+/* ---- 地図の移動モード ⇔ なぞって答えるモード ----
+   1本指ドラッグは「地図をpanする」操作と「なぞる」操作の両方の意味を持ちうるため、
+   ボタンで明示的にモードを切り替える。移動モード中はオーバーレイcanvasを
+   pointer-events:noneにしてLeafletへ操作を渡し、なぞるモードでは逆にする。 */
+const mapModeToggleBtn = document.getElementById("map-mode-toggle");
+let mapMoveMode = false;
+function setMapMoveMode(enabled) {
+  mapMoveMode = enabled;
+  setMapInteractive(quizMap, enabled);
+  quizOverlay.style.pointerEvents = enabled ? "none" : "auto";
+  mapModeToggleBtn.textContent = enabled ? "✏️ なぞって答える" : "🗺️ 地図を動かす";
+  mapModeToggleBtn.classList.toggle("active", enabled);
+  if (enabled) {
+    tracing = false;
+    quizHintText.textContent = "地図を動かせます（ボタンを押すとなぞる操作に戻ります）";
+  } else if (currentHighway) {
+    quizHintText.textContent = "";
+    updateOfficialDenseCache(); // pan/zoomで表示位置が変わっている可能性があるので再計算
+    renderQuiz();
+  }
+}
+mapModeToggleBtn.addEventListener("click", () => setMapMoveMode(!mapMoveMode));
 
 let currentHighway = null;
 let lastHighwayId = null;
@@ -685,11 +739,11 @@ function startQuestion() {
   btnRetry.disabled = true;
   btnNext.disabled = true;
   quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
+  refitMap(quizMap); // pan/zoomしていた場合も、毎回同じ構図(日本全体)からスタートする
   makeCircleMarker(quizLayerGroup, currentHighway.waypoints[0][0], currentHighway.waypoints[0][1], { color: "#2c5f9e", r: 8 });
-  updateOfficialDenseCache();
+  setMapMoveMode(false); // なぞるモードに戻す（内部でofficialDenseCacheの再計算・再描画も行う）
   inkGaugeWrap.hidden = false;
   renderInkGauge();
-  renderQuiz();
 }
 
 // なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズが変わったら呼び直す）
@@ -815,7 +869,7 @@ function getLocalPos(evt) {
 }
 
 quizOverlay.addEventListener("pointerdown", evt => {
-  if (!currentHighway || answered) return;
+  if (!currentHighway || answered || mapMoveMode) return;
   const pos = getLocalPos(evt);
   const start = quizProjector.project(currentHighway.waypoints[0][0], currentHighway.waypoints[0][1]);
   const rect = quizOverlay.getBoundingClientRect();
@@ -882,8 +936,9 @@ btnRetry.addEventListener("click", () => {
   quizResult.textContent = "";
   btnRetry.disabled = true;
   btnNext.disabled = true;
+  refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
+  setMapMoveMode(false);
   renderInkGauge();
-  renderQuiz();
 });
 btnNext.addEventListener("click", startQuestion);
 
