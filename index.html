@@ -525,6 +525,9 @@ let traceTolerance = 0;
 let tracing = false;
 let answered = false;
 
+// ペン幅（採点の許容範囲）を画面サイズに対する割合で決める。小さいほどシビアな判定・細いペンになる
+const TOLERANCE_RATIO = 0.032;
+
 /* ---- ペン残量（塗りつぶし対策） ---- */
 const INK_BUDGET_RATIO = 1.2; // 実ルート長の何倍までなぞれるか
 let routeLengthPx = 0;
@@ -695,7 +698,7 @@ function updateOfficialDenseCache() {
   const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
   const rect = quizOverlay.parentElement.getBoundingClientRect();
-  traceTolerance = Math.min(rect.width, rect.height) * 0.05;
+  traceTolerance = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
   routeLengthPx = pathLength(officialPts);
   inkBudget = routeLengthPx * INK_BUDGET_RATIO;
 }
@@ -751,7 +754,7 @@ function scoreAttempt() {
   const h = currentHighway;
   const officialPts = h.waypoints.map(w => quizProjector.project(w[0], w[1]));
   const rect = quizOverlay.parentElement.getBoundingClientRect();
-  const tolerance = Math.min(rect.width, rect.height) * 0.05;
+  const tolerance = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
   const officialDense = densify(officialPts, 6);
   const userDense = densify(userPath, 6);
 
