@@ -369,6 +369,9 @@ function createMap(containerId, interactive) {
 function refitMap(map) {
   map.invalidateSize();
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
+  // クイズ地図が「日本全体表示」に戻るたびに基準ズームを更新し、ペン幅のズーム追従の基準にする
+  // (refitMapはstartQuestion等、quizMap生成後にしか呼ばれないため参照して問題ない)
+  if (map === quizMap) quizBaseZoom = map.getZoom();
 }
 
 // dragging/zoom系ハンドラーは常に存在するので、生成時のオプションに関わらずいつでも有効/無効を切り替えられる
@@ -576,6 +579,7 @@ let userPath = [];
 let userOnRoute = [];
 let officialDenseCache = [];
 let traceTolerance = 0;
+let quizBaseZoom = null; // refitMap()で日本全体を表示したときのズームレベル。ペン幅をズームに追従させる基準にする
 let tracing = false;
 let answered = false;
 
@@ -753,13 +757,17 @@ function startQuestion() {
   renderInkGauge();
 }
 
-// なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズが変わったら呼び直す）
+// なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズ・ズームが変わったら呼び直す）
 function updateOfficialDenseCache() {
   if (!currentHighway) { officialDenseCache = []; routeLengthPx = 0; inkBudget = 0; return; }
   const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
   const rect = quizOverlay.parentElement.getBoundingClientRect();
-  traceTolerance = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
+  // ペン幅は「日本全体表示のときの画面サイズ比率」を基準とし、現在のズームレベルに合わせて拡大縮小する。
+  // 固定ピクセル数のままだと、拡大するほど実ルートが画面上で長くなり相対的にペンが細く(不利に)なってしまう。
+  const baseTolerancePx = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
+  const zoomScale = quizBaseZoom !== null ? quizMap.getZoomScale(quizMap.getZoom(), quizBaseZoom) : 1;
+  traceTolerance = baseTolerancePx * zoomScale;
   routeLengthPx = pathLength(officialPts);
   inkBudget = routeLengthPx * INK_BUDGET_RATIO;
 }
@@ -814,8 +822,9 @@ const GRADE_PARTIAL = 50;
 function scoreAttempt() {
   const h = currentHighway;
   const officialPts = h.waypoints.map(w => quizProjector.project(w[0], w[1]));
-  const rect = quizOverlay.parentElement.getBoundingClientRect();
-  const tolerance = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
+  // traceTolerance は updateOfficialDenseCache() でズームに応じて計算済みの値をそのまま使う
+  // （なぞっている最中の視覚フィードバックと採点の許容範囲を必ず一致させるため）
+  const tolerance = traceTolerance;
   const officialDense = densify(officialPts, 6);
   const userDense = densify(userPath, 6);
 
