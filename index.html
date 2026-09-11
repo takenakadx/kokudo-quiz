@@ -369,9 +369,6 @@ function createMap(containerId, interactive) {
 function refitMap(map) {
   map.invalidateSize();
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
-  // クイズ地図が「日本全体表示」に戻るたびに基準ズームを更新し、ペン幅のズーム追従の基準にする
-  // (refitMapはstartQuestion等、quizMap生成後にしか呼ばれないため参照して問題ない)
-  if (map === quizMap) quizBaseZoom = map.getZoom();
 }
 
 // dragging/zoom系ハンドラーは常に存在するので、生成時のオプションに関わらずいつでも有効/無効を切り替えられる
@@ -579,12 +576,14 @@ let userPath = [];
 let userOnRoute = [];
 let officialDenseCache = [];
 let traceTolerance = 0;
-let quizBaseZoom = null; // refitMap()で日本全体を表示したときのズームレベル。ペン幅をズームに追従させる基準にする
 let tracing = false;
 let answered = false;
 
-// ペン幅（採点の許容範囲）を画面サイズに対する割合で決める。小さいほどシビアな判定・細いペンになる
-const TOLERANCE_RATIO = 0.032;
+// ペン幅（採点の許容範囲）は、出題ルート自身の画面上の長さに比例させる。
+// 国道が長いほどペンも太く、短いほど細くなる。routeLengthPxは現在のズーム/パン状態での
+// 投影後の長さなので、ズームすればするほどペンも自動的に太くなり不利にならない。
+// 国道4号(東京-青森)を基準に、以前の太さからおよそ20%細くなるよう調整した値。
+const TOLERANCE_TO_ROUTE_RATIO = 0.103;
 
 /* ---- ペン残量（塗りつぶし対策） ---- */
 const INK_BUDGET_RATIO = 1.2; // 実ルート長の何倍までなぞれるか
@@ -762,13 +761,9 @@ function updateOfficialDenseCache() {
   if (!currentHighway) { officialDenseCache = []; routeLengthPx = 0; inkBudget = 0; return; }
   const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
-  const rect = quizOverlay.parentElement.getBoundingClientRect();
-  // ペン幅は「日本全体表示のときの画面サイズ比率」を基準とし、現在のズームレベルに合わせて拡大縮小する。
-  // 固定ピクセル数のままだと、拡大するほど実ルートが画面上で長くなり相対的にペンが細く(不利に)なってしまう。
-  const baseTolerancePx = Math.min(rect.width, rect.height) * TOLERANCE_RATIO;
-  const zoomScale = quizBaseZoom !== null ? quizMap.getZoomScale(quizMap.getZoom(), quizBaseZoom) : 1;
-  traceTolerance = baseTolerancePx * zoomScale;
   routeLengthPx = pathLength(officialPts);
+  // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
+  traceTolerance = Math.max(3, routeLengthPx * TOLERANCE_TO_ROUTE_RATIO);
   inkBudget = routeLengthPx * INK_BUDGET_RATIO;
 }
 
