@@ -224,6 +224,27 @@
     margin-top: 6px;
     min-height: 16px;
   }
+  .ink-gauge-wrap { margin-bottom: 10px; }
+  .ink-gauge-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .ink-gauge-track {
+    height: 8px;
+    border-radius: 999px;
+    background: #e3ebf7;
+    overflow: hidden;
+  }
+  .ink-gauge-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--blue-light);
+    border-radius: 999px;
+    transition: width 0.08s linear, background-color 0.2s;
+  }
+  .ink-gauge-fill.low { background: var(--red); }
   footer {
     text-align: center;
     font-size: 11px;
@@ -269,6 +290,10 @@
       <button class="sound-toggle" id="sound-toggle" aria-label="効果音の切り替え" title="効果音の切り替え">🔊</button>
     </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
+    <div class="ink-gauge-wrap" id="ink-gauge-wrap" hidden>
+      <div class="ink-gauge-label">ペン残量 <span id="ink-gauge-pct">100%</span></div>
+      <div class="ink-gauge-track"><div class="ink-gauge-fill" id="ink-gauge-fill"></div></div>
+    </div>
     <div class="map-wrap">
       <div id="quiz-map" class="leaflet-map"></div>
       <canvas id="quiz-overlay" class="overlay-canvas"></canvas>
@@ -390,6 +415,11 @@ function densify(points, step) {
   }
   return out;
 }
+function pathLength(points) {
+  let len = 0;
+  for (let i = 1; i < points.length; i++) len += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  return len;
+}
 
 /* ================= 学習モード ================= */
 const studyMap = createMap("study-map");
@@ -494,6 +524,22 @@ let officialDenseCache = [];
 let traceTolerance = 0;
 let tracing = false;
 let answered = false;
+
+/* ---- ペン残量（塗りつぶし対策） ---- */
+const INK_BUDGET_RATIO = 1.2; // 実ルート長の何倍までなぞれるか
+let routeLengthPx = 0;
+let inkBudget = 0;
+let drawnLength = 0;
+let penEmpty = false;
+const inkGaugeWrap = document.getElementById("ink-gauge-wrap");
+const inkGaugeFill = document.getElementById("ink-gauge-fill");
+const inkGaugePct = document.getElementById("ink-gauge-pct");
+function renderInkGauge() {
+  const remainRatio = inkBudget > 0 ? Math.max(0, 1 - drawnLength / inkBudget) : 1;
+  inkGaugeFill.style.width = (remainRatio * 100) + "%";
+  inkGaugePct.textContent = Math.round(remainRatio * 100) + "%";
+  inkGaugeFill.classList.toggle("low", remainRatio < 0.2);
+}
 
 /* ---- 難易度フィルター ---- */
 const DIFF_KEY = "kokudoQuizDifficulty.v1";
@@ -625,6 +671,8 @@ function startQuestion() {
   hintUsed = false;
   userPath = [];
   userOnRoute = [];
+  drawnLength = 0;
+  penEmpty = false;
   answered = false;
   quizLayerGroup.clearLayers();
   quizResult.className = "result";
@@ -636,16 +684,20 @@ function startQuestion() {
   quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
   makeCircleMarker(quizLayerGroup, currentHighway.waypoints[0][0], currentHighway.waypoints[0][1], { color: "#2c5f9e", r: 8 });
   updateOfficialDenseCache();
+  inkGaugeWrap.hidden = false;
+  renderInkGauge();
   renderQuiz();
 }
 
-// なぞっている最中にリアルタイムで逸脱チェックするための下ごしらえ（地図のサイズが変わったら呼び直す）
+// なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズが変わったら呼び直す）
 function updateOfficialDenseCache() {
-  if (!currentHighway) { officialDenseCache = []; return; }
+  if (!currentHighway) { officialDenseCache = []; routeLengthPx = 0; inkBudget = 0; return; }
   const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
   const rect = quizOverlay.parentElement.getBoundingClientRect();
   traceTolerance = Math.min(rect.width, rect.height) * 0.05;
+  routeLengthPx = pathLength(officialPts);
+  inkBudget = routeLengthPx * INK_BUDGET_RATIO;
 }
 
 function showEndMarker() {
@@ -659,20 +711,42 @@ function renderQuiz() {
   ctx.clearRect(0, 0, width, height);
   if (userPath.length > 1) {
     ctx.save();
-    ctx.lineWidth = 4;
+    // ペンの実際の太さ（採点で「ルートが含まれるか」を判定する幅と同じ）を半透明の帯として見せる
+    ctx.lineWidth = Math.max(6, traceTolerance * 2);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    for (let i = 1; i < userPath.length; i++) {
-      ctx.strokeStyle = userOnRoute[i] === false ? "#d0473e" : "#2c5f9e";
+    ctx.globalAlpha = 0.35;
+    let i = 1;
+    while (i < userPath.length) {
+      const onRoute = userOnRoute[i] !== false;
+      ctx.strokeStyle = onRoute ? "#2c5f9e" : "#d0473e";
       ctx.beginPath();
       ctx.moveTo(userPath[i - 1].x, userPath[i - 1].y);
-      ctx.lineTo(userPath[i].x, userPath[i].y);
+      let j = i;
+      while (j < userPath.length && (userOnRoute[j] !== false) === onRoute) {
+        ctx.lineTo(userPath[j].x, userPath[j].y);
+        j++;
+      }
       ctx.stroke();
+      i = j;
     }
+    // 軌跡の芯（実際に指が通った位置）を細い線で重ねて見やすくする
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#1a3a63";
+    ctx.beginPath();
+    userPath.forEach((p, idx) => { if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
     ctx.restore();
   }
 }
 
+const GRADE_CORRECT = 80;
+const GRADE_PARTIAL = 50;
+
+// 採点：なぞった軌跡を「太さのあるペンで塗った帯」とみなし、実ルートがどれだけその帯に
+// 含まれるか（カバー率）だけをスコアとする。ペン長は開始時に実ルート長の120%に制限済みなので、
+// 塗りつぶして稼ぐことができず、従来の「軌跡が経路上にあるか(accuracy)」の別判定は不要になる。
 function scoreAttempt() {
   const h = currentHighway;
   const officialPts = h.waypoints.map(w => quizProjector.project(w[0], w[1]));
@@ -685,23 +759,14 @@ function scoreAttempt() {
   officialDense.forEach(p => { if (minDistToPath(p, userDense.length ? userDense : [p]) <= tolerance) covered++; });
   const coverage = officialDense.length ? covered / officialDense.length : 0;
 
-  let onRoute = 0;
-  userDense.forEach(p => { if (minDistToPath(p, officialDense) <= tolerance) onRoute++; });
-  const accuracy = userDense.length ? onRoute / userDense.length : 0;
-
-  const startPt = officialPts[0], endPt = officialPts[officialPts.length - 1];
-  const startOk = userPath.length && Math.hypot(userPath[0].x - startPt.x, userPath[0].y - startPt.y) <= tolerance * 1.6;
-  const endOk = userPath.length && Math.hypot(userPath[userPath.length - 1].x - endPt.x, userPath[userPath.length - 1].y - endPt.y) <= tolerance * 1.8;
-
-  let score = Math.round((coverage * 0.6 + accuracy * 0.4) * 100);
-  if (!startOk) score = Math.max(0, score - 15);
+  let score = Math.round(coverage * 100);
   if (hintUsed) score = Math.min(score, 79);
 
   let grade = "incorrect";
-  if (score >= 75 && endOk) grade = "correct";
-  else if (score >= 45) grade = "partial";
+  if (score >= GRADE_CORRECT) grade = "correct";
+  else if (score >= GRADE_PARTIAL) grade = "partial";
 
-  return { score, coverage, accuracy, startOk, endOk, grade };
+  return { score, coverage, grade };
 }
 
 function finishAttempt() {
@@ -727,12 +792,13 @@ function finishAttempt() {
 
   quizResult.className = "result show " + result.grade;
   const pct = result.score;
+  const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
   if (result.grade === "correct") {
-    quizResult.innerHTML = `<strong>正解！</strong>（一致度 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${currentHighway.prefectures.slice(1).join("→")} を通り ${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
+    quizResult.innerHTML = `<strong>正解！</strong>（ルート網羅率 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${currentHighway.prefectures.slice(1).join("→")} を通り ${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
   } else if (result.grade === "partial") {
-    quizResult.innerHTML = `<strong>惜しい！</strong>（一致度 ${pct}%）実際のルート（緑の点線）と見比べてみましょう。`;
+    quizResult.innerHTML = `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`;
   } else {
-    quizResult.innerHTML = `<strong>もう少し！</strong>（一致度 ${pct}%）実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`;
+    quizResult.innerHTML = `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`;
   }
   btnHint.disabled = true;
   btnRetry.disabled = false;
@@ -763,12 +829,25 @@ quizOverlay.addEventListener("pointerdown", evt => {
   renderQuiz();
 });
 quizOverlay.addEventListener("pointermove", evt => {
-  if (!tracing) return;
+  if (!tracing || penEmpty) return;
   const pos = getLocalPos(evt);
-  userPath.push(pos);
-  const onRoute = officialDenseCache.length ? minDistToPath(pos, officialDenseCache) <= traceTolerance : true;
+  const last = userPath[userPath.length - 1];
+  const segDist = Math.hypot(pos.x - last.x, pos.y - last.y);
+  let finalPos = pos;
+  if (drawnLength + segDist >= inkBudget) {
+    const remain = Math.max(0, inkBudget - drawnLength);
+    const t = segDist > 0 ? remain / segDist : 0;
+    finalPos = { x: last.x + (pos.x - last.x) * t, y: last.y + (pos.y - last.y) * t };
+    drawnLength = inkBudget;
+    penEmpty = true;
+  } else {
+    drawnLength += segDist;
+  }
+  userPath.push(finalPos);
+  const onRoute = officialDenseCache.length ? minDistToPath(finalPos, officialDenseCache) <= traceTolerance : true;
   userOnRoute.push(onRoute);
-  quizHintText.textContent = onRoute ? "" : "ルートから外れています…";
+  quizHintText.textContent = penEmpty ? "ペンがなくなりました。指を離すと採点されます" : (onRoute ? "" : "ルートから外れています…");
+  renderInkGauge();
   renderQuiz();
 });
 function endTrace(evt) {
@@ -793,11 +872,14 @@ btnHint.addEventListener("click", () => {
 btnRetry.addEventListener("click", () => {
   userPath = [];
   userOnRoute = [];
+  drawnLength = 0;
+  penEmpty = false;
   answered = false;
   quizResult.className = "result";
   quizResult.textContent = "";
   btnRetry.disabled = true;
   btnNext.disabled = true;
+  renderInkGauge();
   renderQuiz();
 });
 btnNext.addEventListener("click", startQuestion);
