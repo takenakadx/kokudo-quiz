@@ -91,13 +91,15 @@
     margin-bottom: 10px;
   }
   .hwy-list button {
-    padding: 6px 10px;
+    padding: 8px 12px;
+    min-height: 36px;
     border-radius: 999px;
     border: 1px solid var(--blue-light);
     background: #fff;
     color: var(--blue);
     font-size: 13px;
     cursor: pointer;
+    touch-action: manipulation;
   }
   .hwy-list button.active {
     background: var(--blue-light);
@@ -136,6 +138,7 @@
   .controls button {
     flex: 1;
     min-width: 90px;
+    min-height: 44px;
     padding: 10px;
     border-radius: 8px;
     border: 1px solid var(--blue-light);
@@ -143,6 +146,7 @@
     color: var(--blue);
     font-size: 14px;
     cursor: pointer;
+    touch-action: manipulation;
   }
   .controls button.primary {
     background: var(--blue-light);
@@ -161,7 +165,12 @@
     line-height: 1.6;
     display: none;
   }
-  .result.show { display: block; }
+  .result.show { display: block; animation: resultPop 0.28s ease-out; }
+  @keyframes resultPop {
+    0% { transform: scale(0.92); opacity: 0; }
+    60% { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
   .result.correct { background: #e9f8ee; border: 1px solid var(--green); color: #1d6b34; }
   .result.partial { background: #fdf5e3; border: 1px solid var(--amber); color: #8a6209; }
   .result.incorrect { background: #fdecea; border: 1px solid var(--red); color: #9c2f27; }
@@ -179,6 +188,24 @@
     margin-top: 6px;
     min-height: 16px;
   }
+  .quiz-top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .quiz-top-row .hwy-list { flex: 1; margin-bottom: 0; }
+  .sound-toggle {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .sound-toggle.muted { color: var(--muted); }
   footer {
     text-align: center;
     font-size: 11px;
@@ -214,11 +241,14 @@
 
   <!-- クイズモード -->
   <section id="panel-quiz" class="panel" hidden>
-    <div class="hwy-list" id="quiz-diff-list">
-      <button data-diff="">すべて</button>
-      <button data-diff="1">かんたん</button>
-      <button data-diff="2">ふつう</button>
-      <button data-diff="3">むずかしい</button>
+    <div class="quiz-top-row">
+      <div class="hwy-list" id="quiz-diff-list">
+        <button data-diff="">すべて</button>
+        <button data-diff="1">かんたん</button>
+        <button data-diff="2">ふつう</button>
+        <button data-diff="3">むずかしい</button>
+      </div>
+      <button class="sound-toggle" id="sound-toggle" aria-label="効果音の切り替え" title="効果音の切り替え">🔊</button>
     </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
     <div class="map-wrap">
@@ -278,6 +308,25 @@ function setupCanvas(canvas) {
   return { ctx, width: rect.width, height: rect.height };
 }
 
+// 点列をCatmull-Romスプラインで滑らかな閉曲線として描く（手描き風の自然な海岸線に見せるため）
+function smoothClosedPath(ctx, pts) {
+  const n = pts.length;
+  if (n < 3) {
+    pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    return;
+  }
+  ctx.moveTo((pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const cp1x = p1.x + (p2.x - p0.x) / 6, cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6, cp2y = p2.y - (p3.y - p1.y) / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+}
+
 function drawBase(ctx, width, height, projector) {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#eaf1fb";
@@ -288,11 +337,9 @@ function drawBase(ctx, width, height, projector) {
   ctx.strokeStyle = "#c3d6ee";
   ctx.lineWidth = 1;
   JAPAN_SILHOUETTE.forEach(island => {
+    const pts = island.points.map(p => projector.project(p[0], p[1]));
     ctx.beginPath();
-    island.points.forEach((p, i) => {
-      const pt = projector.project(p[0], p[1]);
-      if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
-    });
+    smoothClosedPath(ctx, pts);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -446,9 +493,63 @@ let currentHighway = null;
 let lastHighwayId = null;
 let hintUsed = false;
 let userPath = [];
+let userOnRoute = [];
+let officialDenseCache = [];
+let traceTolerance = 0;
 let tracing = false;
 let projectorRef = null;
 let answered = false;
+
+/* ---- 効果音（Web Audio APIで簡易生成。音声ファイルは使わない） ---- */
+const SOUND_KEY = "kokudoQuizSoundEnabled.v1";
+const soundToggleBtn = document.getElementById("sound-toggle");
+let soundEnabled = true;
+try {
+  const v = localStorage.getItem(SOUND_KEY);
+  if (v !== null) soundEnabled = v === "1";
+} catch (e) { /* ignore */ }
+
+let audioCtx = null;
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  return audioCtx;
+}
+function playTone(freqs, duration) {
+  if (!soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  if (!ctx) return;
+  freqs.forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = f;
+    const start = ctx.currentTime + i * duration * 0.9;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.15, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration);
+  });
+}
+function playCorrectSound() { playTone([523.25, 659.25, 783.99], 0.14); }
+function playPartialSound() { playTone([440, 392], 0.16); }
+function playIncorrectSound() { playTone([220, 174.6], 0.2); }
+
+function renderSoundToggle() {
+  soundToggleBtn.textContent = soundEnabled ? "🔊" : "🔇";
+  soundToggleBtn.classList.toggle("muted", !soundEnabled);
+}
+soundToggleBtn.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem(SOUND_KEY, soundEnabled ? "1" : "0"); } catch (e) { /* ignore */ }
+  renderSoundToggle();
+  if (soundEnabled) playTone([659.25], 0.1);
+});
+renderSoundToggle();
 
 /* ---- 難易度フィルター ---- */
 const DIFF_KEY = "kokudoQuizDifficulty.v1";
@@ -518,6 +619,7 @@ function startQuestion() {
   currentHighway = pickHighway();
   hintUsed = false;
   userPath = [];
+  userOnRoute = [];
   answered = false;
   quizResult.className = "result";
   quizResult.textContent = "";
@@ -527,6 +629,16 @@ function startQuestion() {
   btnNext.disabled = true;
   quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
   renderQuiz();
+  updateOfficialDenseCache();
+}
+
+// なぞっている最中にリアルタイムで逸脱チェックするための下ごしらえ（キャンバスサイズが変わったら呼び直す）
+function updateOfficialDenseCache() {
+  if (!currentHighway || !projectorRef) { officialDenseCache = []; return; }
+  const officialPts = currentHighway.waypoints.map(w => projectorRef.project(w[0], w[1]));
+  officialDenseCache = densify(officialPts, 6);
+  const rect = quizCanvas.getBoundingClientRect();
+  traceTolerance = Math.min(rect.width, rect.height) * 0.05;
 }
 
 function renderQuiz() {
@@ -547,13 +659,16 @@ function renderQuiz() {
   }
   if (userPath.length > 1) {
     ctx.save();
-    ctx.strokeStyle = "#2c5f9e";
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.beginPath();
-    userPath.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
-    ctx.stroke();
+    for (let i = 1; i < userPath.length; i++) {
+      ctx.strokeStyle = userOnRoute[i] === false ? "#d0473e" : "#2c5f9e";
+      ctx.beginPath();
+      ctx.moveTo(userPath[i - 1].x, userPath[i - 1].y);
+      ctx.lineTo(userPath[i].x, userPath[i].y);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }
@@ -624,7 +739,11 @@ function finishAttempt() {
   const { width, height } = quizCanvas.parentElement.getBoundingClientRect();
   const result = scoreAttempt(width, height);
   answered = true;
+  quizHintText.textContent = "";
   renderQuiz();
+  if (result.grade === "correct") playCorrectSound();
+  else if (result.grade === "partial") playPartialSound();
+  else playIncorrectSound();
 
   const s = loadStats();
   s.total++;
@@ -668,13 +787,18 @@ quizCanvas.addEventListener("pointerdown", evt => {
   }
   tracing = true;
   userPath = [pos];
+  userOnRoute = [true];
   quizHintText.textContent = "";
   quizCanvas.setPointerCapture(evt.pointerId);
   renderQuiz();
 });
 quizCanvas.addEventListener("pointermove", evt => {
   if (!tracing) return;
-  userPath.push(getLocalPos(evt));
+  const pos = getLocalPos(evt);
+  userPath.push(pos);
+  const onRoute = officialDenseCache.length ? minDistToPath(pos, officialDenseCache) <= traceTolerance : true;
+  userOnRoute.push(onRoute);
+  quizHintText.textContent = onRoute ? "" : "ルートから外れています…";
   renderQuiz();
 });
 function endTrace(evt) {
@@ -698,6 +822,7 @@ btnHint.addEventListener("click", () => {
 });
 btnRetry.addEventListener("click", () => {
   userPath = [];
+  userOnRoute = [];
   answered = false;
   quizResult.className = "result";
   quizResult.textContent = "";
@@ -720,13 +845,13 @@ tabStudy.addEventListener("click", () => {
 tabQuiz.addEventListener("click", () => {
   tabQuiz.classList.add("active"); tabStudy.classList.remove("active");
   panelQuiz.hidden = false; panelStudy.hidden = true;
-  if (currentHighway) renderQuiz();
+  if (currentHighway) { renderQuiz(); updateOfficialDenseCache(); }
 });
 
 /* ================= リサイズ対応 ================= */
 window.addEventListener("resize", () => {
   if (!panelStudy.hidden) renderStudy(studyHighway, false);
-  if (!panelQuiz.hidden) renderQuiz();
+  if (!panelQuiz.hidden) { renderQuiz(); updateOfficialDenseCache(); }
 });
 
 /* 初期表示 */
