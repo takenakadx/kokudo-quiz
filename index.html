@@ -750,7 +750,7 @@ function startQuestion() {
   btnNext.disabled = true;
   renderQuizPrompt();
   refitMap(quizMap); // pan/zoomしていた場合も、毎回同じ構図(日本全体)からスタートする
-  makeCircleMarker(quizLayerGroup, currentHighway.waypoints[0][0], currentHighway.waypoints[0][1], { color: "#2c5f9e", r: 8 });
+  // 起点はヒントを使うか回答するまでは地図上にも表示しない（覚えているかどうかを試すため）
   setMapMoveMode(false); // なぞるモードに戻す（内部でofficialDenseCacheの再計算・再描画も行う）
   inkGaugeWrap.hidden = false;
   renderInkGauge();
@@ -767,9 +767,12 @@ function updateOfficialDenseCache() {
   inkBudget = routeLengthPx * INK_BUDGET_RATIO;
 }
 
-function showEndMarker() {
+// ヒントを使うか回答したときに、起点・終点マーカーをまとめて表示する
+function revealMarkers() {
   const h = currentHighway;
+  const first = h.waypoints[0];
   const last = h.waypoints[h.waypoints.length - 1];
+  makeCircleMarker(quizLayerGroup, first[0], first[1], { color: "#2c5f9e", r: 8 });
   makeCircleMarker(quizLayerGroup, last[0], last[1], { color: "#d0473e", r: 8 });
 }
 
@@ -848,7 +851,7 @@ function finishAttempt() {
   const result = scoreAttempt();
   answered = true;
   quizHintText.textContent = "";
-  showEndMarker();
+  revealMarkers();
   makePolyline(quizLayerGroup, currentHighway.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
   renderQuizPrompt();
   renderQuiz();
@@ -894,7 +897,9 @@ quizOverlay.addEventListener("pointerdown", evt => {
   const rect = quizOverlay.getBoundingClientRect();
   const tolerance = Math.min(rect.width, rect.height) * 0.09;
   if (Math.hypot(pos.x - start.x, pos.y - start.y) > tolerance) {
-    quizHintText.textContent = "青い始点マーカーからなぞり始めてください";
+    quizHintText.textContent = hintUsed
+      ? "青い始点マーカーからなぞり始めてください"
+      : "起点だと思う場所からなぞり始めてください（分からなければヒントを使いましょう）";
     return;
   }
   tracing = true;
@@ -942,8 +947,8 @@ btnStart.addEventListener("click", () => {
 btnHint.addEventListener("click", () => {
   hintUsed = true;
   btnHint.disabled = true;
-  quizHintText.textContent = "都市名と終点を表示しました（「正解」判定にはならず、スコアも半分になります）";
-  showEndMarker();
+  quizHintText.textContent = "都市名と起点・終点を表示しました（「正解」判定にはならず、スコアも半分になります）";
+  revealMarkers();
   renderQuizPrompt();
 });
 btnRetry.addEventListener("click", () => {
