@@ -323,7 +323,7 @@
     <div class="hint-text" id="quiz-hint"></div>
     <div class="controls">
       <button id="quiz-start" class="primary">クイズを始める</button>
-      <button id="quiz-hint-btn" disabled>ヒント（終点を表示）</button>
+      <button id="quiz-hint-btn" disabled>ヒント（都市名を表示）</button>
       <button id="quiz-retry" disabled>もう一度なぞる</button>
       <button id="quiz-next" disabled>次の問題へ</button>
     </div>
@@ -723,6 +723,13 @@ function setupOverlay() {
   return { ctx, width: rect.width, height: rect.height };
 }
 
+// 起点・終点の都市名は、ヒントを使うか回答するまでは隠す（地図上の始点マーカーだけが手がかり）
+function renderQuizPrompt() {
+  const showRoute = hintUsed || answered;
+  const routeText = showRoute ? `：${currentHighway.startLabel} → ${currentHighway.endLabel}` : "";
+  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}${routeText}`;
+}
+
 function startQuestion() {
   currentHighway = pickHighway();
   hintUsed = false;
@@ -738,7 +745,7 @@ function startQuestion() {
   btnHint.disabled = false;
   btnRetry.disabled = true;
   btnNext.disabled = true;
-  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
+  renderQuizPrompt();
   refitMap(quizMap); // pan/zoomしていた場合も、毎回同じ構図(日本全体)からスタートする
   makeCircleMarker(quizLayerGroup, currentHighway.waypoints[0][0], currentHighway.waypoints[0][1], { color: "#2c5f9e", r: 8 });
   setMapMoveMode(false); // なぞるモードに戻す（内部でofficialDenseCacheの再計算・再描画も行う）
@@ -816,12 +823,19 @@ function scoreAttempt() {
   officialDense.forEach(p => { if (minDistToPath(p, userDense.length ? userDense : [p]) <= tolerance) covered++; });
   const coverage = officialDense.length ? covered / officialDense.length : 0;
 
-  let score = Math.round(coverage * 100);
-  if (hintUsed) score = Math.min(score, 79);
-
+  // まず生スコア（ヒント補正前）で合否を判定してから、ヒントのペナルティを適用する。
+  // 生スコアを直接0.5倍してから判定すると、網羅率95%のような好成績でもヒント使用時に
+  // しきい値をまたいで「もう少し」まで落ちてしまうため、判定と表示スコアの補正を分離する。
+  const rawScore = Math.round(coverage * 100);
   let grade = "incorrect";
-  if (score >= GRADE_CORRECT) grade = "correct";
-  else if (score >= GRADE_PARTIAL) grade = "partial";
+  if (rawScore >= GRADE_CORRECT) grade = "correct";
+  else if (rawScore >= GRADE_PARTIAL) grade = "partial";
+
+  let score = rawScore;
+  if (hintUsed) {
+    if (grade === "correct") grade = "partial"; // ヒントを使うと「正解」判定にはならない
+    score = Math.round(rawScore * 0.5); // 表示スコアはペナルティとして半分にする
+  }
 
   return { score, coverage, grade };
 }
@@ -832,6 +846,7 @@ function finishAttempt() {
   quizHintText.textContent = "";
   showEndMarker();
   makePolyline(quizLayerGroup, currentHighway.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
+  renderQuizPrompt();
   renderQuiz();
   if (result.grade === "correct") playCorrectSound();
   else if (result.grade === "partial") playPartialSound();
@@ -923,8 +938,9 @@ btnStart.addEventListener("click", () => {
 btnHint.addEventListener("click", () => {
   hintUsed = true;
   btnHint.disabled = true;
-  quizHintText.textContent = "終点を表示しました（正解の判定は少し厳しくなります）";
+  quizHintText.textContent = "都市名と終点を表示しました（「正解」判定にはならず、スコアも半分になります）";
   showEndMarker();
+  renderQuizPrompt();
 });
 btnRetry.addEventListener("click", () => {
   userPath = [];
