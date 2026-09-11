@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>国道クイズ - 指でなぞって覚える</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root {
     --blue: #2c5f9e;
@@ -80,9 +81,25 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
-    touch-action: none;
   }
-  canvas { display: block; width: 100%; height: 100%; }
+  .leaflet-map { position: absolute; inset: 0; width: 100%; height: 100%; background: #eaf1fb; }
+  .overlay-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    z-index: 500; /* Leafletのpane/controlより前面に出してポインター操作を横取りする */
+  }
+  .leaflet-tooltip.route-label {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font: bold 11px sans-serif;
+    color: #1a1a1a;
+  }
+  .leaflet-tooltip.route-label::before { display: none; }
 
   .hwy-list {
     display: flex;
@@ -128,6 +145,25 @@
   }
   .prompt-banner .num { color: var(--blue); }
   .diff-badge { font-size: 12px; color: var(--amber); margin-left: 4px; vertical-align: middle; }
+
+  .quiz-top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .quiz-top-row .hwy-list { flex: 1; margin-bottom: 0; }
+  .sound-toggle {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .sound-toggle.muted { color: var(--muted); }
 
   .controls {
     display: flex;
@@ -188,24 +224,6 @@
     margin-top: 6px;
     min-height: 16px;
   }
-  .quiz-top-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .quiz-top-row .hwy-list { flex: 1; margin-bottom: 0; }
-  .sound-toggle {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: #fff;
-    font-size: 16px;
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  .sound-toggle.muted { color: var(--muted); }
   footer {
     text-align: center;
     font-size: 11px;
@@ -231,7 +249,7 @@
   <section id="panel-study" class="panel">
     <div class="hwy-list" id="study-hwy-list"></div>
     <div class="map-wrap">
-      <canvas id="study-canvas"></canvas>
+      <div id="study-map" class="leaflet-map"></div>
     </div>
     <div class="info-box" id="study-info">左のボタンから国道を選んでください。</div>
     <div class="controls">
@@ -252,7 +270,8 @@
     </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
     <div class="map-wrap">
-      <canvas id="quiz-canvas"></canvas>
+      <div id="quiz-map" class="leaflet-map"></div>
+      <canvas id="quiz-overlay" class="overlay-canvas"></canvas>
     </div>
     <div class="hint-text" id="quiz-hint"></div>
     <div class="controls">
@@ -267,142 +286,119 @@
 </main>
 
 <footer>
-  データはすべて端末内(localStorage)にのみ保存されます。ルートは学習用に主要都市を結んだ簡略ルートです。
+  地図タイルは OpenStreetMap から読み込みます（インターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。ルートは学習用に主要都市を結んだ簡略ルートです。
 </footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="highways-data.js"></script>
 <script>
 "use strict";
 
-/* ---------- 座標変換（日本全体を固定の範囲で描画。ズームせず常に同じ位置感覚で学べる） ---------- */
-const BOUNDS = { latMin: 24.0, latMax: 45.9, lngMin: 122.5, lngMax: 146.5 };
-const COS_LAT = Math.cos((BOUNDS.latMin + BOUNDS.latMax) / 2 * Math.PI / 180);
+const JAPAN_BOUNDS = [[24.0, 122.5], [45.9, 146.5]];
 
-function makeProjector(width, height) {
-  const pad = Math.min(width, height) * 0.06;
-  const lngSpan = (BOUNDS.lngMax - BOUNDS.lngMin) * COS_LAT;
-  const latSpan = (BOUNDS.latMax - BOUNDS.latMin);
-  const scale = Math.min((width - 2 * pad) / lngSpan, (height - 2 * pad) / latSpan);
-  const offX = pad + ((width - 2 * pad) - lngSpan * scale) / 2;
-  const offY = pad + ((height - 2 * pad) - latSpan * scale) / 2;
+/* ---------- Leaflet地図の初期化（パン/ズーム操作は無効化し、常に日本全体を同じ位置感覚で表示） ---------- */
+function createMap(containerId) {
+  const map = L.map(containerId, {
+    zoomControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    touchZoom: false,
+    tap: false,
+    attributionControl: true
+  });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
+  return map;
+}
+
+function refitMap(map) {
+  map.invalidateSize();
+  map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
+}
+
+function projectorFor(map) {
   return {
-    scale,
     project(lat, lng) {
-      return {
-        x: offX + (lng - BOUNDS.lngMin) * COS_LAT * scale,
-        y: offY + (BOUNDS.latMax - lat) * scale
-      };
+      const p = map.latLngToContainerPoint([lat, lng]);
+      return { x: p.x, y: p.y };
     }
   };
 }
 
-/* ---------- Canvas 共通描画 ---------- */
-function setupCanvas(canvas) {
-  const wrap = canvas.parentElement;
-  const dpr = window.devicePixelRatio || 1;
-  const rect = wrap.getBoundingClientRect();
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, width: rect.width, height: rect.height };
-}
-
-// 点列をCatmull-Romスプラインで滑らかな閉曲線として描く（手描き風の自然な海岸線に見せるため）
-function smoothClosedPath(ctx, pts) {
-  const n = pts.length;
-  if (n < 3) {
-    pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
-    return;
-  }
-  ctx.moveTo((pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
-  for (let i = 0; i < n; i++) {
-    const p0 = pts[(i - 1 + n) % n];
-    const p1 = pts[i];
-    const p2 = pts[(i + 1) % n];
-    const p3 = pts[(i + 2) % n];
-    const cp1x = p1.x + (p2.x - p0.x) / 6, cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6, cp2y = p2.y - (p3.y - p1.y) / 6;
-    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-  }
-}
-
-function drawBase(ctx, width, height, projector) {
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#eaf1fb";
-  ctx.fillRect(0, 0, width, height);
-
-  // 簡略化した日本列島シルエット
-  ctx.fillStyle = "#d7e5f7";
-  ctx.strokeStyle = "#c3d6ee";
-  ctx.lineWidth = 1;
-  JAPAN_SILHOUETTE.forEach(island => {
-    const pts = island.points.map(p => projector.project(p[0], p[1]));
-    ctx.beginPath();
-    smoothClosedPath(ctx, pts);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  });
-
-  // 参考都市
-  ctx.fillStyle = "#9fb3cc";
-  REFERENCE_CITIES.forEach(c => {
-    const pt = projector.project(c[0], c[1]);
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
-function drawRoute(ctx, projector, waypoints, opts) {
+function makeCircleMarker(map, lat, lng, opts) {
   opts = opts || {};
-  const color = opts.color || "#2e9e4f";
-  const width = opts.width || 4;
-  const dashed = opts.dashed || false;
-  const upTo = opts.upTo === undefined ? waypoints.length : opts.upTo;
-
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  if (dashed) ctx.setLineDash([8, 6]); else ctx.setLineDash([]);
-  ctx.beginPath();
-  for (let i = 0; i < upTo; i++) {
-    const p = projector.project(waypoints[i][0], waypoints[i][1]);
-    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  const marker = L.circleMarker([lat, lng], {
+    radius: opts.r || 7,
+    color: "#fff",
+    weight: 2,
+    fillColor: opts.color || "#2c5f9e",
+    fillOpacity: 1
+  });
+  if (opts.label) {
+    marker.bindTooltip(opts.label, { permanent: true, direction: "right", offset: [8, -4], className: "route-label" });
   }
-  ctx.stroke();
-  ctx.restore();
+  marker.addTo(map);
+  return marker;
 }
 
-function drawMarker(ctx, projector, lat, lng, label, opts) {
+function makePolyline(map, waypoints, opts) {
   opts = opts || {};
-  const p = projector.project(lat, lng);
-  ctx.save();
-  ctx.fillStyle = opts.color || "#2c5f9e";
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, opts.r || 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  if (label) {
-    ctx.fillStyle = "#1a1a1a";
-    ctx.font = "bold 11px sans-serif";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(label, p.x + 8, p.y - 4);
+  const latlngs = waypoints.map(w => [w[0], w[1]]);
+  return L.polyline(latlngs, {
+    color: opts.color || "#2e9e4f",
+    weight: opts.width || 5,
+    dashArray: opts.dashed ? "8 6" : null,
+    lineCap: "round",
+    lineJoin: "round"
+  }).addTo(map);
+}
+
+/* ---------- なぞり判定用の幾何ヘルパー ---------- */
+function distPointToSeg(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = a.x + dx * t, cy = a.y + dy * t;
+  return Math.hypot(p.x - cx, p.y - cy);
+}
+function minDistToPath(p, path) {
+  let min = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    min = Math.min(min, distPointToSeg(p, path[i], path[i + 1]));
   }
-  ctx.restore();
+  if (path.length === 1) min = Math.hypot(p.x - path[0].x, p.y - path[0].y);
+  return min;
+}
+function densify(points, step) {
+  if (points.length < 2) return points.slice();
+  const out = [points[0]];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i], b = points[i + 1];
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.max(1, Math.floor(d / step));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n;
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
+  }
+  return out;
 }
 
 /* ================= 学習モード ================= */
-const studyCanvas = document.getElementById("study-canvas");
+const studyMap = createMap("study-map");
+const studyLayerGroup = L.layerGroup().addTo(studyMap);
 const studyList = document.getElementById("study-hwy-list");
 const studyInfo = document.getElementById("study-info");
 let studyHighway = null;
 let studyAnimId = null;
+let studyRouteLine = null;
 
 HIGHWAYS.forEach(h => {
   const btn = document.createElement("button");
@@ -423,47 +419,44 @@ function selectStudyHighway(h, btn) {
 }
 
 function renderStudy(h, animate) {
-  const { ctx, width, height } = setupCanvas(studyCanvas);
-  const projector = makeProjector(width, height);
-  drawBase(ctx, width, height, projector);
+  studyLayerGroup.clearLayers();
+  if (studyAnimId) cancelAnimationFrame(studyAnimId);
   if (!h) return;
 
-  if (studyAnimId) cancelAnimationFrame(studyAnimId);
-
   if (!animate) {
-    drawRoute(ctx, projector, h.waypoints, { color: "#2e9e4f", width: 5 });
+    makePolyline(studyLayerGroup, h.waypoints, { color: "#2e9e4f", width: 5 });
     h.waypoints.forEach((w, i) => {
-      drawMarker(ctx, projector, w[0], w[1], w[2], {
+      makeCircleMarker(studyLayerGroup, w[0], w[1], {
         color: i === 0 ? "#2c5f9e" : (i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f"),
-        r: i === 0 || i === h.waypoints.length - 1 ? 7 : 4
+        r: i === 0 || i === h.waypoints.length - 1 ? 7 : 4,
+        label: w[2]
       });
     });
     return;
   }
 
+  makeCircleMarker(studyLayerGroup, h.waypoints[0][0], h.waypoints[0][1], { color: "#2c5f9e", r: 7, label: h.waypoints[0][2] });
+  studyRouteLine = makePolyline(studyLayerGroup, [h.waypoints[0]], { color: "#2e9e4f", width: 5 });
+
   let step = 0;
   const totalSteps = 60;
   function frame() {
-    const { ctx, width, height } = setupCanvas(studyCanvas);
-    const projector = makeProjector(width, height);
-    drawBase(ctx, width, height, projector);
     const upToFloat = (step / totalSteps) * (h.waypoints.length - 1);
     const upToIdx = Math.floor(upToFloat);
-    // 直線区間を部分的に補間して滑らかに見せる
     const partial = h.waypoints.slice(0, upToIdx + 1).map(w => [w[0], w[1]]);
     if (upToIdx < h.waypoints.length - 1) {
       const a = h.waypoints[upToIdx], b = h.waypoints[upToIdx + 1];
       const t = upToFloat - upToIdx;
       partial.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
     }
-    drawRoute(ctx, projector, partial, { color: "#2e9e4f", width: 5 });
-    drawMarker(ctx, projector, h.waypoints[0][0], h.waypoints[0][1], h.waypoints[0][2], { color: "#2c5f9e", r: 7 });
+    studyRouteLine.setLatLngs(partial);
     if (step >= totalSteps) {
       h.waypoints.forEach((w, i) => {
         if (i === 0) return;
-        drawMarker(ctx, projector, w[0], w[1], w[2], {
+        makeCircleMarker(studyLayerGroup, w[0], w[1], {
           color: i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f",
-          r: i === h.waypoints.length - 1 ? 7 : 4
+          r: i === h.waypoints.length - 1 ? 7 : 4,
+          label: w[2]
         });
       });
       return;
@@ -479,7 +472,10 @@ document.getElementById("study-replay").addEventListener("click", () => {
 });
 
 /* ================= クイズモード ================= */
-const quizCanvas = document.getElementById("quiz-canvas");
+const quizMap = createMap("quiz-map");
+const quizLayerGroup = L.layerGroup().addTo(quizMap);
+const quizProjector = projectorFor(quizMap);
+const quizOverlay = document.getElementById("quiz-overlay");
 const quizPrompt = document.getElementById("quiz-prompt");
 const quizHintText = document.getElementById("quiz-hint");
 const quizResult = document.getElementById("quiz-result");
@@ -497,8 +493,46 @@ let userOnRoute = [];
 let officialDenseCache = [];
 let traceTolerance = 0;
 let tracing = false;
-let projectorRef = null;
 let answered = false;
+
+/* ---- 難易度フィルター ---- */
+const DIFF_KEY = "kokudoQuizDifficulty.v1";
+const DIFF_LABEL = { 1: "かんたん", 2: "ふつう", 3: "むずかしい" };
+const diffListEl = document.getElementById("quiz-diff-list");
+
+function loadDifficulty() {
+  try {
+    const v = localStorage.getItem(DIFF_KEY);
+    return v ? Number(v) : null;
+  } catch (e) { return null; }
+}
+function saveDifficulty(v) {
+  try {
+    if (v) localStorage.setItem(DIFF_KEY, String(v)); else localStorage.removeItem(DIFF_KEY);
+  } catch (e) { /* ignore */ }
+}
+let selectedDifficulty = loadDifficulty();
+
+function highlightDiffButtons() {
+  [...diffListEl.children].forEach(b => {
+    const v = b.dataset.diff ? Number(b.dataset.diff) : null;
+    b.classList.toggle("active", v === selectedDifficulty);
+  });
+}
+diffListEl.addEventListener("click", evt => {
+  const btn = evt.target.closest("button");
+  if (!btn) return;
+  selectedDifficulty = btn.dataset.diff ? Number(btn.dataset.diff) : null;
+  saveDifficulty(selectedDifficulty);
+  highlightDiffButtons();
+});
+highlightDiffButtons();
+
+function diffStars(level) {
+  const filled = "★".repeat(level);
+  const empty = "☆".repeat(3 - level);
+  return ` <span class="diff-badge" title="${DIFF_LABEL[level]}">${filled}${empty}</span>`;
+}
 
 /* ---- 効果音（Web Audio APIで簡易生成。音声ファイルは使わない） ---- */
 const SOUND_KEY = "kokudoQuizSoundEnabled.v1";
@@ -551,45 +585,6 @@ soundToggleBtn.addEventListener("click", () => {
 });
 renderSoundToggle();
 
-/* ---- 難易度フィルター ---- */
-const DIFF_KEY = "kokudoQuizDifficulty.v1";
-const DIFF_LABEL = { 1: "かんたん", 2: "ふつう", 3: "むずかしい" };
-const diffListEl = document.getElementById("quiz-diff-list");
-
-function loadDifficulty() {
-  try {
-    const v = localStorage.getItem(DIFF_KEY);
-    return v ? Number(v) : null;
-  } catch (e) { return null; }
-}
-function saveDifficulty(v) {
-  try {
-    if (v) localStorage.setItem(DIFF_KEY, String(v)); else localStorage.removeItem(DIFF_KEY);
-  } catch (e) { /* ignore */ }
-}
-let selectedDifficulty = loadDifficulty();
-
-function highlightDiffButtons() {
-  [...diffListEl.children].forEach(b => {
-    const v = b.dataset.diff ? Number(b.dataset.diff) : null;
-    b.classList.toggle("active", v === selectedDifficulty);
-  });
-}
-diffListEl.addEventListener("click", evt => {
-  const btn = evt.target.closest("button");
-  if (!btn) return;
-  selectedDifficulty = btn.dataset.diff ? Number(btn.dataset.diff) : null;
-  saveDifficulty(selectedDifficulty);
-  highlightDiffButtons();
-});
-highlightDiffButtons();
-
-function diffStars(level) {
-  const filled = "★".repeat(level);
-  const empty = "☆".repeat(3 - level);
-  return ` <span class="diff-badge" title="${DIFF_LABEL[level]}">${filled}${empty}</span>`;
-}
-
 const STATS_KEY = "kokudoQuizStats.v1";
 function loadStats() {
   try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { total: 0, correct: 0, byHighway: {} }; }
@@ -615,12 +610,23 @@ function pickHighway() {
   return h;
 }
 
+function setupOverlay() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = quizOverlay.parentElement.getBoundingClientRect();
+  quizOverlay.width = Math.round(rect.width * dpr);
+  quizOverlay.height = Math.round(rect.height * dpr);
+  const ctx = quizOverlay.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, width: rect.width, height: rect.height };
+}
+
 function startQuestion() {
   currentHighway = pickHighway();
   hintUsed = false;
   userPath = [];
   userOnRoute = [];
   answered = false;
+  quizLayerGroup.clearLayers();
   quizResult.className = "result";
   quizResult.textContent = "";
   quizHintText.textContent = "";
@@ -628,35 +634,29 @@ function startQuestion() {
   btnRetry.disabled = true;
   btnNext.disabled = true;
   quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}：${currentHighway.startLabel} → ${currentHighway.endLabel}`;
-  renderQuiz();
+  makeCircleMarker(quizLayerGroup, currentHighway.waypoints[0][0], currentHighway.waypoints[0][1], { color: "#2c5f9e", r: 8 });
   updateOfficialDenseCache();
+  renderQuiz();
 }
 
-// なぞっている最中にリアルタイムで逸脱チェックするための下ごしらえ（キャンバスサイズが変わったら呼び直す）
+// なぞっている最中にリアルタイムで逸脱チェックするための下ごしらえ（地図のサイズが変わったら呼び直す）
 function updateOfficialDenseCache() {
-  if (!currentHighway || !projectorRef) { officialDenseCache = []; return; }
-  const officialPts = currentHighway.waypoints.map(w => projectorRef.project(w[0], w[1]));
+  if (!currentHighway) { officialDenseCache = []; return; }
+  const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
-  const rect = quizCanvas.getBoundingClientRect();
+  const rect = quizOverlay.parentElement.getBoundingClientRect();
   traceTolerance = Math.min(rect.width, rect.height) * 0.05;
 }
 
-function renderQuiz() {
-  const { ctx, width, height } = setupCanvas(quizCanvas);
-  const projector = makeProjector(width, height);
-  projectorRef = projector;
-  drawBase(ctx, width, height, projector);
-  if (!currentHighway) return;
-
+function showEndMarker() {
   const h = currentHighway;
-  drawMarker(ctx, projector, h.waypoints[0][0], h.waypoints[0][1], h.waypoints[0][2], { color: "#2c5f9e", r: 8 });
-  if (hintUsed || answered) {
-    drawMarker(ctx, projector, h.waypoints[h.waypoints.length - 1][0], h.waypoints[h.waypoints.length - 1][1],
-      h.waypoints[h.waypoints.length - 1][2], { color: "#d0473e", r: 8 });
-  }
-  if (answered) {
-    drawRoute(ctx, projector, h.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
-  }
+  const last = h.waypoints[h.waypoints.length - 1];
+  makeCircleMarker(quizLayerGroup, last[0], last[1], { color: "#d0473e", r: 8 });
+}
+
+function renderQuiz() {
+  const { ctx, width, height } = setupOverlay();
+  ctx.clearRect(0, 0, width, height);
   if (userPath.length > 1) {
     ctx.save();
     ctx.lineWidth = 4;
@@ -673,42 +673,11 @@ function renderQuiz() {
   }
 }
 
-/* ---- 採点ロジック ---- */
-function distPointToSeg(p, a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const lenSq = dx * dx + dy * dy;
-  let t = lenSq === 0 ? 0 : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  const cx = a.x + dx * t, cy = a.y + dy * t;
-  return Math.hypot(p.x - cx, p.y - cy);
-}
-function minDistToPath(p, path) {
-  let min = Infinity;
-  for (let i = 0; i < path.length - 1; i++) {
-    min = Math.min(min, distPointToSeg(p, path[i], path[i + 1]));
-  }
-  if (path.length === 1) min = Math.hypot(p.x - path[0].x, p.y - path[0].y);
-  return min;
-}
-function densify(points, step) {
-  if (points.length < 2) return points.slice();
-  const out = [points[0]];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    const d = Math.hypot(b.x - a.x, b.y - a.y);
-    const n = Math.max(1, Math.floor(d / step));
-    for (let k = 1; k <= n; k++) {
-      const t = k / n;
-      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-    }
-  }
-  return out;
-}
-
-function scoreAttempt(canvasWidth, canvasHeight) {
+function scoreAttempt() {
   const h = currentHighway;
-  const officialPts = h.waypoints.map(w => projectorRef.project(w[0], w[1]));
-  const tolerance = Math.min(canvasWidth, canvasHeight) * 0.05;
+  const officialPts = h.waypoints.map(w => quizProjector.project(w[0], w[1]));
+  const rect = quizOverlay.parentElement.getBoundingClientRect();
+  const tolerance = Math.min(rect.width, rect.height) * 0.05;
   const officialDense = densify(officialPts, 6);
   const userDense = densify(userPath, 6);
 
@@ -736,10 +705,11 @@ function scoreAttempt(canvasWidth, canvasHeight) {
 }
 
 function finishAttempt() {
-  const { width, height } = quizCanvas.parentElement.getBoundingClientRect();
-  const result = scoreAttempt(width, height);
+  const result = scoreAttempt();
   answered = true;
   quizHintText.textContent = "";
+  showEndMarker();
+  makePolyline(quizLayerGroup, currentHighway.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
   renderQuiz();
   if (result.grade === "correct") playCorrectSound();
   else if (result.grade === "partial") playPartialSound();
@@ -771,15 +741,15 @@ function finishAttempt() {
 
 /* ---- ポインター操作 ---- */
 function getLocalPos(evt) {
-  const rect = quizCanvas.getBoundingClientRect();
+  const rect = quizOverlay.getBoundingClientRect();
   return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
 }
 
-quizCanvas.addEventListener("pointerdown", evt => {
+quizOverlay.addEventListener("pointerdown", evt => {
   if (!currentHighway || answered) return;
   const pos = getLocalPos(evt);
-  const start = projectorRef.project(currentHighway.waypoints[0][0], currentHighway.waypoints[0][1]);
-  const rect = quizCanvas.getBoundingClientRect();
+  const start = quizProjector.project(currentHighway.waypoints[0][0], currentHighway.waypoints[0][1]);
+  const rect = quizOverlay.getBoundingClientRect();
   const tolerance = Math.min(rect.width, rect.height) * 0.09;
   if (Math.hypot(pos.x - start.x, pos.y - start.y) > tolerance) {
     quizHintText.textContent = "青い始点マーカーからなぞり始めてください";
@@ -789,10 +759,10 @@ quizCanvas.addEventListener("pointerdown", evt => {
   userPath = [pos];
   userOnRoute = [true];
   quizHintText.textContent = "";
-  quizCanvas.setPointerCapture(evt.pointerId);
+  quizOverlay.setPointerCapture(evt.pointerId);
   renderQuiz();
 });
-quizCanvas.addEventListener("pointermove", evt => {
+quizOverlay.addEventListener("pointermove", evt => {
   if (!tracing) return;
   const pos = getLocalPos(evt);
   userPath.push(pos);
@@ -807,8 +777,8 @@ function endTrace(evt) {
   if (userPath.length < 2) { userPath = []; renderQuiz(); return; }
   finishAttempt();
 }
-quizCanvas.addEventListener("pointerup", endTrace);
-quizCanvas.addEventListener("pointercancel", endTrace);
+quizOverlay.addEventListener("pointerup", endTrace);
+quizOverlay.addEventListener("pointercancel", endTrace);
 
 btnStart.addEventListener("click", () => {
   btnStart.textContent = "別の国道で挑戦";
@@ -818,7 +788,7 @@ btnHint.addEventListener("click", () => {
   hintUsed = true;
   btnHint.disabled = true;
   quizHintText.textContent = "終点を表示しました（正解の判定は少し厳しくなります）";
-  renderQuiz();
+  showEndMarker();
 });
 btnRetry.addEventListener("click", () => {
   userPath = [];
@@ -840,18 +810,23 @@ const panelQuiz = document.getElementById("panel-quiz");
 tabStudy.addEventListener("click", () => {
   tabStudy.classList.add("active"); tabQuiz.classList.remove("active");
   panelStudy.hidden = false; panelQuiz.hidden = true;
+  refitMap(studyMap);
   if (studyHighway) renderStudy(studyHighway, false);
 });
 tabQuiz.addEventListener("click", () => {
   tabQuiz.classList.add("active"); tabStudy.classList.remove("active");
   panelQuiz.hidden = false; panelStudy.hidden = true;
-  if (currentHighway) { renderQuiz(); updateOfficialDenseCache(); }
+  refitMap(quizMap);
+  if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
 });
 
 /* ================= リサイズ対応 ================= */
 window.addEventListener("resize", () => {
-  if (!panelStudy.hidden) renderStudy(studyHighway, false);
-  if (!panelQuiz.hidden) { renderQuiz(); updateOfficialDenseCache(); }
+  if (!panelStudy.hidden) refitMap(studyMap);
+  if (!panelQuiz.hidden) {
+    refitMap(quizMap);
+    if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
+  }
 });
 
 /* 初期表示 */
