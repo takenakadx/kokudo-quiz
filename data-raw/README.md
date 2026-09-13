@@ -63,9 +63,19 @@ Claude 側でそれを取り込んで `waypoints` をより正確な形状に置
 | 国道42号 | `data-raw/42.geojson` |
 | 国道43号 | `data-raw/43.geojson` |
 | 国道58号 | `data-raw/58.geojson`（※大半が海上区間のため、データが取れない/歯抜けになる可能性が高いです。ダメそうなら省略してOKです） |
+| 国道134号 | `data-raw/134.geojson` |
+| 国道135号 | `data-raw/135.geojson` |
+| 国道158号 | `data-raw/158.geojson` |
+| 国道171号 | `data-raw/171.geojson` |
+| 国道176号 | `data-raw/176.geojson` |
 | 国道246号 | `data-raw/246.geojson` |
+| 国道317号 | `data-raw/317.geojson` |
+| 国道357号 | `data-raw/357.geojson` |
+| 国道411号 | `data-raw/411.geojson` |
+| 国道413号 | `data-raw/413.geojson` |
+| 国道439号 | `data-raw/439.geojson` |
 
-上の3〜43号の14本は、収録国道を増やすタスク（Issue #2）向けに新しく追加した候補です。
+上の3〜43号の14本、134〜439号の3桁国道10本は、収録国道を増やすタスク（Issue #2）向けに新しく追加した候補です。
 
 ### クエリのテンプレート
 
