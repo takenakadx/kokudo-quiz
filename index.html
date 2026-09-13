@@ -101,25 +101,29 @@
   }
   .leaflet-tooltip.route-label::before { display: none; }
 
-  .map-mode-toggle {
+  /* 操作方法の常時表示。指やマウスの操作をそのまま受け取るので、この案内自体は
+     ポインターを拾わないようにしておく */
+  .gesture-hint {
     position: absolute;
     top: 8px;
     right: 8px;
-    z-index: 600; /* オーバーレイcanvas(500)より前面に出し、どちらのモードでも押せるようにする */
-    padding: 7px 12px;
-    border-radius: 999px;
+    z-index: 600; /* オーバーレイcanvas(500)より前面 */
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.86);
     border: 1px solid var(--blue-light);
-    background: #fff;
-    color: var(--blue);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-    touch-action: manipulation;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
-  .map-mode-toggle.active {
-    background: var(--blue-light);
-    color: #fff;
+  .gesture-hint b { color: var(--blue); font-weight: 700; }
+  @media (max-width: 480px) {
+    .gesture-hint { font-size: 10px; padding: 5px 8px; }
   }
 
   .hwy-list {
@@ -318,13 +322,18 @@
     <div class="map-wrap">
       <div id="quiz-map" class="leaflet-map"></div>
       <canvas id="quiz-overlay" class="overlay-canvas"></canvas>
-      <button id="map-mode-toggle" class="map-mode-toggle" type="button">🗺️ 地図を動かす</button>
+      <div class="gesture-hint" id="gesture-hint" aria-hidden="true">
+        <span><b>なぞる</b>：1本指 / 左ドラッグ</span>
+        <span><b>地図を動かす</b>：2本指 / 中ボタン・ホイール</span>
+      </div>
     </div>
     <div class="hint-text" id="quiz-hint"></div>
     <div class="controls">
       <button id="quiz-start" class="primary">クイズを始める</button>
       <button id="quiz-hint-btn" disabled>ヒント（都市名を表示）</button>
-      <button id="quiz-retry" disabled>もう一度なぞる</button>
+      <button id="quiz-submit" disabled>採点する</button>
+      <button id="quiz-undo" disabled>1本消す</button>
+      <button id="quiz-retry" disabled>全部消す</button>
       <button id="quiz-next" disabled>次の問題へ</button>
     </div>
     <div class="result" id="quiz-result"></div>
@@ -333,7 +342,7 @@
 </main>
 
 <footer>
-  地図タイルは OpenStreetMap から読み込みます（インターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。ルートは学習用に主要都市を結んだ簡略ルートです。
+  地図タイル・ルート形状ともに OpenStreetMap のデータを利用しています（地図の表示にはインターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -344,8 +353,9 @@
 const JAPAN_BOUNDS = [[24.0, 122.5], [45.9, 146.5]];
 
 /* ---------- Leaflet地図の初期化 ----------
-   学習モードは常にpan/zoom自由。クイズモードは「なぞる」操作と1本指ドラッグが
-   衝突するため、既定ではpan/zoomを無効化し、モード切替ボタンで明示的に切り替える。 */
+   学習モードはLeafletのpan/zoomをそのまま使う。クイズモードは1本指ドラッグを
+   「なぞる」に使うため、Leaflet側の操作は無効にして、オーバーレイ上で
+   2本指／中ボタンのときだけ自前にpan/zoomする（下のポインター操作の項を参照）。 */
 function createMap(containerId, interactive) {
   const map = L.map(containerId, {
     zoomControl: false,
@@ -371,18 +381,17 @@ function refitMap(map) {
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
 }
 
-// dragging/zoom系ハンドラーは常に存在するので、生成時のオプションに関わらずいつでも有効/無効を切り替えられる
-function setMapInteractive(map, enabled) {
-  ["dragging", "scrollWheelZoom", "doubleClickZoom", "touchZoom", "boxZoom"].forEach(key => {
-    if (map[key]) { enabled ? map[key].enable() : map[key].disable(); }
-  });
-}
-
 function projectorFor(map) {
   return {
     project(lat, lng) {
       const p = map.latLngToContainerPoint([lat, lng]);
       return { x: p.x, y: p.y };
+    },
+    // なぞった軌跡は画面座標ではなく緯度経度で持つ（地図をpan/zoomしても軌跡が
+    // 地図からずれないようにするため）ので、その逆変換が必要になる
+    unproject(x, y) {
+      const ll = map.containerPointToLatLng([x, y]);
+      return [ll.lat, ll.lng];
     }
   };
 }
@@ -536,37 +545,19 @@ const btnHint = document.getElementById("quiz-hint-btn");
 const btnRetry = document.getElementById("quiz-retry");
 const btnNext = document.getElementById("quiz-next");
 
-/* ---- 地図の移動モード ⇔ なぞって答えるモード ----
-   1本指ドラッグは「地図をpanする」操作と「なぞる」操作の両方の意味を持ちうるため、
-   ボタンで明示的にモードを切り替える。移動モード中はオーバーレイcanvasを
-   pointer-events:noneにしてLeafletへ操作を渡し、なぞるモードでは逆にする。 */
-const mapModeToggleBtn = document.getElementById("map-mode-toggle");
-let mapMoveMode = false;
-function setMapMoveMode(enabled) {
-  mapMoveMode = enabled;
-  setMapInteractive(quizMap, enabled);
-  quizOverlay.style.pointerEvents = enabled ? "none" : "auto";
-  mapModeToggleBtn.textContent = enabled ? "✏️ なぞって答える" : "🗺️ 地図を動かす";
-  mapModeToggleBtn.classList.toggle("active", enabled);
-  if (enabled) {
-    tracing = false;
-    quizHintText.textContent = "地図を動かせます（ボタンを押すとなぞる操作に戻ります）";
-  } else if (currentHighway) {
-    quizHintText.textContent = "";
-    updateOfficialDenseCache(); // pan/zoomで表示位置が変わっている可能性があるので再計算
-    renderQuiz();
-  }
-}
-mapModeToggleBtn.addEventListener("click", () => setMapMoveMode(!mapMoveMode));
+const btnSubmit = document.getElementById("quiz-submit");
+const btnUndo = document.getElementById("quiz-undo");
 
 let currentHighway = null;
 let lastHighwayId = null;
 let hintUsed = false;
-let userPath = [];
-let userOnRoute = [];
+// なぞった軌跡は「ストローク（一筆）」の配列。何回かに分けてなぞれるようにしてあり、
+// 各ストロークは緯度経度の配列で持つ（pan/zoomしても地図からずれないようにするため）。
+// onRoute は点ごとの「ルート上にあるか」で、描いた時点で判定して覚えておく
+// （ペン幅がズームに比例するので、この判定はズームを変えても変わらない）。
+let strokes = [];
 let officialDenseCache = [];
 let traceTolerance = 0;
-let tracing = false;
 let answered = false;
 
 // ペン幅（採点の許容範囲）は、出題ルート自身の画面上の長さに比例させる。
@@ -726,24 +717,47 @@ function renderQuizPrompt() {
 function startQuestion() {
   currentHighway = pickHighway();
   hintUsed = false;
-  userPath = [];
-  userOnRoute = [];
-  drawnLength = 0;
-  penEmpty = false;
   answered = false;
+  clearStrokes();
   quizLayerGroup.clearLayers();
   quizResult.className = "result";
   quizResult.textContent = "";
   quizHintText.textContent = "";
   btnHint.disabled = false;
-  btnRetry.disabled = true;
   btnNext.disabled = true;
   renderQuizPrompt();
   refitMap(quizMap); // pan/zoomしていた場合も、毎回同じ構図(日本全体)からスタートする
   // 起点はヒントを使うか回答するまでは地図上にも表示しない（覚えているかどうかを試すため）
-  setMapMoveMode(false); // なぞるモードに戻す（内部でofficialDenseCacheの再計算・再描画も行う）
+  updateOfficialDenseCache();
+  renderQuiz();
   inkGaugeWrap.hidden = false;
   renderInkGauge();
+  if (routeTooSmallToTrace()) quizHintText.textContent = ZOOM_ADVICE;
+}
+
+// 短い国道は日本全体の縮尺では画面上わずか数pxしかなく、ペン残量(実ルート長の120%)も
+// それに比例して数pxしかないため、拡大しないと事実上なぞれない。どこを拡大するかは
+// 答えそのものなので地図は動かさず、拡大して答えるよう促すだけにする。
+const MIN_TRACEABLE_PX = 60;
+const ZOOM_ADVICE = "短い国道です。2本指（マウスはホイール）で拡大してからなぞりましょう";
+function routeTooSmallToTrace() {
+  return currentHighway && routeLengthPx > 0 && routeLengthPx < MIN_TRACEABLE_PX;
+}
+
+function clearStrokes() {
+  strokes = [];
+  activeStroke = null;
+  drawnLength = 0;
+  penEmpty = false;
+  updateDrawButtons();
+}
+
+// 採点・消去ボタンは「なぞった線が1本以上あるか」で出し入れする
+function updateDrawButtons() {
+  const has = strokes.length > 0;
+  btnSubmit.disabled = !has || answered;
+  btnUndo.disabled = !has || answered;
+  btnRetry.disabled = !has && !answered;
 }
 
 // なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズ・ズームが変わったら呼び直す）
@@ -755,6 +769,20 @@ function updateOfficialDenseCache() {
   // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
   traceTolerance = Math.max(3, routeLengthPx * TOLERANCE_TO_ROUTE_RATIO);
   inkBudget = routeLengthPx * INK_BUDGET_RATIO;
+  // ペン残量も画面上の長さで数えているので、ズームが変わったら描いた分を測り直す
+  // （ルート長・残量ともに同じ倍率で伸縮するため、残量の割合はズームに依存しない）
+  recomputeDrawnLength();
+}
+
+// ストロークを現在の表示に合わせて画面座標へ投影する
+function strokeScreenPts(stroke) {
+  return stroke.latlngs.map(ll => quizProjector.project(ll[0], ll[1]));
+}
+
+function recomputeDrawnLength() {
+  drawnLength = strokes.reduce((sum, st) => sum + pathLength(strokeScreenPts(st)), 0);
+  if (activeStroke) drawnLength += pathLength(strokeScreenPts(activeStroke));
+  penEmpty = inkBudget > 0 && drawnLength >= inkBudget;
 }
 
 // ヒントを使うか回答したときに、起点・終点マーカーをまとめて表示する
@@ -769,36 +797,42 @@ function revealMarkers() {
 function renderQuiz() {
   const { ctx, width, height } = setupOverlay();
   ctx.clearRect(0, 0, width, height);
-  if (userPath.length > 1) {
-    ctx.save();
-    // ペンの実際の太さ（採点で「ルートが含まれるか」を判定する幅と同じ）を半透明の帯として見せる
-    ctx.lineWidth = Math.max(6, traceTolerance * 2);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.globalAlpha = 0.35;
-    let i = 1;
-    while (i < userPath.length) {
-      const onRoute = userOnRoute[i] !== false;
-      ctx.strokeStyle = onRoute ? "#2c5f9e" : "#d0473e";
-      ctx.beginPath();
-      ctx.moveTo(userPath[i - 1].x, userPath[i - 1].y);
-      let j = i;
-      while (j < userPath.length && (userOnRoute[j] !== false) === onRoute) {
-        ctx.lineTo(userPath[j].x, userPath[j].y);
-        j++;
-      }
-      ctx.stroke();
-      i = j;
-    }
-    // 軌跡の芯（実際に指が通った位置）を細い線で重ねて見やすくする
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#1a3a63";
+  const all = activeStroke ? strokes.concat([activeStroke]) : strokes;
+  all.forEach(stroke => drawStroke(ctx, stroke));
+}
+
+function drawStroke(ctx, stroke) {
+  const pts = strokeScreenPts(stroke);
+  if (pts.length < 2) return;
+  const onRouteFlags = stroke.onRoute;
+  ctx.save();
+  // ペンの実際の太さ（採点で「ルートが含まれるか」を判定する幅と同じ）を半透明の帯として見せる
+  ctx.lineWidth = Math.max(6, traceTolerance * 2);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.globalAlpha = 0.35;
+  let i = 1;
+  while (i < pts.length) {
+    const onRoute = onRouteFlags[i] !== false;
+    ctx.strokeStyle = onRoute ? "#2c5f9e" : "#d0473e";
     ctx.beginPath();
-    userPath.forEach((p, idx) => { if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+    let j = i;
+    while (j < pts.length && (onRouteFlags[j] !== false) === onRoute) {
+      ctx.lineTo(pts[j].x, pts[j].y);
+      j++;
+    }
     ctx.stroke();
-    ctx.restore();
+    i = j;
   }
+  // 軌跡の芯（実際に指が通った位置）を細い線で重ねて見やすくする
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#1a3a63";
+  ctx.beginPath();
+  pts.forEach((p, idx) => { if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+  ctx.stroke();
+  ctx.restore();
 }
 
 const GRADE_CORRECT = 80;
@@ -814,10 +848,18 @@ function scoreAttempt() {
   // （なぞっている最中の視覚フィードバックと採点の許容範囲を必ず一致させるため）
   const tolerance = traceTolerance;
   const officialDense = densify(officialPts, 6);
-  const userDense = densify(userPath, 6);
+  // ストロークごとに別々に判定する。まとめて1本の線として扱うと、線を引いていない
+  // ストローク間の「飛び」の部分まで塗ったことになってしまう
+  const userDenseStrokes = strokes
+    .map(st => densify(strokeScreenPts(st), 6))
+    .filter(pts => pts.length > 0);
 
   let covered = 0;
-  officialDense.forEach(p => { if (minDistToPath(p, userDense.length ? userDense : [p]) <= tolerance) covered++; });
+  officialDense.forEach(p => {
+    let min = Infinity;
+    userDenseStrokes.forEach(pts => { min = Math.min(min, minDistToPath(p, pts)); });
+    if (min <= tolerance) covered++;
+  });
   const coverage = officialDense.length ? covered / officialDense.length : 0;
 
   // まず生スコア（ヒント補正前）で合否を判定してから、ヒントのペナルティを適用する。
@@ -873,39 +915,180 @@ function finishAttempt() {
     quizResult.innerHTML = `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`;
   }
   btnHint.disabled = true;
-  btnRetry.disabled = false;
   btnNext.disabled = false;
+  updateDrawButtons();
 }
 
-/* ---- ポインター操作 ---- */
+/* ---- ポインター操作 ----
+   1本指／マウス左ドラッグは「なぞる」、2本指／マウス中ボタンドラッグは「地図を動かす」。
+   モード切替ボタンを押さずに描く・動かすを行き来できるよう、Leaflet側の操作ハンドラーは
+   常に無効のままにして、pan/zoomもこのオーバーレイ上で自前に処理する。 */
+let activeStroke = null;             // なぞっている最中のストローク
+let drawPointerId = null;            // なぞっているポインター
+const touchPointers = new Map();     // 画面に触れている指（2本目の判定用）
+let gesture = null;                  // 地図を動かしている最中の状態
+
 function getLocalPos(evt) {
   const rect = quizOverlay.getBoundingClientRect();
   return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
 }
 
-quizOverlay.addEventListener("pointerdown", evt => {
-  if (!currentHighway || answered || mapMoveMode) return;
-  const pos = getLocalPos(evt);
+function canDraw() {
+  return currentHighway && !answered;
+}
+
+// 1本目のストロークだけは「起点だと思う場所」から始めてもらう（記憶を試すため）。
+// 2本目以降は描き足しなので、どこから始めてもよい。
+function startPointOk(pos) {
+  if (strokes.length > 0) return true;
   const start = quizProjector.project(currentHighway.path[0][0], currentHighway.path[0][1]);
   const rect = quizOverlay.getBoundingClientRect();
   const tolerance = Math.min(rect.width, rect.height) * 0.09;
-  if (Math.hypot(pos.x - start.x, pos.y - start.y) > tolerance) {
+  return Math.hypot(pos.x - start.x, pos.y - start.y) <= tolerance;
+}
+
+// canvasの外に指やカーソルが出ても操作を追い続けたいのでポインターを捕まえるが、
+// 捕まえられなくても描画自体は続けられるので失敗は無視する
+function capturePointer(pointerId) {
+  try { quizOverlay.setPointerCapture(pointerId); } catch (e) { /* ignore */ }
+}
+
+function beginStroke(evt, pos) {
+  activeStroke = { latlngs: [quizProjector.unproject(pos.x, pos.y)], onRoute: [true] };
+  drawPointerId = evt.pointerId;
+  quizHintText.textContent = "";
+  capturePointer(evt.pointerId);
+  renderQuiz();
+}
+
+// 2本目の指が触れたときは「地図を動かすつもりだった」と解釈して、
+// 1本目で描き始めてしまった線は破棄する（ペン残量も戻す）
+function abortStroke() {
+  if (!activeStroke) return;
+  activeStroke = null;
+  drawPointerId = null;
+  recomputeDrawnLength();
+  renderInkGauge();
+  renderQuiz();
+}
+
+function commitStroke() {
+  if (!activeStroke) return;
+  if (activeStroke.latlngs.length >= 2) strokes.push(activeStroke);
+  activeStroke = null;
+  drawPointerId = null;
+  recomputeDrawnLength();
+  renderInkGauge();
+  updateDrawButtons();
+  renderQuiz();
+  if (strokes.length > 0 && !penEmpty) {
+    quizHintText.textContent = "続けてなぞれます。書き終わったら「採点する」を押してください";
+  }
+}
+
+function midpointOf(pts) {
+  return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+}
+
+function beginGesture() {
+  const pts = [...touchPointers.values()];
+  gesture = {
+    center: midpointOf(pts),
+    dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+  };
+}
+
+// 2本指の移動＝pan、間隔の変化＝zoom。Leafletの既定では中間のズーム値を扱えないので、
+// 間隔が一定の倍率を超えたところで1段ズームする方式にしている。
+const PINCH_STEP = 1.6;
+function updateGesture() {
+  const pts = [...touchPointers.values()];
+  if (pts.length < 2 || !gesture) return;
+  const center = midpointOf(pts);
+  const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  panMapBy(center.x - gesture.center.x, center.y - gesture.center.y);
+  gesture.center = center;
+  if (gesture.dist > 0) {
+    const scale = dist / gesture.dist;
+    if (scale > PINCH_STEP || scale < 1 / PINCH_STEP) {
+      zoomMapAround(center, scale > 1 ? 1 : -1);
+      gesture.dist = dist;
+      gesture.center = midpointOf([...touchPointers.values()]);
+    }
+  }
+}
+
+function panMapBy(dx, dy) {
+  if (dx === 0 && dy === 0) return;
+  quizMap.panBy([-dx, -dy], { animate: false });
+  afterMapMoved();
+}
+
+function zoomMapAround(pos, delta) {
+  const zoom = quizMap.getZoom() + delta;
+  if (zoom < 4 || zoom > 18) return;
+  quizMap.setZoomAround(L.point(pos.x, pos.y), zoom, { animate: false });
+  afterMapMoved();
+}
+
+// pan/zoomすると画面上のルート長が変わるので、ペン幅・ペン残量・軌跡の描画を測り直す。
+// 軌跡は緯度経度で保持しているため、地図と一緒に正しく動く。
+function afterMapMoved() {
+  updateOfficialDenseCache();
+  renderInkGauge();
+  renderQuiz();
+  refreshZoomAdvice();
+}
+
+// 拡大の案内は、十分拡大されたら引っ込める（逆も同じ）
+function refreshZoomAdvice() {
+  if (answered || strokes.length) return;
+  const showing = quizHintText.textContent.includes("拡大して");
+  if (routeTooSmallToTrace()) { if (!quizHintText.textContent) quizHintText.textContent = ZOOM_ADVICE; }
+  else if (showing) quizHintText.textContent = "";
+}
+
+quizOverlay.addEventListener("pointerdown", evt => {
+  if (evt.pointerType === "mouse") {
+    if (evt.button === 1) { // 中ボタン＝地図を動かす
+      evt.preventDefault();
+      gesture = { mouseLast: { x: evt.clientX, y: evt.clientY } };
+      capturePointer(evt.pointerId);
+      return;
+    }
+    if (evt.button !== 0) return;
+  } else {
+    touchPointers.set(evt.pointerId, getLocalPos(evt));
+    if (touchPointers.size >= 2) { // 2本目の指＝地図を動かす
+      abortStroke();
+      beginGesture();
+      return;
+    }
+  }
+  if (!canDraw() || penEmpty) return;
+  const pos = getLocalPos(evt);
+  if (!startPointOk(pos)) {
     quizHintText.textContent = hintUsed
       ? "青い始点マーカーからなぞり始めてください"
       : "起点だと思う場所からなぞり始めてください（分からなければヒントを使いましょう）";
     return;
   }
-  tracing = true;
-  userPath = [pos];
-  userOnRoute = [true];
-  quizHintText.textContent = "";
-  quizOverlay.setPointerCapture(evt.pointerId);
-  renderQuiz();
+  beginStroke(evt, pos);
 });
+
 quizOverlay.addEventListener("pointermove", evt => {
-  if (!tracing || penEmpty) return;
+  if (gesture && gesture.mouseLast) {
+    panMapBy(evt.clientX - gesture.mouseLast.x, evt.clientY - gesture.mouseLast.y);
+    gesture.mouseLast = { x: evt.clientX, y: evt.clientY };
+    return;
+  }
+  if (touchPointers.has(evt.pointerId)) touchPointers.set(evt.pointerId, getLocalPos(evt));
+  if (gesture) { updateGesture(); return; }
+  if (!activeStroke || evt.pointerId !== drawPointerId || penEmpty) return;
+
   const pos = getLocalPos(evt);
-  const last = userPath[userPath.length - 1];
+  const pts = strokeScreenPts(activeStroke);
+  const last = pts[pts.length - 1];
   const segDist = Math.hypot(pos.x - last.x, pos.y - last.y);
   let finalPos = pos;
   if (drawnLength + segDist >= inkBudget) {
@@ -917,21 +1100,40 @@ quizOverlay.addEventListener("pointermove", evt => {
   } else {
     drawnLength += segDist;
   }
-  userPath.push(finalPos);
+  activeStroke.latlngs.push(quizProjector.unproject(finalPos.x, finalPos.y));
   const onRoute = officialDenseCache.length ? minDistToPath(finalPos, officialDenseCache) <= traceTolerance : true;
-  userOnRoute.push(onRoute);
-  quizHintText.textContent = penEmpty ? "ペンがなくなりました。指を離すと採点されます" : (onRoute ? "" : "ルートから外れています…");
+  activeStroke.onRoute.push(onRoute);
+  if (penEmpty) {
+    quizHintText.textContent = routeTooSmallToTrace()
+      ? "ペンがなくなりました。" + ZOOM_ADVICE + "（「全部消す」でやり直せます）"
+      : "ペンがなくなりました。「採点する」を押してください";
+  } else {
+    quizHintText.textContent = onRoute ? "" : "ルートから外れています…";
+  }
   renderInkGauge();
   renderQuiz();
 });
-function endTrace(evt) {
-  if (!tracing) return;
-  tracing = false;
-  if (userPath.length < 2) { userPath = []; renderQuiz(); return; }
-  finishAttempt();
+
+function endPointer(evt) {
+  touchPointers.delete(evt.pointerId);
+  if (gesture) {
+    // 指が1本だけ残っても、離すまではそのまま地図操作として扱う（誤って線を引かないように）
+    if (touchPointers.size >= 2) beginGesture();
+    else if (touchPointers.size === 0 || gesture.mouseLast) gesture = null;
+    return;
+  }
+  if (evt.pointerId === drawPointerId) commitStroke();
 }
-quizOverlay.addEventListener("pointerup", endTrace);
-quizOverlay.addEventListener("pointercancel", endTrace);
+quizOverlay.addEventListener("pointerup", endPointer);
+quizOverlay.addEventListener("pointercancel", endPointer);
+
+quizOverlay.addEventListener("wheel", evt => {
+  evt.preventDefault();
+  zoomMapAround(getLocalPos(evt), evt.deltaY < 0 ? 1 : -1);
+}, { passive: false });
+
+// 中ボタンドラッグ中に出るブラウザ既定のオートスクロールを抑える
+quizOverlay.addEventListener("auxclick", evt => { if (evt.button === 1) evt.preventDefault(); });
 
 btnStart.addEventListener("click", () => {
   btnStart.textContent = "別の国道で挑戦";
@@ -944,19 +1146,28 @@ btnHint.addEventListener("click", () => {
   revealMarkers();
   renderQuizPrompt();
 });
+btnSubmit.addEventListener("click", () => {
+  if (!strokes.length || answered) return;
+  finishAttempt();
+});
+btnUndo.addEventListener("click", () => {
+  if (!strokes.length || answered) return;
+  strokes.pop(); // 消した分のペン残量はrecomputeDrawnLengthが戻す
+  recomputeDrawnLength();
+  quizHintText.textContent = "";
+  renderInkGauge();
+  updateDrawButtons();
+  renderQuiz();
+});
 btnRetry.addEventListener("click", () => {
-  userPath = [];
-  userOnRoute = [];
-  drawnLength = 0;
-  penEmpty = false;
+  clearStrokes();
   answered = false;
   quizResult.className = "result";
   quizResult.textContent = "";
-  btnRetry.disabled = true;
+  quizHintText.textContent = "";
   btnNext.disabled = true;
   refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
-  setMapMoveMode(false);
-  renderInkGauge();
+  afterMapMoved();
 });
 btnNext.addEventListener("click", startQuestion);
 
