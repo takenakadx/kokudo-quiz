@@ -1,66 +1,251 @@
 [
   {
     "id": 1,
-    "num_chains_total": 39,
-    "num_chains_significant": 18,
-    "sig_chain_lens_km": [
-      348.0,
-      190.8,
-      63.3,
-      46.9,
-      42.5,
-      39.0,
-      34.9,
-      23.8
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 1.3,
+        "bridges": [],
+        "points": 639
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 2.6,
+        "bridges": [],
+        "points": 277
+      },
+      {
+        "leg": 2,
+        "reached": true,
+        "end_mismatch_km": 1.5,
+        "bridges": [],
+        "points": 668
+      },
+      {
+        "leg": 3,
+        "reached": true,
+        "end_mismatch_km": 0.9,
+        "bridges": [],
+        "points": 1023
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 2.3,
+        "bridges": [],
+        "points": 2010
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 1.6,
+        "bridges": [],
+        "points": 331
+      },
+      {
+        "leg": 6,
+        "reached": true,
+        "end_mismatch_km": 1.8,
+        "bridges": [],
+        "points": 460
+      },
+      {
+        "leg": 7,
+        "reached": true,
+        "end_mismatch_km": 0.9,
+        "bridges": [],
+        "points": 712
+      },
+      {
+        "leg": 8,
+        "reached": true,
+        "end_mismatch_km": 4.2,
+        "bridges": [],
+        "points": 319
+      },
+      {
+        "leg": 9,
+        "reached": true,
+        "end_mismatch_km": 0.1,
+        "bridges": [],
+        "points": 625
+      },
+      {
+        "leg": 10,
+        "reached": true,
+        "end_mismatch_km": 0.6,
+        "bridges": [],
+        "points": 490
+      },
+      {
+        "leg": 11,
+        "reached": true,
+        "end_mismatch_km": 6.3,
+        "bridges": [],
+        "points": 407
+      },
+      {
+        "leg": 12,
+        "reached": false,
+        "end_mismatch_km": 13.5,
+        "bridges": [],
+        "points": 167
+      },
+      {
+        "leg": 13,
+        "reached": false,
+        "end_mismatch_km": 24.8,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 14,
+        "reached": true,
+        "end_mismatch_km": 3.3,
+        "bridges": [],
+        "points": 339
+      },
+      {
+        "leg": 15,
+        "reached": true,
+        "end_mismatch_km": 7.9,
+        "bridges": [],
+        "points": 637
+      },
+      {
+        "leg": 16,
+        "reached": true,
+        "end_mismatch_km": 1.6,
+        "bridges": [],
+        "points": 245
+      },
+      {
+        "leg": 17,
+        "reached": true,
+        "end_mismatch_km": 0.9,
+        "bridges": [],
+        "points": 723
+      }
     ],
-    "raw_points": 6753,
-    "simplified_points": 275,
-    "len_km": 279.2,
-    "start_mismatch_km": 0.6,
-    "end_mismatch_km": 315.2,
-    "num_bridges": 3,
-    "bridge_dists_km": [
-      0.37,
-      6.64,
-      4.36
-    ]
+    "raw_points": 10056,
+    "simplified_points": 224,
+    "len_km": 549.0,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 0.9,
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 2,
-    "num_chains_total": 39,
-    "num_chains_significant": 16,
-    "sig_chain_lens_km": [
-      479.3,
-      83.9,
-      40.5,
-      32.3,
-      20.7,
-      17.1,
-      12.3,
-      11.7
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 0.1,
+        "bridges": [],
+        "points": 833
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 0.2,
+        "bridges": [],
+        "points": 568
+      },
+      {
+        "leg": 2,
+        "reached": true,
+        "end_mismatch_km": 1.5,
+        "bridges": [],
+        "points": 702
+      },
+      {
+        "leg": 3,
+        "reached": true,
+        "end_mismatch_km": 3.4,
+        "bridges": [],
+        "points": 1471
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 2.1,
+        "bridges": [],
+        "points": 158
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 0.5,
+        "bridges": [],
+        "points": 655
+      },
+      {
+        "leg": 6,
+        "reached": true,
+        "end_mismatch_km": 0.1,
+        "bridges": [],
+        "points": 524
+      },
+      {
+        "leg": 7,
+        "reached": true,
+        "end_mismatch_km": 1.8,
+        "bridges": [],
+        "points": 1813
+      },
+      {
+        "leg": 8,
+        "reached": true,
+        "end_mismatch_km": 0.3,
+        "bridges": [],
+        "points": 1061
+      },
+      {
+        "leg": 9,
+        "reached": true,
+        "end_mismatch_km": 1.0,
+        "bridges": [],
+        "points": 2028
+      },
+      {
+        "leg": 10,
+        "reached": false,
+        "end_mismatch_km": 35.1,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 11,
+        "reached": false,
+        "end_mismatch_km": 81.7,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 12,
+        "reached": false,
+        "end_mismatch_km": 80.0,
+        "bridges": [],
+        "points": 1
+      }
     ],
-    "raw_points": 10026,
-    "simplified_points": 225,
-    "len_km": 479.3,
-    "start_mismatch_km": 0.9,
-    "end_mismatch_km": 90.5,
+    "raw_points": 9804,
+    "simplified_points": 291,
+    "len_km": 467.9,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 80.0,
     "num_bridges": 0,
     "bridge_dists_km": []
   },
   {
     "id": 3,
-    "num_chains_total": 24,
-    "num_chains_significant": 14,
-    "sig_chain_lens_km": [
-      251.0,
-      124.3,
-      57.2,
-      28.3,
-      24.3,
-      16.0,
-      9.8,
-      8.0
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 8875,
     "simplified_points": 222,
     "len_km": 398.9,
@@ -75,18 +260,8 @@
   },
   {
     "id": 4,
-    "num_chains_total": 33,
-    "num_chains_significant": 14,
-    "sig_chain_lens_km": [
-      743.3,
-      83.0,
-      75.8,
-      50.1,
-      27.9,
-      23.2,
-      15.9,
-      10.0
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 14360,
     "simplified_points": 248,
     "len_km": 752.2,
@@ -99,17 +274,8 @@
   },
   {
     "id": 5,
-    "num_chains_total": 12,
-    "num_chains_significant": 7,
-    "sig_chain_lens_km": [
-      203.1,
-      40.4,
-      33.0,
-      32.0,
-      15.0,
-      6.1,
-      4.5
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 5299,
     "simplified_points": 294,
     "len_km": 341.8,
@@ -125,18 +291,8 @@
   },
   {
     "id": 6,
-    "num_chains_total": 22,
-    "num_chains_significant": 11,
-    "sig_chain_lens_km": [
-      233.1,
-      99.1,
-      41.0,
-      27.4,
-      13.2,
-      11.4,
-      8.9,
-      8.1
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 7711,
     "simplified_points": 276,
     "len_km": 393.7,
@@ -150,18 +306,8 @@
   },
   {
     "id": 7,
-    "num_chains_total": 16,
-    "num_chains_significant": 10,
-    "sig_chain_lens_km": [
-      353.8,
-      116.5,
-      27.0,
-      17.7,
-      15.7,
-      7.3,
-      5.1,
-      4.5
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 9006,
     "simplified_points": 219,
     "len_km": 488.8,
@@ -176,18 +322,8 @@
   },
   {
     "id": 8,
-    "num_chains_total": 31,
-    "num_chains_significant": 19,
-    "sig_chain_lens_km": [
-      185.2,
-      185.0,
-      138.8,
-      51.0,
-      46.6,
-      40.5,
-      37.2,
-      32.8
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 11428,
     "simplified_points": 256,
     "len_km": 630.3,
@@ -206,43 +342,112 @@
   },
   {
     "id": 9,
-    "num_chains_total": 26,
-    "num_chains_significant": 11,
-    "sig_chain_lens_km": [
-      657.1,
-      25.3,
-      8.4,
-      7.9,
-      7.0,
-      3.9,
-      3.6,
-      3.4
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 0.6,
+        "bridges": [],
+        "points": 633
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 1.0,
+        "bridges": [],
+        "points": 1303
+      },
+      {
+        "leg": 2,
+        "reached": false,
+        "end_mismatch_km": 16.5,
+        "bridges": [],
+        "points": 1090
+      },
+      {
+        "leg": 3,
+        "reached": true,
+        "end_mismatch_km": 2.4,
+        "bridges": [],
+        "points": 2364
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 7.5,
+        "bridges": [],
+        "points": 1004
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 0.1,
+        "bridges": [],
+        "points": 868
+      },
+      {
+        "leg": 6,
+        "reached": true,
+        "end_mismatch_km": 1.3,
+        "bridges": [],
+        "points": 677
+      },
+      {
+        "leg": 7,
+        "reached": true,
+        "end_mismatch_km": 0.5,
+        "bridges": [],
+        "points": 677
+      },
+      {
+        "leg": 8,
+        "reached": true,
+        "end_mismatch_km": 1.3,
+        "bridges": [],
+        "points": 695
+      },
+      {
+        "leg": 9,
+        "reached": true,
+        "end_mismatch_km": 0.0,
+        "bridges": [],
+        "points": 1382
+      },
+      {
+        "leg": 10,
+        "reached": true,
+        "end_mismatch_km": 1.7,
+        "bridges": [],
+        "points": 928
+      },
+      {
+        "leg": 11,
+        "reached": false,
+        "end_mismatch_km": 33.5,
+        "bridges": [],
+        "points": 1666
+      },
+      {
+        "leg": 12,
+        "reached": true,
+        "end_mismatch_km": 0.3,
+        "bridges": [],
+        "points": 1391
+      }
     ],
-    "raw_points": 15562,
-    "simplified_points": 256,
-    "len_km": 708.1,
-    "start_mismatch_km": 1.8,
-    "end_mismatch_km": 60.2,
-    "num_bridges": 2,
-    "bridge_dists_km": [
-      3.8,
-      19.34
-    ]
+    "raw_points": 14666,
+    "simplified_points": 240,
+    "len_km": 636.3,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 0.3,
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 10,
-    "num_chains_total": 22,
-    "num_chains_significant": 14,
-    "sig_chain_lens_km": [
-      256.2,
-      189.4,
-      28.5,
-      22.9,
-      21.2,
-      14.2,
-      10.7,
-      9.1
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 10281,
     "simplified_points": 256,
     "len_km": 447.4,
@@ -255,17 +460,8 @@
   },
   {
     "id": 11,
-    "num_chains_total": 9,
-    "num_chains_significant": 7,
-    "sig_chain_lens_km": [
-      139.5,
-      108.0,
-      24.7,
-      18.5,
-      16.8,
-      3.3,
-      3.2
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 3614,
     "simplified_points": 136,
     "len_km": 164.3,
@@ -278,18 +474,8 @@
   },
   {
     "id": 12,
-    "num_chains_total": 19,
-    "num_chains_significant": 9,
-    "sig_chain_lens_km": [
-      136.1,
-      20.6,
-      9.0,
-      5.9,
-      5.1,
-      4.6,
-      3.4,
-      3.1
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 2302,
     "simplified_points": 66,
     "len_km": 136.1,
@@ -300,13 +486,8 @@
   },
   {
     "id": 14,
-    "num_chains_total": 11,
-    "num_chains_significant": 3,
-    "sig_chain_lens_km": [
-      38.3,
-      9.3,
-      8.7
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 1604,
     "simplified_points": 22,
     "len_km": 47.6,
@@ -319,12 +500,8 @@
   },
   {
     "id": 15,
-    "num_chains_total": 2,
-    "num_chains_significant": 2,
-    "sig_chain_lens_km": [
-      36.2,
-      21.8
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 1898,
     "simplified_points": 45,
     "len_km": 58.6,
@@ -337,38 +514,112 @@
   },
   {
     "id": 16,
-    "num_chains_total": 14,
-    "num_chains_significant": 6,
-    "sig_chain_lens_km": [
-      261.2,
-      125.2,
-      51.5,
-      20.8,
-      19.3,
-      15.4
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 1.9,
+        "bridges": [],
+        "points": 432
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 0.8,
+        "bridges": [],
+        "points": 584
+      },
+      {
+        "leg": 2,
+        "reached": true,
+        "end_mismatch_km": 0.9,
+        "bridges": [],
+        "points": 689
+      },
+      {
+        "leg": 3,
+        "reached": true,
+        "end_mismatch_km": 1.7,
+        "bridges": [],
+        "points": 234
+      },
+      {
+        "leg": 4,
+        "reached": false,
+        "end_mismatch_km": 9.1,
+        "bridges": [],
+        "points": 229
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 1.0,
+        "bridges": [],
+        "points": 381
+      },
+      {
+        "leg": 6,
+        "reached": true,
+        "end_mismatch_km": 0.8,
+        "bridges": [],
+        "points": 226
+      },
+      {
+        "leg": 7,
+        "reached": true,
+        "end_mismatch_km": 4.5,
+        "bridges": [],
+        "points": 242
+      },
+      {
+        "leg": 8,
+        "reached": false,
+        "end_mismatch_km": 11.6,
+        "bridges": [],
+        "points": 353
+      },
+      {
+        "leg": 9,
+        "reached": true,
+        "end_mismatch_km": 2.6,
+        "bridges": [],
+        "points": 170
+      },
+      {
+        "leg": 10,
+        "reached": true,
+        "end_mismatch_km": 1.1,
+        "bridges": [],
+        "points": 631
+      },
+      {
+        "leg": 11,
+        "reached": true,
+        "end_mismatch_km": 0.2,
+        "bridges": [],
+        "points": 346
+      },
+      {
+        "leg": 12,
+        "reached": true,
+        "end_mismatch_km": 3.5,
+        "bridges": [],
+        "points": 477
+      }
     ],
-    "raw_points": 702,
-    "simplified_points": 23,
-    "len_km": 20.8,
-    "start_mismatch_km": 2.1,
-    "end_mismatch_km": 2.2,
+    "raw_points": 4982,
+    "simplified_points": 172,
+    "len_km": 259.4,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 3.5,
     "num_bridges": 0,
     "bridge_dists_km": []
   },
   {
     "id": 17,
-    "num_chains_total": 27,
-    "num_chains_significant": 10,
-    "sig_chain_lens_km": [
-      349.5,
-      28.4,
-      27.0,
-      20.3,
-      12.2,
-      11.2,
-      9.0,
-      4.9
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 7810,
     "simplified_points": 224,
     "len_km": 349.5,
@@ -379,16 +630,8 @@
   },
   {
     "id": 19,
-    "num_chains_total": 16,
-    "num_chains_significant": 6,
-    "sig_chain_lens_km": [
-      265.6,
-      55.3,
-      16.8,
-      12.6,
-      12.5,
-      2.9
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 6331,
     "simplified_points": 219,
     "len_km": 265.6,
@@ -399,18 +642,8 @@
   },
   {
     "id": 20,
-    "num_chains_total": 16,
-    "num_chains_significant": 9,
-    "sig_chain_lens_km": [
-      63.4,
-      59.3,
-      54.2,
-      41.0,
-      29.4,
-      20.8,
-      6.1,
-      5.7
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 6959,
     "simplified_points": 251,
     "len_km": 225.4,
@@ -426,11 +659,8 @@
   },
   {
     "id": 22,
-    "num_chains_total": 1,
-    "num_chains_significant": 1,
-    "sig_chain_lens_km": [
-      74.1
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 1317,
     "simplified_points": 38,
     "len_km": 74.1,
@@ -441,43 +671,56 @@
   },
   {
     "id": 23,
-    "num_chains_total": 16,
-    "num_chains_significant": 8,
-    "sig_chain_lens_km": [
-      145.1,
-      113.4,
-      41.8,
-      31.3,
-      28.4,
-      5.7,
-      5.0,
-      2.8
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": false,
+        "end_mismatch_km": 35.2,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 1,
+        "reached": false,
+        "end_mismatch_km": 44.9,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 2,
+        "reached": false,
+        "end_mismatch_km": 62.8,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 3,
+        "reached": false,
+        "end_mismatch_km": 75.2,
+        "bridges": [],
+        "points": 1
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 1.8,
+        "bridges": [],
+        "points": 1885
+      }
     ],
-    "raw_points": 5204,
-    "simplified_points": 262,
-    "len_km": 394.0,
-    "start_mismatch_km": 40.7,
-    "end_mismatch_km": 55.8,
-    "num_bridges": 7,
-    "bridge_dists_km": [
-      0.49,
-      0.02,
-      10.02,
-      4.76,
-      0.71,
-      0.07,
-      4.4
-    ]
+    "raw_points": 1885,
+    "simplified_points": 86,
+    "len_km": 178.8,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 1.8,
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 25,
-    "num_chains_total": 10,
-    "num_chains_significant": 3,
-    "sig_chain_lens_km": [
-      127.4,
-      22.3,
-      15.9
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 4940,
     "simplified_points": 210,
     "len_km": 179.7,
@@ -491,17 +734,8 @@
   },
   {
     "id": 41,
-    "num_chains_total": 15,
-    "num_chains_significant": 7,
-    "sig_chain_lens_km": [
-      154.9,
-      107.7,
-      43.7,
-      6.7,
-      6.1,
-      3.3,
-      2.7
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 5193,
     "simplified_points": 293,
     "len_km": 290.5,
@@ -515,42 +749,70 @@
   },
   {
     "id": 42,
-    "num_chains_total": 17,
-    "num_chains_significant": 11,
-    "sig_chain_lens_km": [
-      374.8,
-      64.6,
-      27.4,
-      24.5,
-      14.6,
-      12.3,
-      8.0,
-      4.9
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 0.2,
+        "bridges": [],
+        "points": 1434
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 1.5,
+        "bridges": [],
+        "points": 851
+      },
+      {
+        "leg": 2,
+        "reached": true,
+        "end_mismatch_km": 1.9,
+        "bridges": [],
+        "points": 949
+      },
+      {
+        "leg": 3,
+        "reached": true,
+        "end_mismatch_km": 0.6,
+        "bridges": [],
+        "points": 2388
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 1.1,
+        "bridges": [],
+        "points": 496
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 0.8,
+        "bridges": [],
+        "points": 1044
+      },
+      {
+        "leg": 6,
+        "reached": true,
+        "end_mismatch_km": 3.2,
+        "bridges": [],
+        "points": 2205
+      }
     ],
-    "raw_points": 12085,
-    "simplified_points": 219,
-    "len_km": 509.2,
-    "start_mismatch_km": 0.5,
-    "end_mismatch_km": 92.4,
-    "num_bridges": 6,
-    "bridge_dists_km": [
-      2.1,
-      4.61,
-      2.64,
-      0.83,
-      0.34,
-      0.01
-    ]
+    "raw_points": 9361,
+    "simplified_points": 242,
+    "len_km": 356.2,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 3.2,
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 43,
-    "num_chains_total": 5,
-    "num_chains_significant": 3,
-    "sig_chain_lens_km": [
-      30.4,
-      30.4,
-      3.6
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 1149,
     "simplified_points": 39,
     "len_km": 69.5,
@@ -564,14 +826,8 @@
   },
   {
     "id": 58,
-    "num_chains_total": 8,
-    "num_chains_significant": 4,
-    "sig_chain_lens_km": [
-      755.0,
-      46.6,
-      24.1,
-      22.9
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 8703,
     "simplified_points": 289,
     "len_km": 867.2,
@@ -586,13 +842,8 @@
   },
   {
     "id": 134,
-    "num_chains_total": 4,
-    "num_chains_significant": 3,
-    "sig_chain_lens_km": [
-      42.4,
-      22.4,
-      15.9
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 2199,
     "simplified_points": 86,
     "len_km": 81.6,
@@ -606,14 +857,8 @@
   },
   {
     "id": 135,
-    "num_chains_total": 12,
-    "num_chains_significant": 4,
-    "sig_chain_lens_km": [
-      65.2,
-      32.7,
-      5.3,
-      2.7
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 1871,
     "simplified_points": 69,
     "len_km": 38.4,
@@ -626,17 +871,8 @@
   },
   {
     "id": 158,
-    "num_chains_total": 17,
-    "num_chains_significant": 7,
-    "sig_chain_lens_km": [
-      190.6,
-      36.8,
-      26.4,
-      7.2,
-      4.4,
-      3.5,
-      3.1
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 7979,
     "simplified_points": 262,
     "len_km": 262.6,
@@ -651,17 +887,8 @@
   },
   {
     "id": 171,
-    "num_chains_total": 13,
-    "num_chains_significant": 7,
-    "sig_chain_lens_km": [
-      54.7,
-      14.2,
-      9.8,
-      5.2,
-      3.8,
-      3.3,
-      2.8
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 2070,
     "simplified_points": 56,
     "len_km": 122.8,
@@ -677,16 +904,8 @@
   },
   {
     "id": 176,
-    "num_chains_total": 12,
-    "num_chains_significant": 6,
-    "sig_chain_lens_km": [
-      95.7,
-      37.9,
-      34.6,
-      8.8,
-      7.9,
-      4.7
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 4454,
     "simplified_points": 227,
     "len_km": 186.9,
@@ -702,45 +921,63 @@
   },
   {
     "id": 246,
-    "num_chains_total": 14,
-    "num_chains_significant": 8,
-    "sig_chain_lens_km": [
-      53.6,
-      50.6,
-      30.0,
-      28.4,
-      28.0,
-      6.1,
-      4.6,
-      4.4
+    "used_checkpoints": true,
+    "legs": [
+      {
+        "leg": 0,
+        "reached": true,
+        "end_mismatch_km": 0.3,
+        "bridges": [],
+        "points": 229
+      },
+      {
+        "leg": 1,
+        "reached": true,
+        "end_mismatch_km": 4.6,
+        "bridges": [],
+        "points": 691
+      },
+      {
+        "leg": 2,
+        "reached": true,
+        "end_mismatch_km": 0.2,
+        "bridges": [],
+        "points": 295
+      },
+      {
+        "leg": 3,
+        "reached": false,
+        "end_mismatch_km": 13.4,
+        "bridges": [],
+        "points": 48
+      },
+      {
+        "leg": 4,
+        "reached": true,
+        "end_mismatch_km": 0.3,
+        "bridges": [],
+        "points": 792
+      },
+      {
+        "leg": 5,
+        "reached": true,
+        "end_mismatch_km": 3.0,
+        "bridges": [],
+        "points": 595
+      }
     ],
-    "raw_points": 3957,
-    "simplified_points": 157,
-    "len_km": 174.6,
-    "start_mismatch_km": 12.7,
-    "end_mismatch_km": 33.9,
-    "num_bridges": 4,
-    "bridge_dists_km": [
-      4.63,
-      0.19,
-      0.06,
-      2.84
-    ]
+    "raw_points": 2645,
+    "simplified_points": 111,
+    "len_km": 160.0,
+    "start_mismatch_km": 0.0,
+    "end_mismatch_km": 3.0,
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 357,
-    "num_chains_total": 12,
-    "num_chains_significant": 10,
-    "sig_chain_lens_km": [
-      73.4,
-      55.2,
-      22.7,
-      22.2,
-      9.6,
-      6.8,
-      3.6,
-      3.0
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 2978,
     "simplified_points": 125,
     "len_km": 226.6,
@@ -760,11 +997,8 @@
   },
   {
     "id": 411,
-    "num_chains_total": 3,
-    "num_chains_significant": 1,
-    "sig_chain_lens_km": [
-      114.8
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 4988,
     "simplified_points": 196,
     "len_km": 114.8,
@@ -775,13 +1009,8 @@
   },
   {
     "id": 413,
-    "num_chains_total": 4,
-    "num_chains_significant": 3,
-    "sig_chain_lens_km": [
-      45.7,
-      20.3,
-      6.0
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 3215,
     "simplified_points": 117,
     "len_km": 73.9,
@@ -795,14 +1024,8 @@
   },
   {
     "id": 439,
-    "num_chains_total": 6,
-    "num_chains_significant": 4,
-    "sig_chain_lens_km": [
-      193.0,
-      66.5,
-      41.5,
-      35.0
-    ],
+    "used_checkpoints": false,
+    "legs": null,
     "raw_points": 16599,
     "simplified_points": 287,
     "len_km": 337.0,

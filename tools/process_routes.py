@@ -71,6 +71,31 @@ EXPECTED = {
     439: ((34.07, 134.56), (32.94, 132.94)),
 }
 
+# Rough intermediate checkpoints (known-to-pass-through cities) for routes whose
+# plain start->end walk wandered off course. Splitting the walk into short legs
+# between these checkpoints keeps a wrong turn from derailing the whole route.
+CHECKPOINTS = {
+    1: [(35.68, 139.77), (35.53, 139.70), (35.44, 139.64), (35.34, 139.49), (35.26, 139.16),
+        (35.10, 138.86), (35.16, 138.68), (34.98, 138.38), (34.77, 137.99), (34.71, 137.73),
+        (34.77, 137.39), (34.95, 137.17), (35.18, 136.91), (35.06, 136.69), (34.97, 136.62),
+        (34.86, 136.45), (35.01, 135.87), (35.01, 135.77), (34.69, 135.50)],
+    2: [(34.69, 135.50), (34.69, 135.20), (34.65, 134.99), (34.82, 134.69), (34.66, 133.92),
+        (34.60, 133.77), (34.49, 133.36), (34.41, 133.20), (34.40, 132.46), (34.17, 132.22),
+        (34.05, 131.81), (34.19, 131.47), (33.95, 130.94), (33.94, 130.96)],
+    9: [(35.01, 135.77), (35.02, 135.57), (35.30, 135.13), (35.54, 134.82), (35.50, 134.24),
+        (35.43, 133.82), (35.43, 133.33), (35.47, 133.05), (35.37, 132.76), (35.19, 132.50),
+        (34.90, 132.08), (34.67, 131.85), (34.38, 131.19), (33.95, 130.94)],
+    16: [(35.44, 139.64), (35.55, 139.45), (35.66, 139.32), (35.83, 139.39), (35.92, 139.48),
+         (35.86, 139.65), (35.98, 139.75), (35.95, 139.87), (35.85, 139.93), (35.70, 139.99),
+         (35.60, 140.12), (35.38, 139.92), (35.28, 139.67), (35.44, 139.64)],
+    23: [(35.18, 136.91), (34.97, 136.62), (34.88, 136.58), (34.72, 136.51), (34.58, 136.53),
+         (34.49, 136.71)],
+    42: [(34.23, 135.17), (33.89, 135.15), (33.73, 135.38), (33.55, 135.52), (33.72, 135.98),
+         (33.90, 136.10), (34.07, 136.20), (34.58, 136.53)],
+    246: [(35.68, 139.74), (35.66, 139.70), (35.55, 139.45), (35.44, 139.36), (35.37, 139.22),
+          (35.31, 138.93), (35.10, 138.86)],
+}
+
 def haversine(a, b):
     R = 6371.0
     lat1, lon1 = math.radians(a[0]), math.radians(a[1])
@@ -145,20 +170,38 @@ def pick_best_candidate(candidates, near_radius_km):
         return max(near, key=lambda c: c[1])
     return min(candidates, key=lambda c: c[0])
 
-def bridge_chains(chains, start_pt, end_pt, min_significant_km=2.5, max_bridge_km=25.0, near_radius_km=5.0):
-    """Given exact-merged chains, keep the significant ones and stitch them start->end
-    by repeatedly attaching a nearby chain (preferring longer ones when several sit
-    close by, to avoid latching onto short decoy fragments) to the current path head."""
-    sig = [c for c in chains if chain_length_km(c) >= min_significant_km]
-    if not sig:
-        sig = sorted(chains, key=chain_length_km, reverse=True)[:1]
-    sig_lens = [chain_length_km(c) for c in sig]
-    used = [False] * len(sig)
+def take_chain(sig, sig_lens, used, i, end, target_pt):
+    """Mark chain i consumed, oriented so it starts at the entry end. If the target
+    point's closest approach is somewhere in the *middle* of this chain (i.e. the
+    chain overshoots what's actually needed - important for short legs grabbing a
+    long chain), truncate there and push the unused remainder back into the shared
+    pool as a fresh chain so a later leg can still pick it up."""
+    used[i] = True
+    piece = list(sig[i]) if end == 0 else list(reversed(sig[i]))
+    dists = [haversine(p, target_pt) for p in piece]
+    idx_min = min(range(len(piece)), key=lambda k: dists[k])
+    if idx_min < len(piece) - 1 and dists[idx_min] < dists[-1]:
+        leftover = piece[idx_min:]
+        leftover_len = chain_length_km(leftover)
+        if len(leftover) >= 2 and leftover_len >= 1.0:
+            sig.append(leftover)
+            sig_lens.append(leftover_len)
+            used.append(False)
+        piece = piece[:idx_min + 1]
+    return piece
 
+def walk_segment(sig, sig_lens, used, start_pt, end_pt, max_bridge_km, near_radius_km, end_snap_km):
+    """Walk from start_pt to end_pt using chains from the shared pool `sig`, marking
+    consumed chains in the shared `used` array (mutated in place) so a later leg
+    (in a multi-checkpoint walk) can't re-use a chain an earlier leg already took."""
     candidates = []
     for i, c in enumerate(sig):
+        if used[i]:
+            continue
         for end, pt in ((0, c[0]), (1, c[-1])):
             candidates.append((haversine(pt, start_pt), sig_lens[i], i, end))
+    if not candidates:
+        return [start_pt], [], False
     _, _, i0, end0 = pick_best_candidate(candidates, near_radius_km)
     used[i0] = True
     path = list(sig[i0]) if end0 == 0 else list(reversed(sig[i0]))
@@ -173,12 +216,9 @@ def bridge_chains(chains, start_pt, end_pt, min_significant_km=2.5, max_bridge_k
                 continue
             for end, pt in ((0, c[0]), (1, c[-1])):
                 candidates.append((haversine(pt, current), sig_lens[i], i, end))
-        if not candidates:
+        if not candidates or (d_to_end <= end_snap_km and d_to_end < min(c[0] for c in candidates)):
             break
         d_next, _, i, end = pick_best_candidate(candidates, near_radius_km)
-        nearest_d = min(c[0] for c in candidates)
-        if d_to_end < nearest_d and d_to_end <= 15.0:
-            break
         if d_next > max_bridge_km:
             break
         used[i] = True
@@ -186,7 +226,107 @@ def bridge_chains(chains, start_pt, end_pt, min_significant_km=2.5, max_bridge_k
         piece = piece if end == 0 else list(reversed(piece))
         bridges.append(round(d_next, 2))
         path.extend(piece)
+    reached = haversine(path[-1], end_pt) <= max(end_snap_km, 10.0)
+    return path, bridges, reached
+
+def walk_leg(sig, sig_lens, used, cur_pt, target_pt, entry_radius_km=8.0, max_steps=40):
+    """Checkpoint-mode leg walk: at each step, among chains whose entry point is
+    reasonably close to the current position, pick whichever one's closest approach
+    to THIS leg's target gets us nearest (not simply "longest nearby chain", which is
+    wrong once legs are short - a long chain heading the wrong way looks tempting but
+    doesn't serve a short leg). Truncate at that closest-approach point and push the
+    remainder back into the pool for later legs."""
+    path = [cur_pt]
+    for _ in range(max_steps):
+        current = path[-1]
+        if haversine(current, target_pt) <= 4.0:
+            break
+        entry_candidates = []
+        for i, c in enumerate(sig):
+            if used[i]:
+                continue
+            for end, pt in ((0, c[0]), (1, c[-1])):
+                d = haversine(pt, current)
+                if d <= entry_radius_km:
+                    entry_candidates.append((d, i, end))
+        if not entry_candidates:
+            # nothing close enough to continue from; grab the single globally
+            # nearest entry point so the leg can still make some progress
+            all_candidates = []
+            for i, c in enumerate(sig):
+                if used[i]:
+                    continue
+                for end, pt in ((0, c[0]), (1, c[-1])):
+                    all_candidates.append((haversine(pt, current), i, end))
+            if not all_candidates:
+                break
+            entry_candidates = [min(all_candidates, key=lambda x: x[0])]
+
+        best = None  # (approach_dist, i, end)
+        for _d_entry, i, end in entry_candidates:
+            piece = list(sig[i]) if end == 0 else list(reversed(sig[i]))
+            dists = [haversine(p, target_pt) for p in piece]
+            idx_min = min(range(len(piece)), key=lambda k: dists[k])
+            if best is None or dists[idx_min] < best[0]:
+                best = (dists[idx_min], i, end, idx_min, piece)
+        approach_dist, i, end, idx_min, piece = best
+        if approach_dist >= haversine(current, target_pt):
+            # nothing available gets us any closer than we already are - stop rather
+            # than wander
+            break
+        used[i] = True
+        if idx_min < len(piece) - 1:
+            leftover = piece[idx_min:]
+            leftover_len = chain_length_km(leftover)
+            if len(leftover) >= 2 and leftover_len >= 1.0:
+                sig.append(leftover)
+                sig_lens.append(leftover_len)
+                used.append(False)
+        path.extend(piece[1:idx_min + 1] if idx_min > 0 else [])
+    reached = haversine(path[-1], target_pt) <= 8.0
+    return path, reached
+
+def bridge_chains(chains, start_pt, end_pt, min_significant_km=2.5, max_bridge_km=25.0, near_radius_km=5.0):
+    """Single start->end walk (no intermediate checkpoints)."""
+    sig = [c for c in chains if chain_length_km(c) >= min_significant_km]
+    if not sig:
+        sig = sorted(chains, key=chain_length_km, reverse=True)[:1]
+    sig_lens = [chain_length_km(c) for c in sig]
+    used = [False] * len(sig)
+    path, bridges, _ = walk_segment(sig, sig_lens, used, start_pt, end_pt, max_bridge_km, near_radius_km, 15.0)
     return path, bridges, [round(l, 1) for l in sig_lens]
+
+def bridge_via_checkpoints(chains, checkpoints, min_significant_km=2.5, max_bridge_km=15.0, near_radius_km=5.0):
+    """Stitch chains start->end via a sequence of human-supplied intermediate
+    checkpoints (e.g. the cities the route is known to pass through). Each
+    consecutive pair of checkpoints is walked as its own short leg, which keeps the
+    greedy nearest-chain search from wandering far off course on a long route -
+    a wrong turn only derails the current (short) leg instead of the whole route,
+    and a loop route's start/end no longer look trivially "already satisfied" by
+    a nearby, unrelated short fragment.
+    Returns (full_path, per_leg_info) where per_leg_info has one dict per leg with
+    the leg's reached endpoint mismatch, for spot-checking which leg (if any) failed.
+    """
+    sig = [c for c in chains if chain_length_km(c) >= min_significant_km]
+    if not sig:
+        sig = sorted(chains, key=chain_length_km, reverse=True)[:1]
+    sig_lens = [chain_length_km(c) for c in sig]
+    used = [False] * len(sig)
+
+    full_path = []
+    legs = []
+    for i in range(len(checkpoints) - 1):
+        a, b = checkpoints[i], checkpoints[i + 1]
+        start_pt = full_path[-1] if full_path else a
+        leg_path, reached = walk_leg(sig, sig_lens, used, start_pt, b)
+        end_mismatch = round(haversine(leg_path[-1], b), 1)
+        legs.append({"leg": i, "reached": reached, "end_mismatch_km": end_mismatch,
+                     "bridges": [], "points": len(leg_path)})
+        if full_path and leg_path and full_path[-1] == leg_path[0]:
+            full_path.extend(leg_path[1:])
+        else:
+            full_path.extend(leg_path)
+    return full_path, legs
 
 def douglas_peucker(points, tolerance_km):
     if len(points) < 3:
@@ -230,7 +370,13 @@ def process(route_id):
         return {"id": route_id, "error": "no line segments"}
 
     chains = exact_merge(segs)
-    walked, bridges, sig_lens = bridge_chains(chains, exp_start, exp_end)
+    checkpoints = CHECKPOINTS.get(route_id)
+    legs = None
+    if checkpoints:
+        walked, legs = bridge_via_checkpoints(chains, checkpoints)
+        bridges = [b for leg in legs for b in leg["bridges"]]
+    else:
+        walked, bridges, _sig_lens = bridge_chains(chains, exp_start, exp_end)
     total_len = chain_length_km(walked)
 
     simplified = douglas_peucker(walked, tolerance_km=0.08)
@@ -244,9 +390,8 @@ def process(route_id):
 
     return {
         "id": route_id,
-        "num_chains_total": len(chains),
-        "num_chains_significant": len(sig_lens),
-        "sig_chain_lens_km": sorted(sig_lens, reverse=True)[:8],
+        "used_checkpoints": bool(checkpoints),
+        "legs": legs,
         "raw_points": len(walked),
         "simplified_points": len(simplified),
         "len_km": round(total_len, 1),
@@ -266,7 +411,12 @@ if __name__ == "__main__":
         if r["start_mismatch_km"] > 8: flag += " ⚠START"
         if r["end_mismatch_km"] > 8: flag += " ⚠END"
         if r["bridge_dists_km"] and max(r["bridge_dists_km"]) > 15: flag += " ⚠BIGBRIDGE"
+        via = " (checkpoints)" if r["used_checkpoints"] else ""
         print(f"{r['id']:>4} | len={r['len_km']:>7}km | pts {r['raw_points']:>6}→{r['simplified_points']:>3} | "
               f"start_mm={r['start_mismatch_km']:>5}km end_mm={r['end_mismatch_km']:>6}km | "
-              f"bridges={r['bridge_dists_km']}{flag}")
+              f"bridges={r['bridge_dists_km']}{flag}{via}")
+        if r["legs"]:
+            bad_legs = [l for l in r["legs"] if l["end_mismatch_km"] > 5]
+            if bad_legs:
+                print(f"      leg mismatches: {[(l['leg'], l['end_mismatch_km']) for l in bad_legs]}")
     json.dump(results, open(os.path.join(OUT_DIR, "_report.json"), "w"), ensure_ascii=False, indent=2)
