@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国道収録仕様書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --paper: #f5f2ea;
+    --panel: #ffffff;
+    --ink: #23262c;
+    --muted: #6d6f78;
+    --line: #e4ded0;
+    --accent: #1e5aa8;
+    --accent-soft: #e9f0fb;
+    --done: #2f7d4f;
+    --done-soft: #e6f4ea;
+    --p2: #a8660c;
+    --p2-soft: #fbf0dd;
+    --p3: #7454a3;
+    --p3-soft: #f1ecf8;
+    --warn: #b23b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1b1d22;
+      --panel: #24272e;
+      --ink: #eceef2;
+      --muted: #9a9da6;
+      --line: #383b44;
+      --accent: #6fa3e6;
+      --accent-soft: #26344a;
+      --done: #6fcf97;
+      --done-soft: #1e332a;
+      --p2: #e0a95c;
+      --p2-soft: #3a2f1c;
+      --p3: #b39ddb;
+      --p3-soft: #2f2740;
+      --warn: #e08585;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    padding-inline: max(16px, calc((100vw - 920px) / 2));
+    padding-block: 32px 56px;
+  }
+
+  .wrap { max-width: 920px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: clamp(26px, 4vw, 34px);
+    margin: 6px 0 10px;
+    text-wrap: balance;
+    letter-spacing: 0.02em;
+  }
+  .lede {
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.75;
+    max-width: 62ch;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+  }
+  .stat .n {
+    font-family: "Shippori Mincho", serif;
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stat.total .n { color: var(--ink); }
+  .stat.done .n { color: var(--done); }
+  .stat.p2 .n { color: var(--p2); }
+  .stat.p3 .n { color: var(--p3); }
+  .stat .l {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 26px 0 14px;
+  }
+  .filters button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .filters button[aria-pressed="true"] {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .group-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 18px 4px 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .group-title .count {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--line);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  .table-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 640px;
+  }
+  thead th {
+    text-align: left;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  tbody tr { border-bottom: 1px solid var(--line); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr.hidden { display: none; }
+  td {
+    padding: 11px 14px;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  td.route-cell { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+
+  .sign {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 34px;
+    clip-path: polygon(50% 0%, 100% 32%, 100% 100%, 0% 100%, 0% 32%);
+    background: var(--panel);
+    border: 1.6px solid var(--accent);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 3px;
+  }
+  .sign span {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .sign span.d1 { font-size: 15px; }
+  .sign span.d2 { font-size: 13px; }
+  .sign span.d3 { font-size: 10.5px; }
+
+  .route-name {
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+
+  .section-cell {
+    text-align: center;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .pill.done { background: var(--done-soft); color: var(--done); }
+  .pill.done::before { background: var(--done); }
+  .pill.p2 { background: var(--p2-soft); color: var(--p2); }
+  .pill.p2::before { background: var(--p2); }
+  .pill.p3 { background: var(--p3-soft); color: var(--p3); }
+  .pill.p3::before { background: var(--p3); }
+
+  .span-cell { color: var(--ink); white-space: nowrap; }
+  .span-cell .arrow { color: var(--muted); margin: 0 5px; }
+
+  .note-cell { color: var(--muted); font-size: 13.3px; line-height: 1.6; }
+  .note-cell .warn { color: var(--warn); font-weight: 500; }
+
+  footer {
+    margin-top: 34px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 620px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    td.route-cell { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Kokudo Quiz &mdash; Data Spec</div>
+    <h1>国道収録仕様書</h1>
+    <p class="lede">
+      国道クイズアプリ（<a href="../" style="color:var(--accent)">kokudo-quiz</a>）に収録する国道の対応状況・区間・補足情報をまとめた一覧です。
+      実装済みの国道に加え、収録候補として洗い出した二桁・三桁国道の区間案を記載しています。
+    </p>
+    <div class="stats">
+      <div class="stat total"><div class="n" id="statTotal">36</div><div class="l">収録対象 合計</div></div>
+      <div class="stat done"><div class="n" id="statDone">12</div><div class="l">実装済み</div></div>
+      <div class="stat p2"><div class="n" id="statP2">14</div><div class="l">候補・二桁国道</div></div>
+      <div class="stat p3"><div class="n" id="statP3">10</div><div class="l">候補・三桁国道</div></div>
+    </div>
+  </header>
+
+  <div class="filters" id="filters">
+    <button type="button" data-filter="all" aria-pressed="true">すべて</button>
+    <button type="button" data-filter="done" aria-pressed="false">実装済み</button>
+    <button type="button" data-filter="p2" aria-pressed="false">候補・二桁国道</button>
+    <button type="button" data-filter="p3" aria-pressed="false">候補・三桁国道</button>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:96px">対応状況</th>
+          <th style="width:210px">国道</th>
+          <th style="width:190px">始点 → 終点</th>
+          <th>補足情報</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    データ出典：経由都市は運営者の地理知識をもとに手動で作成した簡略ルート（実道路データではありません）。
+    実ルート形状（OpenStreetMap由来）の取得手順は、リポジトリ内 <a href="https://github.com/takenakadx/kokudo-quiz/blob/main/data-raw/README.md">data-raw/README.md</a> を参照してください。
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+const ROWS = [
+  // 実装済み
+  { status: "done", num: "1", name: "国道1号", start: "東京", end: "大阪", note: "旧東海道にほぼ沿う、日本を代表する幹線国道。" },
+  { status: "done", num: "2", name: "国道2号", start: "大阪", end: "北九州(門司)", note: "瀬戸内海沿いを西へ進み下関海峡を越える。" },
+  { status: "done", num: "4", name: "国道4号", start: "東京", end: "青森", note: "日本で最も長い国道。東北地方を縦断。" },
+  { status: "done", num: "6", name: "国道6号", start: "東京", end: "仙台", note: "水戸・いわきなど太平洋沿いを北上。" },
+  { status: "done", num: "8", name: "国道8号", start: "新潟", end: "京都", note: "新潟・富山・金沢・福井を結ぶ北陸の大動脈。" },
+  { status: "done", num: "9", name: "国道9号", start: "京都", end: "下関", note: "山陰地方(日本海側)を横断。" },
+  { status: "done", num: "16", name: "国道16号", start: "横浜", end: "横浜(一周)", note: "都心を通らず首都圏を環状に結ぶ。" },
+  { status: "done", num: "20", name: "国道20号", start: "東京", end: "塩尻", note: "旧甲州街道。塩尻で中山道と合流。" },
+  { status: "done", num: "23", name: "国道23号", start: "名古屋", end: "伊勢", note: "四日市・津・松阪を経て伊勢神宮へ。" },
+  { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。" },
+  { status: "done", num: "58", name: "国道58号", start: "鹿児島", end: "那覇", note: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。" },
+  { status: "done", num: "246", name: "国道246号", start: "東京(三宅坂)", end: "沼津", note: "渋谷・厚木・御殿場を経て沼津で1号と合流。" },
+
+  // 候補・二桁国道
+  { status: "p2", num: "3", name: "国道3号", start: "北九州(門司)", end: "鹿児島", note: "2号の終点から続く九州縦断の大動脈。" },
+  { status: "p2", num: "5", name: "国道5号", start: "函館", end: "札幌", note: "北海道を初収録。知名度が高い路線。" },
+  { status: "p2", num: "7", name: "国道7号", start: "新潟", end: "青森", note: "日本海側の東北部を補完するルート。" },
+  { status: "p2", num: "10", name: "国道10号", start: "北九州", end: "鹿児島", note: "東九州側のルート。3号との対比になる。" },
+  { status: "p2", num: "11", name: "国道11号", start: "松山", end: "高知", note: "四国を初収録。" },
+  { status: "p2", num: "12", name: "国道12号", start: "札幌", end: "旭川", note: "北海道の主要路線をもう1本。" },
+  { status: "p2", num: "14", name: "国道14号", start: "東京", end: "千葉", note: "関東の主要路線。" },
+  { status: "p2", num: "15", name: "国道15号", start: "東京", end: "横浜", note: "第一京浜。1号と並ぶ有名路線。" },
+  { status: "p2", num: "17", name: "国道17号", start: "東京", end: "新潟", note: "中山道・三国街道ルートで知名度が高い。" },
+  { status: "p2", num: "19", name: "国道19号", start: "名古屋", end: "長野", note: "中山道ルート。" },
+  { status: "p2", num: "22", name: "国道22号", start: "名古屋", end: "岐阜", note: "中部の主要路線。" },
+  { status: "p2", num: "25", name: "国道25号", start: "名古屋", end: "大阪", note: "名阪国道。知名度が高い。" },
+  { status: "p2", num: "41", name: "国道41号", start: "名古屋", end: "富山", note: "中部を縦断するルート。" },
+  { status: "p2", num: "43", name: "国道43号", start: "大阪", end: "神戸", note: "阪神国道。知名度が高い。" },
+
+  // 候補・三桁国道
+  { status: "p3", num: "134", name: "国道134号", start: "横須賀", end: "大磯", note: "湘南海岸線。鎌倉・江ノ島・茅ヶ崎を通る有名な海沿い道路。" },
+  { status: "p3", num: "135", name: "国道135号", start: "熱海", end: "下田", note: "伊豆半島東岸。東京から伊豆への有名な観光道路。" },
+  { status: "p3", num: "158", name: "国道158号", start: "福井", end: "松本", note: "上高地方面への山岳国道として有名。" },
+  { status: "p3", num: "171", name: "国道171号", start: "京都", end: "神戸", note: "西国街道。大阪〜神戸〜京都を結ぶ。" },
+  { status: "p3", num: "176", name: "国道176号", start: "大阪", end: "舞鶴", note: "<span class=\"warn\">渋滞の名所</span>としても有名。" },
+  { status: "p3", num: "317", name: "国道317号", start: "尾道", end: "今治", note: "しまなみ海道。瀬戸内海を橋で渡る超有名ルート。" },
+  { status: "p3", num: "357", name: "国道357号", start: "木更津", end: "横須賀", note: "東京湾岸道路。東京湾岸を結ぶ有名な幹線。" },
+  { status: "p3", num: "411", name: "国道411号", start: "新宿", end: "甲府", note: "青梅街道。" },
+  { status: "p3", num: "413", name: "国道413号", start: "相模原", end: "富士吉田", note: "道志みち。ツーリングで有名。" },
+  { status: "p3", num: "439", name: "国道439号", start: "徳島", end: "四万十", note: "<span class=\"warn\">「酷道」</span>として全国的に有名な四国山間部の国道。" }
+];
+
+const STATUS_META = {
+  done: { label: "実装済み", pillClass: "done", groupTitle: "実装済み" },
+  p2:   { label: "データ待ち", pillClass: "p2",   groupTitle: "収録候補：二桁国道" },
+  p3:   { label: "データ待ち", pillClass: "p3",   groupTitle: "収録候補：三桁国道" }
+};
+
+function digitClass(num) {
+  const len = num.replace(/\D/g, "").length;
+  return "d" + Math.min(len, 3);
+}
+
+function renderRows() {
+  const tbody = document.getElementById("tbody");
+  const order = ["done", "p2", "p3"];
+  let html = "";
+  order.forEach(status => {
+    const rows = ROWS.filter(r => r.status === status);
+    const meta = STATUS_META[status];
+    html += `<tr class="group-row" data-group="${status}"><td colspan="4" style="padding:0;border:none;background:none;">
+      <div class="group-title">${meta.groupTitle}<span class="count">${rows.length}</span></div>
+    </td></tr>`;
+    rows.forEach(r => {
+      html += `<tr data-status="${status}">
+        <td class="section-cell"><span class="pill ${meta.pillClass}">${meta.label}</span></td>
+        <td class="route-cell">
+          <span class="sign"><span class="${digitClass(r.num)}">${r.num}</span></span>
+          <span class="route-name">${r.name}</span>
+        </td>
+        <td class="span-cell">${r.start}<span class="arrow">&rarr;</span>${r.end}</td>
+        <td class="note-cell">${r.note}</td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML = html;
+}
+
+function applyFilter(filter) {
+  document.querySelectorAll("tbody tr").forEach(tr => {
+    if (tr.classList.contains("group-row")) {
+      tr.classList.toggle("hidden", filter !== "all" && tr.dataset.group !== filter);
+      return;
+    }
+    const show = filter === "all" || tr.dataset.status === filter;
+    tr.classList.toggle("hidden", !show);
+  });
+}
+
+document.getElementById("filters").addEventListener("click", evt => {
+  const btn = evt.target.closest("button[data-filter]");
+  if (!btn) return;
+  document.querySelectorAll("#filters button").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+  applyFilter(btn.dataset.filter);
+});
+
+renderRows();
+</script>
+</body>
+</html>
