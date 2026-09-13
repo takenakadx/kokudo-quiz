@@ -863,7 +863,10 @@ function finishAttempt() {
   const pct = result.score;
   const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
   if (result.grade === "correct") {
-    quizResult.innerHTML = `<strong>正解！</strong>（ルート網羅率 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${currentHighway.prefectures.slice(1).join("→")} を通り ${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
+    // 北海道・神奈川県など1県で完結する国道は「〜を通り」の部分が空になるため省く
+    const midPrefs = currentHighway.prefectures.slice(1).join("→");
+    const via = midPrefs ? `${midPrefs} を通り ` : "";
+    quizResult.innerHTML = `<strong>正解！</strong>（ルート網羅率 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${via}${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
   } else if (result.grade === "partial") {
     quizResult.innerHTML = `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`;
   } else {
