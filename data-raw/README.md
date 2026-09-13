@@ -40,16 +40,32 @@ Claude 側でそれを取り込んで `waypoints` をより正確な形状に置
 |---|---|
 | 国道1号 | `data-raw/1.geojson` |
 | 国道2号 | `data-raw/2.geojson` |
+| 国道3号 | `data-raw/3.geojson` |
 | 国道4号 | `data-raw/4.geojson` |
+| 国道5号 | `data-raw/5.geojson` |
 | 国道6号 | `data-raw/6.geojson` |
+| 国道7号 | `data-raw/7.geojson` |
 | 国道8号 | `data-raw/8.geojson` |
 | 国道9号 | `data-raw/9.geojson` |
+| 国道10号 | `data-raw/10.geojson` |
+| 国道11号 | `data-raw/11.geojson` |
+| 国道12号 | `data-raw/12.geojson` |
+| 国道14号 | `data-raw/14.geojson` |
+| 国道15号 | `data-raw/15.geojson` |
 | 国道16号 | `data-raw/16.geojson` |
+| 国道17号 | `data-raw/17.geojson` |
+| 国道19号 | `data-raw/19.geojson` |
 | 国道20号 | `data-raw/20.geojson` |
+| 国道22号 | `data-raw/22.geojson` |
 | 国道23号 | `data-raw/23.geojson` |
+| 国道25号 | `data-raw/25.geojson` |
+| 国道41号 | `data-raw/41.geojson` |
 | 国道42号 | `data-raw/42.geojson` |
+| 国道43号 | `data-raw/43.geojson` |
 | 国道58号 | `data-raw/58.geojson`（※大半が海上区間のため、データが取れない/歯抜けになる可能性が高いです。ダメそうなら省略してOKです） |
 | 国道246号 | `data-raw/246.geojson` |
+
+上の3〜43号の14本は、収録国道を増やすタスク（Issue #2）向けに新しく追加した候補です。
 
 ### クエリのテンプレート
 
