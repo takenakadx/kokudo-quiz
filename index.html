@@ -484,42 +484,32 @@ function renderStudy(h, animate) {
   if (studyAnimId) cancelAnimationFrame(studyAnimId);
   if (!h) return;
 
+  const last = h.path[h.path.length - 1];
+
   if (!animate) {
-    makePolyline(studyLayerGroup, h.waypoints, { color: "#2e9e4f", width: 5 });
-    h.waypoints.forEach((w, i) => {
-      makeCircleMarker(studyLayerGroup, w[0], w[1], {
-        color: i === 0 ? "#2c5f9e" : (i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f"),
-        r: i === 0 || i === h.waypoints.length - 1 ? 7 : 4,
-        label: w[2]
-      });
-    });
+    makePolyline(studyLayerGroup, h.path, { color: "#2e9e4f", width: 5 });
+    makeCircleMarker(studyLayerGroup, h.path[0][0], h.path[0][1], { color: "#2c5f9e", r: 7, label: h.startLabel });
+    makeCircleMarker(studyLayerGroup, last[0], last[1], { color: "#d0473e", r: 7, label: h.endLabel });
     return;
   }
 
-  makeCircleMarker(studyLayerGroup, h.waypoints[0][0], h.waypoints[0][1], { color: "#2c5f9e", r: 7, label: h.waypoints[0][2] });
-  studyRouteLine = makePolyline(studyLayerGroup, [h.waypoints[0]], { color: "#2e9e4f", width: 5 });
+  makeCircleMarker(studyLayerGroup, h.path[0][0], h.path[0][1], { color: "#2c5f9e", r: 7, label: h.startLabel });
+  studyRouteLine = makePolyline(studyLayerGroup, [h.path[0]], { color: "#2e9e4f", width: 5 });
 
   let step = 0;
   const totalSteps = 60;
   function frame() {
-    const upToFloat = (step / totalSteps) * (h.waypoints.length - 1);
+    const upToFloat = (step / totalSteps) * (h.path.length - 1);
     const upToIdx = Math.floor(upToFloat);
-    const partial = h.waypoints.slice(0, upToIdx + 1).map(w => [w[0], w[1]]);
-    if (upToIdx < h.waypoints.length - 1) {
-      const a = h.waypoints[upToIdx], b = h.waypoints[upToIdx + 1];
+    const partial = h.path.slice(0, upToIdx + 1).map(w => [w[0], w[1]]);
+    if (upToIdx < h.path.length - 1) {
+      const a = h.path[upToIdx], b = h.path[upToIdx + 1];
       const t = upToFloat - upToIdx;
       partial.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
     }
     studyRouteLine.setLatLngs(partial);
     if (step >= totalSteps) {
-      h.waypoints.forEach((w, i) => {
-        if (i === 0) return;
-        makeCircleMarker(studyLayerGroup, w[0], w[1], {
-          color: i === h.waypoints.length - 1 ? "#d0473e" : "#2e9e4f",
-          r: i === h.waypoints.length - 1 ? 7 : 4,
-          label: w[2]
-        });
-      });
+      makeCircleMarker(studyLayerGroup, last[0], last[1], { color: "#d0473e", r: 7, label: h.endLabel });
       return;
     }
     step++;
@@ -759,7 +749,7 @@ function startQuestion() {
 // なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズ・ズームが変わったら呼び直す）
 function updateOfficialDenseCache() {
   if (!currentHighway) { officialDenseCache = []; routeLengthPx = 0; inkBudget = 0; return; }
-  const officialPts = currentHighway.waypoints.map(w => quizProjector.project(w[0], w[1]));
+  const officialPts = currentHighway.path.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
   routeLengthPx = pathLength(officialPts);
   // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
@@ -770,8 +760,8 @@ function updateOfficialDenseCache() {
 // ヒントを使うか回答したときに、起点・終点マーカーをまとめて表示する
 function revealMarkers() {
   const h = currentHighway;
-  const first = h.waypoints[0];
-  const last = h.waypoints[h.waypoints.length - 1];
+  const first = h.path[0];
+  const last = h.path[h.path.length - 1];
   makeCircleMarker(quizLayerGroup, first[0], first[1], { color: "#2c5f9e", r: 8 });
   makeCircleMarker(quizLayerGroup, last[0], last[1], { color: "#d0473e", r: 8 });
 }
@@ -819,7 +809,7 @@ const GRADE_PARTIAL = 50;
 // 塗りつぶして稼ぐことができず、従来の「軌跡が経路上にあるか(accuracy)」の別判定は不要になる。
 function scoreAttempt() {
   const h = currentHighway;
-  const officialPts = h.waypoints.map(w => quizProjector.project(w[0], w[1]));
+  const officialPts = h.path.map(w => quizProjector.project(w[0], w[1]));
   // traceTolerance は updateOfficialDenseCache() でズームに応じて計算済みの値をそのまま使う
   // （なぞっている最中の視覚フィードバックと採点の許容範囲を必ず一致させるため）
   const tolerance = traceTolerance;
@@ -852,7 +842,7 @@ function finishAttempt() {
   answered = true;
   quizHintText.textContent = "";
   revealMarkers();
-  makePolyline(quizLayerGroup, currentHighway.waypoints, { color: "#2e9e4f", width: 4, dashed: true });
+  makePolyline(quizLayerGroup, currentHighway.path, { color: "#2e9e4f", width: 4, dashed: true });
   renderQuizPrompt();
   renderQuiz();
   if (result.grade === "correct") playCorrectSound();
@@ -893,7 +883,7 @@ function getLocalPos(evt) {
 quizOverlay.addEventListener("pointerdown", evt => {
   if (!currentHighway || answered || mapMoveMode) return;
   const pos = getLocalPos(evt);
-  const start = quizProjector.project(currentHighway.waypoints[0][0], currentHighway.waypoints[0][1]);
+  const start = quizProjector.project(currentHighway.path[0][0], currentHighway.path[0][1]);
   const rect = quizOverlay.getBoundingClientRect();
   const tolerance = Math.min(rect.width, rect.height) * 0.09;
   if (Math.hypot(pos.x - start.x, pos.y - start.y) > tolerance) {

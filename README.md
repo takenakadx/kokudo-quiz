@@ -21,12 +21,13 @@
   endLabel: "終点の都市名",
   prefectures: ["通過する都道府県", "..."],
   difficulty: 1, // 1(易) 〜 3(難)
+  dataSource: "manual", // "osm"(実道路データ) か "manual"(簡略ルート)
   fact: "学習モードで表示する豆知識",
-  waypoints: [
-    [緯度, 経度, "地名"],
-    // ... 経由都市を3〜8個程度
+  path: [
+    [緯度, 経度],
+    // ... 実際の道なりの座標列、または経由都市を結んだ簡略ルート
   ]
 }
 ```
 
-なお、ルートは実際の道路線形（交差点・カーブ単位）そのものではなく、実在する経由都市・町を数多く結んだ学習用のルートです。経由地を増やすほど実際の道なりに近づきます。
+`dataSource: "osm"` の国道は、[OpenStreetMap](https://www.openstreetmap.org/copyright)の実際の道路データから生成した高精度なルートです（`data-raw/` のGeoJSONを `tools/process_routes.py` で変換）。`dataSource: "manual"` の国道はまだ実データを取り込んでおらず、実在する経由都市・町を手動で結んだ簡略ルートです。実データの取得手順は `data-raw/README.md` を参照してください。

@@ -205,6 +205,15 @@
     font-weight: 700;
     font-size: 14.5px;
   }
+  .src-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .src-badge.osm { background: var(--done-soft); color: var(--done); }
+  .src-badge.manual { background: var(--line); color: var(--muted); }
 
   .section-cell {
     text-align: center;
@@ -263,6 +272,8 @@
     <p class="lede">
       国道クイズアプリ（<a href="../" style="color:var(--accent)">kokudo-quiz</a>）に収録する国道の対応状況・区間・補足情報をまとめた一覧です。
       実装済みの国道に加え、収録候補として洗い出した二桁・三桁国道の区間案を記載しています。
+      実装済みの国道には、<span class="src-badge osm" style="display:inline-flex">実データ</span>（OpenStreetMap由来の実際の道路形状）か
+      <span class="src-badge manual" style="display:inline-flex">簡略</span>（経由都市を結んだ簡略ルート）かのバッジを付けています。
     </p>
     <div class="stats">
       <div class="stat total"><div class="n" id="statTotal">36</div><div class="l">収録対象 合計</div></div>
@@ -304,18 +315,18 @@
 
 const ROWS = [
   // 実装済み
-  { status: "done", num: "1", name: "国道1号", start: "東京", end: "大阪", note: "旧東海道にほぼ沿う、日本を代表する幹線国道。" },
-  { status: "done", num: "2", name: "国道2号", start: "大阪", end: "北九州(門司)", note: "瀬戸内海沿いを西へ進み下関海峡を越える。" },
-  { status: "done", num: "4", name: "国道4号", start: "東京", end: "青森", note: "日本で最も長い国道。東北地方を縦断。" },
-  { status: "done", num: "6", name: "国道6号", start: "東京", end: "仙台", note: "水戸・いわきなど太平洋沿いを北上。" },
-  { status: "done", num: "8", name: "国道8号", start: "新潟", end: "京都", note: "新潟・富山・金沢・福井を結ぶ北陸の大動脈。" },
-  { status: "done", num: "9", name: "国道9号", start: "京都", end: "下関", note: "山陰地方(日本海側)を横断。" },
-  { status: "done", num: "16", name: "国道16号", start: "横浜", end: "横浜(一周)", note: "都心を通らず首都圏を環状に結ぶ。" },
-  { status: "done", num: "20", name: "国道20号", start: "東京", end: "塩尻", note: "旧甲州街道。塩尻で中山道と合流。" },
-  { status: "done", num: "23", name: "国道23号", start: "名古屋", end: "伊勢", note: "四日市・津・松阪を経て伊勢神宮へ。" },
-  { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。" },
-  { status: "done", num: "58", name: "国道58号", start: "鹿児島", end: "那覇", note: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。" },
-  { status: "done", num: "246", name: "国道246号", start: "東京(三宅坂)", end: "沼津", note: "渋谷・厚木・御殿場を経て沼津で1号と合流。" },
+  { status: "done", num: "1", name: "国道1号", start: "東京", end: "大阪", note: "旧東海道にほぼ沿う、日本を代表する幹線国道。", src: "manual" },
+  { status: "done", num: "2", name: "国道2号", start: "大阪", end: "北九州(門司)", note: "瀬戸内海沿いを西へ進み下関海峡を越える。", src: "manual" },
+  { status: "done", num: "4", name: "国道4号", start: "東京", end: "青森", note: "日本で最も長い国道。東北地方を縦断。", src: "osm" },
+  { status: "done", num: "6", name: "国道6号", start: "東京", end: "仙台", note: "水戸・いわきなど太平洋沿いを北上。", src: "osm" },
+  { status: "done", num: "8", name: "国道8号", start: "新潟", end: "京都", note: "新潟・富山・金沢・福井を結ぶ北陸の大動脈。", src: "osm" },
+  { status: "done", num: "9", name: "国道9号", start: "京都", end: "下関", note: "山陰地方(日本海側)を横断。", src: "manual" },
+  { status: "done", num: "16", name: "国道16号", start: "横浜", end: "横浜(一周)", note: "都心を通らず首都圏を環状に結ぶ。", src: "manual" },
+  { status: "done", num: "20", name: "国道20号", start: "東京", end: "塩尻", note: "旧甲州街道。塩尻で中山道と合流。", src: "osm" },
+  { status: "done", num: "23", name: "国道23号", start: "名古屋", end: "伊勢", note: "四日市・津・松阪を経て伊勢神宮へ。", src: "manual" },
+  { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。", src: "manual" },
+  { status: "done", num: "58", name: "国道58号", start: "鹿児島", end: "那覇", note: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。", src: "osm" },
+  { status: "done", num: "246", name: "国道246号", start: "東京(三宅坂)", end: "沼津", note: "渋谷・厚木・御殿場を経て沼津で1号と合流。", src: "manual" },
 
   // 候補・二桁国道
   { status: "p2", num: "3", name: "国道3号", start: "北九州(門司)", end: "鹿児島", note: "2号の終点から続く九州縦断の大動脈。" },
@@ -368,11 +379,15 @@ function renderRows() {
       <div class="group-title">${meta.groupTitle}<span class="count">${rows.length}</span></div>
     </td></tr>`;
     rows.forEach(r => {
+      const srcBadge = r.src === "osm"
+        ? `<span class="src-badge osm" title="OpenStreetMapの実道路データ">実データ</span>`
+        : (r.status === "done" ? `<span class="src-badge manual" title="経由都市を結んだ簡略ルート">簡略</span>` : "");
       html += `<tr data-status="${status}">
         <td class="section-cell"><span class="pill ${meta.pillClass}">${meta.label}</span></td>
         <td class="route-cell">
           <span class="sign"><span class="${digitClass(r.num)}">${r.num}</span></span>
           <span class="route-name">${r.name}</span>
+          ${srcBadge}
         </td>
         <td class="span-cell">${r.start}<span class="arrow">&rarr;</span>${r.end}</td>
         <td class="note-cell">${r.note}</td>
