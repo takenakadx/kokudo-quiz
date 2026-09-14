@@ -767,17 +767,22 @@ let answered = false;
 // 国道4号(東京-青森)を基準に、以前の太さからおよそ20%細くなるよう調整した値。
 const TOLERANCE_TO_ROUTE_RATIO = 0.103;
 
-/* ---- ペン残量（塗りつぶし対策） ---- */
-const INK_BUDGET_RATIO = 1.2; // 実ルート長の何倍までなぞれるか
+/* ---- ペン残量（塗りつぶし対策） ----
+   消費するのは「なぞった線の長さ」ではなく「実際に塗られた面積」。長さで数えると、
+   ペンを置いた瞬間に塗られるペン幅ぶんの円がタダになってしまい、チョンチョンと
+   置いていくだけでほとんど消費せずに広い範囲を塗れてしまうため。
+   面積は重なりを二重に数えない（＝塗られた領域の面積）ので、同じ所を往復しても、
+   何本かに分けてなぞっても、塗った範囲が同じなら消費も同じになる。 */
+const INK_BUDGET_RATIO = 1.2; // ルートを素直に1本でなぞったときに塗れる面積の何倍まで塗れるか
 let routeLengthPx = 0;
 let inkBudget = 0;
-let drawnLength = 0;
+let drawnInk = 0;
 let penEmpty = false;
 const inkGaugeWrap = document.getElementById("ink-gauge-wrap");
 const inkGaugeFill = document.getElementById("ink-gauge-fill");
 const inkGaugePct = document.getElementById("ink-gauge-pct");
 function renderInkGauge() {
-  const remainRatio = inkBudget > 0 ? Math.max(0, 1 - drawnLength / inkBudget) : 1;
+  const remainRatio = inkBudget > 0 ? Math.max(0, 1 - drawnInk / inkBudget) : 1;
   inkGaugeFill.style.width = (remainRatio * 100) + "%";
   inkGaugePct.textContent = Math.round(remainRatio * 100) + "%";
   inkGaugeFill.classList.toggle("low", remainRatio < 0.2);
@@ -1043,7 +1048,8 @@ function routeTooSmallToTrace() {
 function clearStrokes() {
   strokes = [];
   activeStroke = null;
-  drawnLength = 0;
+  inkCells = new Set(); // 塗ったマスも捨てる（残すと次の問題にインク消費が持ち越される）
+  drawnInk = 0;
   penEmpty = false;
   updateDrawButtons();
 }
@@ -1064,10 +1070,12 @@ function updateOfficialDenseCache() {
   routeLengthPx = pathLength(officialPts);
   // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
   traceTolerance = Math.max(3, routeLengthPx * TOLERANCE_TO_ROUTE_RATIO);
-  inkBudget = routeLengthPx * INK_BUDGET_RATIO;
-  // ペン残量も画面上の長さで数えているので、ズームが変わったら描いた分を測り直す
-  // （ルート長・残量ともに同じ倍率で伸縮するため、残量の割合はズームに依存しない）
-  recomputeDrawnLength();
+  // 素直に1本でなぞったときに塗れる面積（帯＋両端の丸み）を基準にする
+  const r = traceTolerance;
+  inkBudget = (2 * r * routeLengthPx + Math.PI * r * r) * INK_BUDGET_RATIO;
+  // 面積も画面上の大きさで数えているので、ズームが変わったら塗った分を測り直す
+  // （基準もペン幅も同じ倍率で伸縮するため、残量の割合はズームに依存しない）
+  recomputeDrawnInk();
 }
 
 // ストロークを現在の表示に合わせて画面座標へ投影する
@@ -1075,10 +1083,56 @@ function strokeScreenPts(stroke) {
   return stroke.latlngs.map(ll => quizProjector.project(ll[0], ll[1]));
 }
 
-function recomputeDrawnLength() {
-  drawnLength = strokes.reduce((sum, st) => sum + pathLength(strokeScreenPts(st)), 0);
-  if (activeStroke) drawnLength += pathLength(strokeScreenPts(activeStroke));
-  penEmpty = inkBudget > 0 && drawnLength >= inkBudget;
+/* 塗られた面積は、ペン半径の1/3を1辺とするマス目を敷いて、ペンが通ったマスを
+   数えて求める。同じマスは一度しか数えないので、重なりを除いた「塗りつぶされた
+   領域の面積」がそのまま得られる。なぞっている間は新しい区間のぶんだけ印を
+   つけ足す（毎回すべて数え直すと重いため）。 */
+const INK_CELL_RATIO = 1 / 3;
+let inkCells = new Set();
+let inkCellSize = 0;
+
+// 中心(x,y)にペンを1回押したときに覆うマスへ印をつける。
+// 新しく印がついたマスは added に控える（予算を超えたら取り消せるように）
+function stampPen(x, y, added) {
+  // 半径が何マス分かは四捨五入で求める。ceilだと、割り切れるはずの比
+  // (半径÷マス=3)が浮動小数点で3.0000000000000004になった瞬間に4マスへ跳ね、
+  // 同じ操作なのに塗った面積が1.7倍に変わってしまう
+  const rad = Math.max(1, Math.round(traceTolerance / inkCellSize));
+  const cx = Math.round(x / inkCellSize), cy = Math.round(y / inkCellSize);
+  for (let i = -rad; i <= rad; i++) {
+    for (let j = -rad; j <= rad; j++) {
+      if (i * i + j * j > rad * rad) continue; // ペン先は円
+      const key = (cx + i) + "," + (cy + j);
+      if (!inkCells.has(key)) {
+        inkCells.add(key);
+        if (added) added.push(key);
+      }
+    }
+  }
+}
+
+// 線分に沿ってペンを動かしながら押していく
+function stampSegment(a, b, added) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / inkCellSize));
+  for (let k = 1; k <= steps; k++) {
+    stampPen(a.x + (b.x - a.x) * k / steps, a.y + (b.y - a.y) * k / steps, added);
+  }
+}
+
+function inkFromCells() { return inkCells.size * inkCellSize * inkCellSize; }
+
+function recomputeDrawnInk() {
+  inkCellSize = Math.max(1, traceTolerance * INK_CELL_RATIO);
+  inkCells = new Set();
+  const all = strokes.map(strokeScreenPts);
+  if (activeStroke) all.push(strokeScreenPts(activeStroke));
+  all.forEach(pts => {
+    if (!pts.length) return;
+    stampPen(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) stampSegment(pts[i - 1], pts[i]);
+  });
+  drawnInk = inkFromCells();
+  penEmpty = inkBudget > 0 && drawnInk >= inkBudget;
 }
 
 // ヒントを使うか回答したときに、起点・終点マーカーをまとめて表示する
@@ -1253,6 +1307,11 @@ function beginStroke(evt, pos) {
   drawPointerId = evt.pointerId;
   quizHintText.textContent = "";
   capturePointer(evt.pointerId);
+  // ペンを置いた時点でペン先の円のぶんが塗られる。ここを数えないと、
+  // チョンと置くだけの操作がタダになってしまう
+  stampPen(pos.x, pos.y);
+  drawnInk = inkFromCells();
+  renderInkGauge();
   renderQuiz();
 }
 
@@ -1262,7 +1321,7 @@ function abortStroke() {
   if (!activeStroke) return;
   activeStroke = null;
   drawPointerId = null;
-  recomputeDrawnLength();
+  recomputeDrawnInk();
   renderInkGauge();
   renderQuiz();
 }
@@ -1272,7 +1331,7 @@ function commitStroke() {
   if (activeStroke.latlngs.length >= 2) strokes.push(activeStroke);
   activeStroke = null;
   drawPointerId = null;
-  recomputeDrawnLength();
+  recomputeDrawnInk();
   renderInkGauge();
   updateDrawButtons();
   renderQuiz();
@@ -1384,25 +1443,23 @@ quizOverlay.addEventListener("pointermove", evt => {
   const pos = getLocalPos(evt);
   const pts = strokeScreenPts(activeStroke);
   const last = pts[pts.length - 1];
-  const segDist = Math.hypot(pos.x - last.x, pos.y - last.y);
-  let finalPos = pos;
-  if (drawnLength + segDist >= inkBudget) {
-    const remain = Math.max(0, inkBudget - drawnLength);
-    const t = segDist > 0 ? remain / segDist : 0;
-    finalPos = { x: last.x + (pos.x - last.x) * t, y: last.y + (pos.y - last.y) * t };
-    drawnLength = inkBudget;
+  // この区間を塗ったことにして、面積が残量を超えるなら塗るのをやめる。
+  // 面積は重なり方で決まるので、長さのように「あと何px引けるか」を先に計算できない。
+  const added = [];
+  stampSegment(last, pos, added);
+  const inkAfter = inkFromCells();
+  if (inkAfter > inkBudget) {
+    added.forEach(key => inkCells.delete(key));
     penEmpty = true;
-  } else {
-    drawnLength += segDist;
-  }
-  activeStroke.latlngs.push(quizProjector.unproject(finalPos.x, finalPos.y));
-  const onRoute = officialDenseCache.length ? minDistToPath(finalPos, officialDenseCache) <= traceTolerance : true;
-  activeStroke.onRoute.push(onRoute);
-  if (penEmpty) {
+    drawnInk = inkBudget;
     quizHintText.textContent = routeTooSmallToTrace()
       ? "ペンがなくなりました。" + ZOOM_ADVICE + "（「全部消す」でやり直せます）"
       : "ペンがなくなりました。「採点する」を押してください";
   } else {
+    drawnInk = inkAfter;
+    activeStroke.latlngs.push(quizProjector.unproject(pos.x, pos.y));
+    const onRoute = officialDenseCache.length ? minDistToPath(pos, officialDenseCache) <= traceTolerance : true;
+    activeStroke.onRoute.push(onRoute);
     quizHintText.textContent = onRoute ? "" : "ルートから外れています…";
   }
   renderInkGauge();
@@ -1447,8 +1504,8 @@ btnSubmit.addEventListener("click", () => {
 });
 btnUndo.addEventListener("click", () => {
   if (!strokes.length || answered) return;
-  strokes.pop(); // 消した分のペン残量はrecomputeDrawnLengthが戻す
-  recomputeDrawnLength();
+  strokes.pop(); // 消した分のペン残量はrecomputeDrawnInkが戻す
+  recomputeDrawnInk();
   quizHintText.textContent = "";
   renderInkGauge();
   updateDrawButtons();
