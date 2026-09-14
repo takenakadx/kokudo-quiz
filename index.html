@@ -773,7 +773,7 @@ const TOLERANCE_TO_ROUTE_RATIO = 0.103;
    置いていくだけでほとんど消費せずに広い範囲を塗れてしまうため。
    面積は重なりを二重に数えない（＝塗られた領域の面積）ので、同じ所を往復しても、
    何本かに分けてなぞっても、塗った範囲が同じなら消費も同じになる。 */
-const INK_BUDGET_RATIO = 1.2; // ルートを素直に1本でなぞったときに塗れる面積の何倍まで塗れるか
+const INK_BUDGET_RATIO = 1.0; // ルートを素直に1本でなぞったときに塗れる面積の何倍まで塗れるか
 let routeLengthPx = 0;
 let inkBudget = 0;
 let drawnInk = 0;
