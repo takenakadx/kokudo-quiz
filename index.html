@@ -82,13 +82,6 @@
       height: 100%;
     }
     #panel-quiz > :not(.map-wrap) { grid-column: 2; }
-    /* 細い右カラムで難易度ボタンが何段にも折り返すと地図の分の高さが無くなるため、
-       1行に収めて横スクロールさせる */
-    #panel-quiz .quiz-top-row .hwy-list {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-    }
-    #panel-quiz .quiz-top-row .hwy-list button { flex: none; }
     #panel-quiz .controls button { min-width: 0; flex-basis: 40%; }
   }
 
@@ -130,6 +123,7 @@
   .panel {
     flex: 1;
     min-height: 0;
+    min-width: 0; /* mainのflex子要素として、中の横並び要素(select等)より縮められるようにする */
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -272,10 +266,23 @@
 
   .quiz-top-row {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
   }
-  .quiz-top-row .hwy-list { flex: 1; margin-bottom: 0; }
+  /* マップ・難易度は横に並ぶselectにして、選択肢が増えても折り返さず1行に収める */
+  .filter-select {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
+    padding: 0 6px;
+    border-radius: 8px;
+    border: 1px solid var(--blue-light);
+    background: #fff;
+    color: var(--blue);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
   .sound-toggle {
     flex-shrink: 0;
     width: 40px;
@@ -453,12 +460,13 @@
   <!-- クイズモード -->
   <section id="panel-quiz" class="panel" hidden>
     <div class="quiz-top-row">
-      <div class="hwy-list" id="quiz-diff-list">
-        <button data-diff="">すべて</button>
-        <button data-diff="1">かんたん</button>
-        <button data-diff="2">ふつう</button>
-        <button data-diff="3">むずかしい</button>
-      </div>
+      <select class="filter-select" id="quiz-map-select" aria-label="出題するマップ"></select>
+      <select class="filter-select" id="quiz-diff-select" aria-label="難易度">
+        <option value="">すべての難易度</option>
+        <option value="1">かんたん</option>
+        <option value="2">ふつう</option>
+        <option value="3">むずかしい</option>
+      </select>
       <button class="sound-toggle" id="sound-toggle" aria-label="効果音の切り替え" title="効果音の切り替え">🔊</button>
     </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
@@ -778,7 +786,7 @@ function renderInkGauge() {
 /* ---- 難易度フィルター ---- */
 const DIFF_KEY = "kokudoQuizDifficulty.v1";
 const DIFF_LABEL = { 1: "かんたん", 2: "ふつう", 3: "むずかしい" };
-const diffListEl = document.getElementById("quiz-diff-list");
+const diffSelectEl = document.getElementById("quiz-diff-select");
 
 function loadDifficulty() {
   try {
@@ -792,27 +800,100 @@ function saveDifficulty(v) {
   } catch (e) { /* ignore */ }
 }
 let selectedDifficulty = loadDifficulty();
-
-function highlightDiffButtons() {
-  [...diffListEl.children].forEach(b => {
-    const v = b.dataset.diff ? Number(b.dataset.diff) : null;
-    b.classList.toggle("active", v === selectedDifficulty);
-  });
-}
-diffListEl.addEventListener("click", evt => {
-  const btn = evt.target.closest("button");
-  if (!btn) return;
-  selectedDifficulty = btn.dataset.diff ? Number(btn.dataset.diff) : null;
+diffSelectEl.value = selectedDifficulty ? String(selectedDifficulty) : "";
+diffSelectEl.addEventListener("change", () => {
+  selectedDifficulty = diffSelectEl.value ? Number(diffSelectEl.value) : null;
   saveDifficulty(selectedDifficulty);
-  highlightDiffButtons();
+  refreshIdlePrompt();
 });
-highlightDiffButtons();
 
 function diffStars(level) {
   const filled = "★".repeat(level);
   const empty = "☆".repeat(3 - level);
   return ` <span class="diff-badge" title="${DIFF_LABEL[level]}">${filled}${empty}</span>`;
 }
+
+/* ---- マップ（出題範囲）フィルター ----
+   国道は一桁/二桁/三桁で見た目の印象がかなり違い（一桁は誰もが知る幹線、三桁は
+   マイナーな路線が多い）、地方でまとめると「関東の国道だけ」のように的を絞って
+   練習できる。都道府県→地方の対応表から、国道が通る地方を機械的に求めている。 */
+const PREF_REGION = {
+  "北海道": "北海道",
+  "青森県": "東北", "岩手県": "東北", "宮城県": "東北", "秋田県": "東北", "山形県": "東北", "福島県": "東北",
+  "茨城県": "関東", "栃木県": "関東", "群馬県": "関東", "埼玉県": "関東", "千葉県": "関東", "東京都": "関東", "神奈川県": "関東",
+  "新潟県": "中部", "富山県": "中部", "石川県": "中部", "福井県": "中部", "山梨県": "中部", "長野県": "中部", "岐阜県": "中部", "静岡県": "中部", "愛知県": "中部",
+  "三重県": "近畿", "滋賀県": "近畿", "京都府": "近畿", "大阪府": "近畿", "兵庫県": "近畿", "奈良県": "近畿", "和歌山県": "近畿",
+  "鳥取県": "中国", "島根県": "中国", "岡山県": "中国", "広島県": "中国", "山口県": "中国",
+  "徳島県": "四国", "香川県": "四国", "愛媛県": "四国", "高知県": "四国",
+  "福岡県": "九州", "佐賀県": "九州", "長崎県": "九州", "熊本県": "九州", "大分県": "九州", "宮崎県": "九州", "鹿児島県": "九州", "沖縄県": "九州",
+};
+function routeNumber(h) { return Number(h.number.match(/\d+/)[0]); }
+function highwayRegions(h) { return [...new Set(h.prefectures.map(p => PREF_REGION[p]))]; }
+
+// test: 国道→真偽。regions: いずれかの地方を通れば対象（1つの国道が複数の地方に
+// またがるのは普通のことなので、地方カテゴリはOR条件・重複ありで扱う）。
+const MAP_CATEGORIES = [
+  { key: "", label: "すべての国道", test: () => true },
+  { key: "digit1", label: "一桁国道", test: h => routeNumber(h) < 10 },
+  { key: "digit2", label: "二桁国道", test: h => routeNumber(h) >= 10 && routeNumber(h) < 100 },
+  { key: "digit3", label: "三桁国道", test: h => routeNumber(h) >= 100 },
+  { key: "region-hokkaido-tohoku", label: "北海道・東北地方", regions: ["北海道", "東北"] },
+  { key: "region-kanto", label: "関東地方", regions: ["関東"] },
+  { key: "region-chubu", label: "中部地方", regions: ["中部"] },
+  { key: "region-kinki", label: "近畿地方", regions: ["近畿"] },
+  { key: "region-chugoku-shikoku", label: "中国・四国地方", regions: ["中国", "四国"] },
+  { key: "region-kyushu", label: "九州・沖縄地方", regions: ["九州"] },
+];
+function matchesCategory(h, cat) {
+  if (cat.regions) return highwayRegions(h).some(r => cat.regions.includes(r));
+  return cat.test(h);
+}
+function highwaysInCategory(cat) { return HIGHWAYS.filter(h => matchesCategory(h, cat)); }
+
+const MAP_KEY = "kokudoQuizMapCategory.v1";
+const mapSelectEl = document.getElementById("quiz-map-select");
+mapSelectEl.innerHTML = MAP_CATEGORIES
+  .map(cat => `<option value="${cat.key}">${cat.label}（${highwaysInCategory(cat).length}問）</option>`)
+  .join("");
+
+function loadMapCategoryKey() {
+  try {
+    const v = localStorage.getItem(MAP_KEY) || "";
+    return MAP_CATEGORIES.some(c => c.key === v) ? v : "";
+  } catch (e) { return ""; }
+}
+function saveMapCategoryKey(key) {
+  try { localStorage.setItem(MAP_KEY, key); } catch (e) { /* ignore */ }
+}
+let selectedMapKey = loadMapCategoryKey();
+mapSelectEl.value = selectedMapKey;
+mapSelectEl.addEventListener("change", () => {
+  selectedMapKey = mapSelectEl.value;
+  saveMapCategoryKey(selectedMapKey);
+  refreshIdlePrompt();
+});
+
+function selectedMapCategory() { return MAP_CATEGORIES.find(c => c.key === selectedMapKey) || MAP_CATEGORIES[0]; }
+
+// マップと難易度、両方の条件を満たす国道。組み合わせ次第では0件になりうる
+// （例：「一桁国道」×「むずかしい」）ので、その場合は難易度の方を諦めて
+// マップだけで絞り込む（最初に選ぶのはマップなので、マップ優先）。
+function currentPool() {
+  const mapPool = highwaysInCategory(selectedMapCategory());
+  const withDiff = selectedDifficulty ? mapPool.filter(h => h.difficulty === selectedDifficulty) : mapPool;
+  return withDiff.length ? withDiff : mapPool;
+}
+
+// 出題前（まだ「クイズを始める」を押していないとき）だけ、対象問題数を表示する。
+// 出題中の見出しを上書きしないよう、currentHighwayがある間は何もしない。
+function refreshIdlePrompt() {
+  if (currentHighway) return;
+  const n = currentPool().length;
+  quizPrompt.textContent = n < HIGHWAYS.length
+    ? `この設定では${n}問が対象です。「クイズを始める」を押してください`
+    : "「クイズを始める」を押してください";
+}
+refreshIdlePrompt(); // 前回の絞り込みを端末に保存している場合、初期表示にも反映する
 
 /* ---- 効果音（Web Audio APIで簡易生成。音声ファイルは使わない） ---- */
 const SOUND_KEY = "kokudoQuizSoundEnabled.v1";
@@ -880,14 +961,37 @@ function renderStats() {
 }
 renderStats();
 
+// 出題は「山札」方式：現在の絞り込み(マップ×難易度)の全問をシャッフルして順に
+// 出し、山札を使い切ったら次の山を作る。これにより、対象が少ない絞り込みでも
+// 全問一巡するまでは同じ問題が繰り返し出ない（単純な毎回ランダムだと、対象が
+// 少ないほど早い段階で同じ問題に当たりやすくループ感が強くなってしまう）。
+let questionBag = [];
+let questionBagKey = null;
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function pickHighway() {
-  const pool = selectedDifficulty ? HIGHWAYS.filter(h => h.difficulty === selectedDifficulty) : HIGHWAYS;
-  const list = pool.length ? pool : HIGHWAYS;
-  let h;
-  do { h = list[Math.floor(Math.random() * list.length)]; }
-  while (list.length > 1 && h.id === lastHighwayId);
-  lastHighwayId = h.id;
-  return h;
+  const pool = currentPool();
+  const key = selectedMapKey + ":" + (selectedDifficulty || "");
+  if (questionBagKey !== key || questionBag.length === 0) {
+    questionBag = shuffled(pool.map(h => h.id));
+    questionBagKey = key;
+    // 絞り込みを変えた直後などに、直前の問題がたまたま新しい山の先頭に来て
+    // 連続してしまうことがあるので、その場合だけ2番目と入れ替える
+    if (questionBag.length > 1 && questionBag[0] === lastHighwayId) {
+      [questionBag[0], questionBag[1]] = [questionBag[1], questionBag[0]];
+    }
+  }
+  const id = questionBag.shift();
+  lastHighwayId = id;
+  return pool.find(h => h.id === id) || HIGHWAYS.find(h => h.id === id);
 }
 
 function setupOverlay() {
