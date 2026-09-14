@@ -127,6 +127,15 @@ def fmt_path(points):
 def js_str_list(items):
     return "[" + ", ".join('"%s"' % s for s in items) + "]"
 
+# 表示用の総距離は、間引く前の経路の長さ(process_routes.pyが出力したlen_km)を使う。
+# path は300点以下に間引いてあるので、そこから測ると実際よりわずかに短くなる。
+report_file = os.path.join(PROCESSED_DIR, "_report.json")
+lengths = {}
+if os.path.exists(report_file):
+    for r in json.load(open(report_file)):
+        if "len_km" in r:
+            lengths[r["id"]] = r["len_km"]
+
 blocks = []
 missing = []
 for hid in sorted(META):
@@ -143,6 +152,7 @@ for hid in sorted(META):
     endLabel: "{end_label}",
     prefectures: {js_str_list(prefs)},
     difficulty: {diff},
+    lengthKm: {round(lengths.get(hid, 0))},
     fact: "{fact}",
     path: {fmt_path(pts)}
   }}""")
@@ -160,6 +170,7 @@ header = '''/*
  *   OpenStreetMapの実際の道路線形から生成した実ルートです。
  *   起点・終点の地名表示には path ではなく startLabel/endLabel を使う。
  *
+ * lengthKm: 経路の総距離(km)。補足情報として表示する。
  * difficulty: 1(易)〜3(難) の目安。難易度フィルターに利用。
  * fact: 学習モードで表示するトリビア。
  */

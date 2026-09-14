@@ -19,26 +19,85 @@
     --red: #d0473e;
   }
   * { box-sizing: border-box; }
+  /* 画面全体を1画面に収め、スクロールせずにボタンまで届くようにする。
+     余った高さは地図が受け取り、はみ出す可能性のあるもの（学習モードの一覧、
+     クイズの結果パネル）だけがそれぞれの内側でスクロールする。 */
+  html, body { height: 100%; }
   body {
     margin: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-tap-highlight-color: transparent;
   }
   header {
+    flex: none;
     background: var(--blue);
     color: #fff;
-    padding: 14px 16px 10px;
+    padding: 8px 16px 7px;
     text-align: center;
   }
-  header h1 { margin: 0; font-size: 18px; }
-  header p { margin: 4px 0 0; font-size: 12px; opacity: 0.85; }
+  header h1 { margin: 0; font-size: 16px; }
+  header p { margin: 2px 0 0; font-size: 11px; opacity: 0.85; }
+  @media (max-height: 700px) {
+    header p { display: none; }
+  }
+  /* 横向きのスマホなど高さが極端に狭い画面。地図の高さを確保するため、
+     見出しや成績表示など無くても操作できるものを畳む */
+  @media (max-height: 520px) {
+    header { display: none; }
+    .tabs { margin-top: 4px; }
+    .tabs button { padding: 6px; font-size: 13px; }
+    main { padding-bottom: 6px; }
+    .panel { gap: 5px; padding: 7px; }
+    #panel-quiz .stats { display: none; }
+    .prompt-banner { padding: 4px 8px; font-size: 14px; }
+    .controls button { min-height: 36px; font-size: 13px; }
+    .hwy-list button { min-height: 30px; padding: 5px 10px; font-size: 12px; }
+    .sound-toggle { width: 32px; height: 32px; }
+  }
+  /* 横長で高さが狭い画面（スマホ横向きなど）は、縦に積むと地図がつぶれてしまうので
+     地図を左・操作を右の2カラムにして、地図に画面の高さいっぱいを与える */
+  @media (max-height: 520px) and (min-width: 640px) {
+    #panel-quiz {
+      display: grid;
+      grid-template-columns: 1fr minmax(220px, 34%);
+      grid-auto-rows: min-content;
+      align-content: start;
+      column-gap: 8px;
+      row-gap: 3px;
+    }
+    #panel-quiz .controls { gap: 4px; }
+    #panel-quiz .controls button { min-height: 32px; }
+    #panel-quiz .map-wrap {
+      grid-column: 1;
+      /* 暗黙の行に対して張るので -1 ではなく span で指定する
+         （-1は明示的なグリッドの終端を指すため、この場合は1行しか張れない） */
+      grid-row: 1 / span 20;
+      min-height: 0;
+      height: 100%;
+    }
+    #panel-quiz > :not(.map-wrap) { grid-column: 2; }
+    /* 細い右カラムで難易度ボタンが何段にも折り返すと地図の分の高さが無くなるため、
+       1行に収めて横スクロールさせる */
+    #panel-quiz .quiz-top-row .hwy-list {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    #panel-quiz .quiz-top-row .hwy-list button { flex: none; }
+    #panel-quiz .controls button { min-width: 0; flex-basis: 40%; }
+  }
 
   .tabs {
+    flex: none;
     display: flex;
+    width: 100%;
     max-width: 720px;
-    margin: 12px auto 0;
+    margin: 8px auto 0;
     padding: 0 12px;
     gap: 8px;
   }
@@ -60,15 +119,48 @@
   }
 
   main {
+    flex: 1;
+    min-height: 0; /* 中の地図が縮めるようにする（flexの既定では縮まない） */
+    width: 100%;
     max-width: 720px;
     margin: 0 auto;
-    padding: 0 12px 32px;
+    padding: 0 12px 10px;
+    display: flex;
   }
   .panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 0 0 12px 12px;
-    padding: 14px;
+    padding: 10px;
+  }
+  /* 学習モードも1画面に収める。収まらないのは国道一覧と補足情報だけなので、
+     その2つの内側をスクロールさせ、地図には残りの高さを渡す */
+  #panel-study .hwy-list {
+    flex: 0 1 auto;
+    max-height: 32%;
+    overflow-y: auto;
+    margin-bottom: 0;
+  }
+  #panel-study .map-wrap {
+    flex: 1;
+    min-height: 120px;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+  #panel-study .info-box {
+    flex: 0 1 auto;
+    max-height: 30%;
+    overflow-y: auto;
+    margin-top: 0;
+  }
+  #panel-study .controls, #panel-study .fine-print { flex: none; }
+  @media (max-height: 700px) {
+    #panel-study .fine-print { display: none; }
   }
   [hidden] { display: none !important; }
 
@@ -81,6 +173,13 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
+  }
+  /* クイズモードの地図は、他の要素を置いた残りの高さをすべて使う */
+  #panel-quiz .map-wrap {
+    flex: 1;
+    min-height: 120px;
+    aspect-ratio: auto;
+    max-height: none;
   }
   .leaflet-map { position: absolute; inset: 0; width: 100%; height: 100%; background: #eaf1fb; }
   .overlay-canvas {
@@ -160,13 +259,13 @@
   .info-box .pref { color: var(--muted); }
 
   .prompt-banner {
+    flex: none;
     font-size: 15px;
     font-weight: 700;
     text-align: center;
-    padding: 10px;
+    padding: 7px 10px;
     background: #f0f7ff;
     border-radius: 8px;
-    margin-bottom: 10px;
   }
   .prompt-banner .num { color: var(--blue); }
   .diff-badge { font-size: 12px; color: var(--amber); margin-left: 4px; vertical-align: middle; }
@@ -191,16 +290,16 @@
   .sound-toggle.muted { color: var(--muted); }
 
   .controls {
+    flex: none;
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 6px;
     flex-wrap: wrap;
   }
   .controls button {
     flex: 1;
-    min-width: 90px;
-    min-height: 44px;
-    padding: 10px;
+    min-width: 84px;
+    min-height: 42px;
+    padding: 8px 6px;
     border-radius: 8px;
     border: 1px solid var(--blue-light);
     background: #fff;
@@ -226,6 +325,41 @@
     line-height: 1.6;
     display: none;
   }
+  /* クイズの結果は地図の上に重ねる。ページの高さを変えないので、
+     採点してもボタンの位置がずれず、スクロールも起きない。 */
+  #panel-quiz .result {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 700;
+    margin: 0;
+    padding: 10px 30px 10px 12px;
+    max-height: 68%;
+    overflow-y: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  }
+  .result-close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .result-info {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid currentColor;
+    font-size: 13px;
+  }
+  .route-meta { color: inherit; opacity: 0.85; }
   .result.show { display: block; animation: resultPop 0.28s ease-out; }
   @keyframes resultPop {
     0% { transform: scale(0.92); opacity: 0; }
@@ -237,32 +371,41 @@
   .result.incorrect { background: #fdecea; border: 1px solid var(--red); color: #9c2f27; }
 
   .stats {
-    margin-top: 12px;
+    flex: none;
     font-size: 12px;
     color: var(--muted);
     text-align: center;
   }
   .hint-text {
+    flex: none;
     font-size: 12px;
     color: var(--muted);
     text-align: center;
-    margin-top: 6px;
     min-height: 16px;
   }
-  .ink-gauge-wrap { margin-bottom: 10px; }
+  .quiz-top-row { flex: none; }
+  /* ペン残量は1行に収める（縦の余白を節約して地図を広く取るため） */
+  .ink-gauge-wrap {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .ink-gauge-label {
+    flex: none;
     font-size: 12px;
     color: var(--muted);
-    text-align: center;
-    margin-bottom: 4px;
+    white-space: nowrap;
   }
   .ink-gauge-track {
+    flex: 1;
     height: 8px;
     border-radius: 999px;
     background: #e3ebf7;
     overflow: hidden;
   }
   .ink-gauge-fill {
+    display: block;
     height: 100%;
     width: 100%;
     background: var(--blue-light);
@@ -270,12 +413,13 @@
     transition: width 0.08s linear, background-color 0.2s;
   }
   .ink-gauge-fill.low { background: var(--red); }
-  footer {
-    text-align: center;
+  .fine-print {
     font-size: 11px;
+    line-height: 1.6;
     color: var(--muted);
-    padding: 16px 0 8px;
+    margin: 4px 0 0;
   }
+  .fine-print a { color: var(--blue); }
 </style>
 </head>
 <body>
@@ -297,10 +441,13 @@
     <div class="map-wrap">
       <div id="study-map" class="leaflet-map"></div>
     </div>
-    <div class="info-box" id="study-info">左のボタンから国道を選んでください。</div>
+    <div class="info-box" id="study-info">上のボタンから国道を選んでください。</div>
     <div class="controls">
       <button id="study-replay">ルートをもう一度再生</button>
     </div>
+    <p class="fine-print">
+      地図タイル・ルート形状ともに <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> のデータを利用しています（地図の表示にはインターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。
+    </p>
   </section>
 
   <!-- クイズモード -->
@@ -316,8 +463,8 @@
     </div>
     <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
     <div class="ink-gauge-wrap" id="ink-gauge-wrap" hidden>
-      <div class="ink-gauge-label">ペン残量 <span id="ink-gauge-pct">100%</span></div>
-      <div class="ink-gauge-track"><div class="ink-gauge-fill" id="ink-gauge-fill"></div></div>
+      <span class="ink-gauge-label">ペン残量 <span id="ink-gauge-pct">100%</span></span>
+      <span class="ink-gauge-track"><span class="ink-gauge-fill" id="ink-gauge-fill"></span></span>
     </div>
     <div class="map-wrap">
       <div id="quiz-map" class="leaflet-map"></div>
@@ -326,24 +473,24 @@
         <span><b>なぞる</b>：1本指 / 左ドラッグ</span>
         <span><b>地図を動かす</b>：2本指 / 中ボタン・ホイール</span>
       </div>
+      <!-- 結果はページを伸ばさないよう地図の上に重ねる（ボタンまでスクロールせずに済む） -->
+      <div class="result" id="quiz-result">
+        <button type="button" class="result-close" id="quiz-result-close" aria-label="結果を閉じて地図を見る">✕</button>
+        <div id="quiz-result-body"></div>
+      </div>
     </div>
     <div class="hint-text" id="quiz-hint"></div>
     <div class="controls">
       <button id="quiz-start" class="primary">クイズを始める</button>
-      <button id="quiz-hint-btn" disabled>ヒント（都市名を表示）</button>
+      <button id="quiz-hint-btn" disabled>ヒント</button>
       <button id="quiz-submit" disabled>採点する</button>
       <button id="quiz-undo" disabled>1本消す</button>
       <button id="quiz-retry" disabled>全部消す</button>
       <button id="quiz-next" disabled>次の問題へ</button>
     </div>
-    <div class="result" id="quiz-result"></div>
     <div class="stats" id="quiz-stats"></div>
   </section>
 </main>
-
-<footer>
-  地図タイル・ルート形状ともに OpenStreetMap のデータを利用しています（地図の表示にはインターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。
-</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="highways-data.js"></script>
@@ -477,14 +624,23 @@ HIGHWAYS.forEach(h => {
   studyList.appendChild(btn);
 });
 
+/* 学習モードの情報欄とクイズの結果で共通に使う、国道の補足情報。
+   通過都道府県は1県で完結する国道(北海道・湘南など)でも自然に読めるようにしている。 */
+function routeInfoHtml(h) {
+  const via = h.prefectures.length > 1
+    ? `通過：${h.prefectures.join(" → ")}`
+    : `${h.prefectures[0]}内で完結`;
+  const len = h.lengthKm ? `　総距離：約${h.lengthKm.toLocaleString()}km` : "";
+  return `<span class="route-meta">${via}${len}</span><br>${h.fact}`;
+}
+
 function selectStudyHighway(h, btn) {
   studyHighway = h;
   [...studyList.children].forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
   studyInfo.innerHTML =
     `<strong>${h.number}</strong>：${h.startLabel} → ${h.endLabel}<br>` +
-    `<span class="pref">通過：${h.prefectures.join(" → ")}</span><br>` +
-    `${h.fact}`;
+    routeInfoHtml(h);
   renderStudy(h, true);
 }
 
@@ -539,6 +695,20 @@ const quizOverlay = document.getElementById("quiz-overlay");
 const quizPrompt = document.getElementById("quiz-prompt");
 const quizHintText = document.getElementById("quiz-hint");
 const quizResult = document.getElementById("quiz-result");
+const quizResultBody = document.getElementById("quiz-result-body");
+
+// 結果パネルは地図の上に重なるので、閉じて地図を確認できるようにしておく
+function showResult(grade, html) {
+  quizResultBody.innerHTML = html;
+  quizResult.className = "result show " + grade;
+}
+function hideResult() {
+  quizResultBody.innerHTML = "";
+  quizResult.className = "result";
+}
+document.getElementById("quiz-result-close").addEventListener("click", () => {
+  quizResult.classList.remove("show");
+});
 const quizStatsEl = document.getElementById("quiz-stats");
 const btnStart = document.getElementById("quiz-start");
 const btnHint = document.getElementById("quiz-hint-btn");
@@ -720,8 +890,7 @@ function startQuestion() {
   answered = false;
   clearStrokes();
   quizLayerGroup.clearLayers();
-  quizResult.className = "result";
-  quizResult.textContent = "";
+  hideResult();
   quizHintText.textContent = "";
   btnHint.disabled = false;
   btnNext.disabled = true;
@@ -901,19 +1070,18 @@ function finishAttempt() {
   saveStats(s);
   renderStats();
 
-  quizResult.className = "result show " + result.grade;
   const pct = result.score;
   const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
-  if (result.grade === "correct") {
-    // 北海道・神奈川県など1県で完結する国道は「〜を通り」の部分が空になるため省く
-    const midPrefs = currentHighway.prefectures.slice(1).join("→");
-    const via = midPrefs ? `${midPrefs} を通り ` : "";
-    quizResult.innerHTML = `<strong>正解！</strong>（ルート網羅率 ${pct}%）<br>${currentHighway.number} は ${currentHighway.startLabel} から ${via}${currentHighway.endLabel} へ。<br>${currentHighway.fact}`;
-  } else if (result.grade === "partial") {
-    quizResult.innerHTML = `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`;
-  } else {
-    quizResult.innerHTML = `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`;
-  }
+  const headline = {
+    correct: `<strong>正解！</strong>（ルート網羅率 ${pct}%）`,
+    partial: `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`,
+    incorrect: `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`
+  }[result.grade];
+  // 補足情報は正誤に関わらず出す（間違えたときこそ覚えてもらいたいため）
+  showResult(result.grade,
+    `${headline}<div class="result-info">` +
+    `${currentHighway.number}：${currentHighway.startLabel} → ${currentHighway.endLabel}<br>` +
+    `${routeInfoHtml(currentHighway)}</div>`);
   btnHint.disabled = true;
   btnNext.disabled = false;
   updateDrawButtons();
@@ -1162,8 +1330,7 @@ btnUndo.addEventListener("click", () => {
 btnRetry.addEventListener("click", () => {
   clearStrokes();
   answered = false;
-  quizResult.className = "result";
-  quizResult.textContent = "";
+  hideResult();
   quizHintText.textContent = "";
   btnNext.disabled = true;
   refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
@@ -1194,7 +1361,7 @@ window.addEventListener("resize", () => {
   if (!panelStudy.hidden) refitMap(studyMap);
   if (!panelQuiz.hidden) {
     refitMap(quizMap);
-    if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
+    if (currentHighway) afterMapMoved(); // ペン幅・残量は画面上の長さ基準なので測り直す
   }
 });
 

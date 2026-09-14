@@ -11,6 +11,7 @@
  *   OpenStreetMapの実際の道路線形から生成した実ルートです。
  *   起点・終点の地名表示には path ではなく startLabel/endLabel を使う。
  *
+ * lengthKm: 経路の総距離(km)。補足情報として表示する。
  * difficulty: 1(易)〜3(難) の目安。難易度フィルターに利用。
  * fact: 学習モードで表示するトリビア。
  */
@@ -23,6 +24,7 @@ const HIGHWAYS = [
     endLabel: "大阪",
     prefectures: ["東京都", "神奈川県", "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府"],
     difficulty: 1,
+    lengthKm: 553,
     fact: "旧東海道にほぼ沿って東京と大阪を結ぶ、日本を代表する幹線国道。",
     path: [
       [35.68303, 139.77231],
@@ -293,6 +295,7 @@ const HIGHWAYS = [
     endLabel: "北九州(門司)",
     prefectures: ["大阪府", "兵庫県", "岡山県", "広島県", "山口県", "福岡県"],
     difficulty: 2,
+    lengthKm: 564,
     fact: "大阪から瀬戸内海沿いを西へ進み、関門海峡を越えて北九州まで至る。",
     path: [
       [34.69816, 135.49977],
@@ -563,6 +566,7 @@ const HIGHWAYS = [
     endLabel: "鹿児島",
     prefectures: ["福岡県", "佐賀県", "熊本県", "鹿児島県"],
     difficulty: 2,
+    lengthKm: 389,
     fact: "国道2号の終点から続き、福岡・熊本を経て九州を縦断する大動脈。",
     path: [
       [33.94102, 130.95889],
@@ -872,6 +876,7 @@ const HIGHWAYS = [
     endLabel: "青森",
     prefectures: ["東京都", "埼玉県", "茨城県", "栃木県", "福島県", "宮城県", "岩手県", "青森県"],
     difficulty: 1,
+    lengthKm: 753,
     fact: "日本で最も長い国道。東京から東北地方を縦断し青森まで続く。",
     path: [
       [35.68406, 139.77445],
@@ -1134,6 +1139,7 @@ const HIGHWAYS = [
     endLabel: "札幌",
     prefectures: ["北海道"],
     difficulty: 2,
+    lengthKm: 282,
     fact: "函館から長万部・倶知安・小樽を経て札幌に至る、北海道の主要国道。",
     path: [
       [41.77277, 140.72810],
@@ -1390,6 +1396,7 @@ const HIGHWAYS = [
     endLabel: "仙台",
     prefectures: ["東京都", "千葉県", "茨城県", "福島県", "宮城県"],
     difficulty: 2,
+    lengthKm: 347,
     fact: "東京から水戸・いわきなど太平洋沿いを北上して仙台に至る。",
     path: [
       [35.68406, 139.77445],
@@ -1656,6 +1663,7 @@ const HIGHWAYS = [
     endLabel: "青森",
     prefectures: ["新潟県", "山形県", "秋田県", "青森県"],
     difficulty: 2,
+    lengthKm: 470,
     fact: "日本海沿いに新潟から酒田・秋田・弘前を経て青森まで北上する。",
     path: [
       [37.92159, 139.04684],
@@ -1880,6 +1888,7 @@ const HIGHWAYS = [
     endLabel: "京都",
     prefectures: ["新潟県", "富山県", "石川県", "福井県", "滋賀県", "京都府"],
     difficulty: 2,
+    lengthKm: 576,
     fact: "日本海側の新潟・富山・金沢・福井を結び京都へ至る北陸の大動脈。",
     path: [
       [37.92159, 139.04684],
@@ -2124,6 +2133,7 @@ const HIGHWAYS = [
     endLabel: "下関",
     prefectures: ["京都府", "兵庫県", "鳥取県", "島根県", "山口県"],
     difficulty: 2,
+    lengthKm: 634,
     fact: "山陰地方(日本海側)を横断して京都から下関まで結ぶ。",
     path: [
       [34.99632, 135.75966],
@@ -2374,6 +2384,7 @@ const HIGHWAYS = [
     endLabel: "鹿児島",
     prefectures: ["福岡県", "大分県", "宮崎県", "鹿児島県"],
     difficulty: 3,
+    lengthKm: 446,
     fact: "3号とは反対に、東九州側(別府・大分・宮崎)を回って鹿児島へ至る。",
     path: [
       [33.87507, 130.88410],
@@ -2640,6 +2651,7 @@ const HIGHWAYS = [
     endLabel: "松山",
     prefectures: ["徳島県", "香川県", "愛媛県"],
     difficulty: 3,
+    lengthKm: 230,
     fact: "徳島から高松・西条を経て松山へ、瀬戸内海側の四国を横断する。",
     path: [
       [34.06894, 134.55747],
@@ -2852,6 +2864,7 @@ const HIGHWAYS = [
     endLabel: "旭川",
     prefectures: ["北海道"],
     difficulty: 1,
+    lengthKm: 136,
     fact: "札幌と旭川を結ぶ。美唄〜滝川には日本最長29.2kmの直線区間がある。",
     path: [
       [43.06203, 141.35164],
@@ -2929,6 +2942,7 @@ const HIGHWAYS = [
     endLabel: "千葉",
     prefectures: ["東京都", "千葉県"],
     difficulty: 1,
+    lengthKm: 38,
     fact: "東京・日本橋から市川・船橋を経て千葉へ至る、京葉間の旧来の幹線。",
     path: [
       [35.68406, 139.77445],
@@ -2958,6 +2972,7 @@ const HIGHWAYS = [
     endLabel: "横浜",
     prefectures: ["東京都", "神奈川県"],
     difficulty: 1,
+    lengthKm: 28,
     fact: "第一京浜。日本橋から品川・川崎を経て横浜へ至る旧東海道の一部。",
     path: [
       [35.67939, 139.77167],
@@ -2991,6 +3006,7 @@ const HIGHWAYS = [
     endLabel: "横浜(一周)",
     prefectures: ["神奈川県", "東京都", "埼玉県", "千葉県"],
     difficulty: 3,
+    lengthKm: 265,
     fact: "東京都心を通らず、横浜・八王子・さいたま・千葉をぐるっと環状に結ぶ首都圏の大動脈。",
     path: [
       [35.44467, 139.63473],
@@ -3210,6 +3226,7 @@ const HIGHWAYS = [
     endLabel: "新潟",
     prefectures: ["東京都", "埼玉県", "群馬県", "新潟県"],
     difficulty: 2,
+    lengthKm: 350,
     fact: "中山道・三国街道にあたり、東京から高崎・三国峠を越えて新潟へ至る。",
     path: [
       [35.68406, 139.77445],
@@ -3445,6 +3462,7 @@ const HIGHWAYS = [
     endLabel: "長野",
     prefectures: ["愛知県", "岐阜県", "長野県"],
     difficulty: 2,
+    lengthKm: 255,
     fact: "中山道の木曽路を通り、名古屋から塩尻・松本を経て長野へ至る。",
     path: [
       [35.17401, 136.91059],
@@ -3676,6 +3694,7 @@ const HIGHWAYS = [
     endLabel: "塩尻",
     prefectures: ["東京都", "神奈川県", "山梨県", "長野県"],
     difficulty: 2,
+    lengthKm: 216,
     fact: "旧甲州街道にあたり、東京から山梨・諏訪を経て塩尻で中山道と合流する。",
     path: [
       [35.68303, 139.77231],
@@ -3930,6 +3949,7 @@ const HIGHWAYS = [
     endLabel: "岐阜",
     prefectures: ["愛知県", "岐阜県"],
     difficulty: 1,
+    lengthKm: 26,
     fact: "名岐バイパス。名古屋と岐阜を結ぶ中部圏の主要幹線。",
     path: [
       [35.17014, 136.89720],
@@ -3957,6 +3977,7 @@ const HIGHWAYS = [
     endLabel: "伊勢",
     prefectures: ["愛知県", "三重県"],
     difficulty: 2,
+    lengthKm: 168,
     fact: "豊橋から名豊道路・名四国道を経て四日市・津・松阪を通り、伊勢神宮のある伊勢市へ至る。",
     path: [
       [34.73297, 137.35079],
@@ -4080,6 +4101,7 @@ const HIGHWAYS = [
     endLabel: "大阪",
     prefectures: ["三重県", "奈良県", "大阪府"],
     difficulty: 2,
+    lengthKm: 149,
     fact: "名阪国道。四日市から亀山・天理を経て大阪へ至る(起点の名古屋〜四日市は国道1号との重複区間)。",
     path: [
       [34.92995, 136.61539],
@@ -4283,6 +4305,7 @@ const HIGHWAYS = [
     endLabel: "富山",
     prefectures: ["愛知県", "岐阜県", "富山県"],
     difficulty: 2,
+    lengthKm: 239,
     fact: "飛騨街道。名古屋から下呂・高山を経て富山へ、中部地方を縦断する。",
     path: [
       [35.17408, 136.91448],
@@ -4562,6 +4585,7 @@ const HIGHWAYS = [
     endLabel: "松阪",
     prefectures: ["和歌山県", "三重県"],
     difficulty: 3,
+    lengthKm: 352,
     fact: "紀伊半島の海沿いをぐるっと回り、和歌山から新宮を経て松阪へ至る。",
     path: [
       [34.22560, 135.17012],
@@ -4817,6 +4841,7 @@ const HIGHWAYS = [
     endLabel: "神戸",
     prefectures: ["大阪府", "兵庫県"],
     difficulty: 1,
+    lengthKm: 26,
     fact: "阪神国道。大阪と神戸を結ぶ、片側5車線もある幅の広い幹線道路。",
     path: [
       [34.67368, 135.45948],
@@ -4845,6 +4870,7 @@ const HIGHWAYS = [
     endLabel: "那覇",
     prefectures: ["鹿児島県", "沖縄県"],
     difficulty: 3,
+    lengthKm: 813,
     fact: "日本一長い国道。大半が海上区間(フェリー)で、種子島・奄美群島を経て沖縄・那覇まで続く。",
     path: [
       [31.59426, 130.55956],
@@ -5111,6 +5137,7 @@ const HIGHWAYS = [
     endLabel: "大磯",
     prefectures: ["神奈川県"],
     difficulty: 2,
+    lengthKm: 42,
     fact: "湘南海岸線。鎌倉・江ノ島・茅ヶ崎など有名な海沿いを走る。",
     path: [
       [35.26671, 139.68682],
@@ -5164,6 +5191,7 @@ const HIGHWAYS = [
     endLabel: "下田",
     prefectures: ["静岡県"],
     difficulty: 2,
+    lengthKm: 73,
     fact: "伊豆半島東岸。熱海から伊東・河津を経て下田へ至る観光道路。",
     path: [
       [35.09806, 139.07569],
@@ -5299,6 +5327,7 @@ const HIGHWAYS = [
     endLabel: "松本",
     prefectures: ["福井県", "岐阜県", "長野県"],
     difficulty: 3,
+    lengthKm: 250,
     fact: "福井から九頭竜湖・高山・安房峠を越えて松本へ至る山岳国道。上高地への入口。",
     path: [
       [36.05183, 136.24411],
@@ -5562,6 +5591,7 @@ const HIGHWAYS = [
     endLabel: "神戸",
     prefectures: ["京都府", "大阪府", "兵庫県"],
     difficulty: 2,
+    lengthKm: 65,
     fact: "西国街道。京都から高槻・西宮を経て神戸へ至る。",
     path: [
       [34.97927, 135.74623],
@@ -5610,6 +5640,7 @@ const HIGHWAYS = [
     endLabel: "舞鶴",
     prefectures: ["大阪府", "兵庫県", "京都府"],
     difficulty: 3,
+    lengthKm: 160,
     fact: "大阪から宝塚・三田・福知山を経て舞鶴へ。渋滞の名所としても有名。",
     path: [
       [34.69962, 135.50006],
@@ -5828,6 +5859,7 @@ const HIGHWAYS = [
     endLabel: "沼津",
     prefectures: ["東京都", "神奈川県", "静岡県"],
     difficulty: 1,
+    lengthKm: 123,
     fact: "東京の三宅坂を起点に渋谷・厚木・御殿場を経て沼津で国道1号と合流する。",
     path: [
       [35.67889, 139.74012],
@@ -5948,6 +5980,7 @@ const HIGHWAYS = [
     endLabel: "横須賀",
     prefectures: ["千葉県", "東京都", "神奈川県"],
     difficulty: 3,
+    lengthKm: 88,
     fact: "東京湾岸道路。千葉から東京・横浜を経て横須賀へ、東京湾をぐるりと結ぶ。",
     path: [
       [35.58135, 140.12623],
@@ -6017,6 +6050,7 @@ const HIGHWAYS = [
     endLabel: "甲府",
     prefectures: ["東京都", "山梨県"],
     difficulty: 3,
+    lengthKm: 101,
     fact: "青梅街道。青梅から奥多摩湖・柳沢峠を越えて甲府へ至る(起点は新宿)。",
     path: [
       [35.77072, 139.29300],
@@ -6213,6 +6247,7 @@ const HIGHWAYS = [
     endLabel: "富士吉田",
     prefectures: ["神奈川県", "山梨県"],
     difficulty: 3,
+    lengthKm: 70,
     fact: "道志みち。相模原から道志・山中湖を経て富士吉田へ、ツーリングで有名。",
     path: [
       [35.59778, 139.33873],
@@ -6332,6 +6367,7 @@ const HIGHWAYS = [
     endLabel: "四万十",
     prefectures: ["徳島県", "高知県"],
     difficulty: 3,
+    lengthKm: 334,
     fact: "「酷道」として全国的に有名。徳島から剣山周辺の山間部を抜けて四万十へ至る。",
     path: [
       [34.07165, 134.54888],
