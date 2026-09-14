@@ -593,54 +593,21 @@ function makePolyline(map, waypoints, opts) {
 }
 
 /* ---------- なぞり判定用の幾何ヘルパー ---------- */
-
-/* ルート上の点を「なぞれたか」を判定する。次の2つを両方満たしたときだけ塗れたとみなす。
-
-   1. なぞった線からペン幅の内側にいること。ただし線の両端は平ら(butt)に扱う。
-      端を丸くすると、端点からペン半径ぶんはみ出した円まで塗れてしまう。
-   2. なぞった向きが、その地点の道の向きに沿っていること。
-      ペンは幅が広い（ルート長の約2割）ので、道を横切るように置くだけで、ほとんど
-      指を動かさずに幅ぶんの道を塗れてしまう。「道に沿ってなぞる」ゲームなので、
-      横切っただけのものは塗れたことにしない。
-
-   この2つで、塗れる量は「道に沿ってなぞった長さ」ぶんに収まり、短いストロークを
-   並べても素直になぞる以上には稼げなくなる。 */
-const ALONG_ROUTE_COS = 0.7; // 道に対して45度以内なら「沿ってなぞった」とみなす
-
-function strokeCoversPoint(p, routeDir, pts, tol) {
-  for (let i = 0; i < pts.length - 1; i++) {
-    const a = pts[i], b = pts[i + 1];
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) continue; // 長さゼロの区間は何も塗らない
-    let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
-    if (t < 0 && i === 0) continue;                  // 描き始めより手前
-    if (t > 1 && i === pts.length - 2) continue;     // 描き終わりより先
-    t = Math.max(0, Math.min(1, t));
-    if (Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t)) > tol) continue;
-    const dirLen = Math.hypot(routeDir.x, routeDir.y);
-    if (dirLen === 0) return true; // 道の向きが定まらない点は距離だけで判定する
-    const len = Math.sqrt(lenSq);
-    // 逆向きになぞっても構わないので絶対値で見る
-    if (Math.abs((dx * routeDir.x + dy * routeDir.y) / len) >= ALONG_ROUTE_COS) return true;
-  }
-  return false;
+function distPointToSeg(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = a.x + dx * t, cy = a.y + dy * t;
+  return Math.hypot(p.x - cx, p.y - cy);
 }
-
-/* 折れ線の各点における進行方向（単位ベクトル）。前後の点を結んだ向きを使うが、
-   ヘアピンで道が折り返している所では前後の点がほぼ重なって向きが定まらないので、
-   その場合は隣の1区間の向きで代用する。向きが全く定まらない点は {0,0} を返し、
-   呼び出し側で「向きを問わない」扱いにする（そうしないと絶対に塗れない点ができる）。 */
-function directionsAlong(pts) {
-  const unit = (a, b) => {
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const len = Math.hypot(dx, dy);
-    return len < 0.001 ? null : { x: dx / len, y: dy / len };
-  };
-  return pts.map((p, i) => {
-    const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(pts.length - 1, i + 1)];
-    return unit(prev, next) || unit(p, next) || unit(prev, p) || { x: 0, y: 0 };
-  });
+function minDistToPath(p, path) {
+  let min = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    min = Math.min(min, distPointToSeg(p, path[i], path[i + 1]));
+  }
+  if (path.length === 1) min = Math.hypot(p.x - path[0].x, p.y - path[0].y);
+  return min;
 }
 function densify(points, step) {
   if (points.length < 2) return points.slice();
@@ -791,7 +758,6 @@ let hintUsed = false;
 // （ペン幅がズームに比例するので、この判定はズームを変えても変わらない）。
 let strokes = [];
 let officialDenseCache = [];
-let officialDirCache = [];
 let traceTolerance = 0;
 let answered = false;
 
@@ -1092,10 +1058,9 @@ function updateDrawButtons() {
 
 // なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズ・ズームが変わったら呼び直す）
 function updateOfficialDenseCache() {
-  if (!currentHighway) { officialDenseCache = []; officialDirCache = []; routeLengthPx = 0; inkBudget = 0; return; }
+  if (!currentHighway) { officialDenseCache = []; routeLengthPx = 0; inkBudget = 0; return; }
   const officialPts = currentHighway.path.map(w => quizProjector.project(w[0], w[1]));
   officialDenseCache = densify(officialPts, 6);
-  officialDirCache = directionsAlong(officialDenseCache);
   routeLengthPx = pathLength(officialPts);
   // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
   traceTolerance = Math.max(3, routeLengthPx * TOLERANCE_TO_ROUTE_RATIO);
@@ -1108,25 +1073,6 @@ function updateOfficialDenseCache() {
 // ストロークを現在の表示に合わせて画面座標へ投影する
 function strokeScreenPts(stroke) {
   return stroke.latlngs.map(ll => quizProjector.project(ll[0], ll[1]));
-}
-
-/* いま指が動いた区間(prev→pos)が塗れているかを、採点と同じ条件で返す。
-   near: 道の近くにいるか / covering: さらに道に沿った向きに動いているか。
-   2つを分けているのは、「外れている」のか「横切っている」のかで案内を変えるため。 */
-function traceFeedback(prev, pos) {
-  if (!officialDenseCache.length) return { near: true, covering: true };
-  let best = 0, bestD = Infinity;
-  for (let i = 0; i < officialDenseCache.length; i++) {
-    const q = officialDenseCache[i];
-    const d = Math.hypot(pos.x - q.x, pos.y - q.y);
-    if (d < bestD) { bestD = d; best = i; }
-  }
-  const near = bestD <= traceTolerance;
-  const dx = pos.x - prev.x, dy = pos.y - prev.y;
-  const len = Math.hypot(dx, dy);
-  if (!near || len === 0) return { near, covering: false };
-  const dir = officialDirCache[best];
-  return { near, covering: Math.abs((dx * dir.x + dy * dir.y) / len) >= ALONG_ROUTE_COS };
 }
 
 function recomputeDrawnLength() {
@@ -1156,11 +1102,9 @@ function drawStroke(ctx, stroke) {
   if (pts.length < 2) return;
   const onRouteFlags = stroke.onRoute;
   ctx.save();
-  // ペンの実際の太さ（採点で「ルートが含まれるか」を判定する幅と同じ）を半透明の帯として見せる。
-  // 端は採点と同じく平ら(butt)にする。丸くすると、実際には塗れていない端の外側まで
-  // 塗れているように見えてしまう。
+  // ペンの実際の太さ（採点で「ルートが含まれるか」を判定する幅と同じ）を半透明の帯として見せる
   ctx.lineWidth = Math.max(6, traceTolerance * 2);
-  ctx.lineCap = "butt";
+  ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.globalAlpha = 0.35;
   let i = 1;
@@ -1206,10 +1150,11 @@ function scoreAttempt() {
     .map(st => densify(strokeScreenPts(st), 6))
     .filter(pts => pts.length > 0);
 
-  const officialDirs = directionsAlong(officialDense);
   let covered = 0;
-  officialDense.forEach((p, i) => {
-    if (userDenseStrokes.some(pts => strokeCoversPoint(p, officialDirs[i], pts, tolerance))) covered++;
+  officialDense.forEach(p => {
+    let min = Infinity;
+    userDenseStrokes.forEach(pts => { min = Math.min(min, minDistToPath(p, pts)); });
+    if (min <= tolerance) covered++;
   });
   const coverage = officialDense.length ? covered / officialDense.length : 0;
 
@@ -1451,19 +1396,14 @@ quizOverlay.addEventListener("pointermove", evt => {
     drawnLength += segDist;
   }
   activeStroke.latlngs.push(quizProjector.unproject(finalPos.x, finalPos.y));
-  // 採点と同じ条件（道の近く かつ 道に沿った向き）で、いま塗れているかを色で返す
-  const feedback = traceFeedback(last, finalPos);
-  activeStroke.onRoute.push(feedback.covering);
+  const onRoute = officialDenseCache.length ? minDistToPath(finalPos, officialDenseCache) <= traceTolerance : true;
+  activeStroke.onRoute.push(onRoute);
   if (penEmpty) {
     quizHintText.textContent = routeTooSmallToTrace()
       ? "ペンがなくなりました。" + ZOOM_ADVICE + "（「全部消す」でやり直せます）"
       : "ペンがなくなりました。「採点する」を押してください";
-  } else if (feedback.covering) {
-    quizHintText.textContent = "";
   } else {
-    quizHintText.textContent = feedback.near
-      ? "道を横切っています。道に沿ってなぞってください"
-      : "ルートから外れています…";
+    quizHintText.textContent = onRoute ? "" : "ルートから外れています…";
   }
   renderInkGauge();
   renderQuiz();
