@@ -528,6 +528,19 @@ function refitMap(map) {
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
 }
 
+// 国道のpath全体を囲む範囲。学習モードで国道を選んだときに、その国道いっぱいに
+// ズームするための範囲として使う。
+function highwayBounds(h) {
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  h.path.forEach(([lat, lng]) => {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  });
+  return [[minLat, minLng], [maxLat, maxLng]];
+}
+
 function projectorFor(map) {
   return {
     project(lat, lng) {
@@ -644,10 +657,20 @@ function selectStudyHighway(h, btn) {
   renderStudy(h, true);
 }
 
+// 学習モードの地図を、指定した国道いっぱいにズームする（未指定なら日本全体に戻す）。
+// タブを切り替えて戻ってきたときなど、地図が非表示の間に縮まっていたコンテナ
+// サイズをinvalidateSizeで測り直してからfitBoundsする。
+function fitStudyMap(h, animate) {
+  studyMap.invalidateSize();
+  if (h) studyMap.fitBounds(highwayBounds(h), { padding: [36, 36], animate: !!animate });
+  else studyMap.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: !!animate });
+}
+
 function renderStudy(h, animate) {
   studyLayerGroup.clearLayers();
   if (studyAnimId) cancelAnimationFrame(studyAnimId);
   if (!h) return;
+  fitStudyMap(h, animate);
 
   const last = h.path[h.path.length - 1];
 
@@ -1346,8 +1369,8 @@ const panelQuiz = document.getElementById("panel-quiz");
 tabStudy.addEventListener("click", () => {
   tabStudy.classList.add("active"); tabQuiz.classList.remove("active");
   panelStudy.hidden = false; panelQuiz.hidden = true;
-  refitMap(studyMap);
-  if (studyHighway) renderStudy(studyHighway, false);
+  if (studyHighway) renderStudy(studyHighway, false); // 選択中の国道いっぱいの表示に戻す
+  else fitStudyMap(null, false);
 });
 tabQuiz.addEventListener("click", () => {
   tabQuiz.classList.add("active"); tabStudy.classList.remove("active");
@@ -1358,7 +1381,7 @@ tabQuiz.addEventListener("click", () => {
 
 /* ================= リサイズ対応 ================= */
 window.addEventListener("resize", () => {
-  if (!panelStudy.hidden) refitMap(studyMap);
+  if (!panelStudy.hidden) fitStudyMap(studyHighway, false);
   if (!panelQuiz.hidden) {
     refitMap(quizMap);
     if (currentHighway) afterMapMoved(); // ペン幅・残量は画面上の長さ基準なので測り直す
