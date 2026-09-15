@@ -1070,17 +1070,18 @@ function updateOfficialDenseCache() {
   routeLengthPx = pathLength(officialPts);
   // ペン幅はこのルート自身の現在の画面上の長さに比例させる（短い国道ほど細く、拡大するほど太くなる）
   traceTolerance = Math.max(3, routeLengthPx * TOLERANCE_TO_ROUTE_RATIO);
-  // 素直に1本でなぞったときに塗れる面積（帯＋両端の丸み）を基準にする
-  const r = traceTolerance;
-  inkBudget = (2 * r * routeLengthPx + Math.PI * r * r) * INK_BUDGET_RATIO;
-  // 面積も画面上の大きさで数えているので、ズームが変わったら塗った分を測り直す
-  // （基準もペン幅も同じ倍率で伸縮するため、残量の割合はズームに依存しない）
-  recomputeDrawnInk();
+  // インクの計算はズーム/パンから独立した座標系で行うので、ここでは触らない
+  if (!inkSpace || inkSpace.id !== currentHighway.id) buildInkSpace(currentHighway);
 }
 
-// ストロークを現在の表示に合わせて画面座標へ投影する
+// ストロークを現在の表示に合わせて画面座標へ投影する（描画・採点用）
 function strokeScreenPts(stroke) {
   return stroke.latlngs.map(ll => quizProjector.project(ll[0], ll[1]));
+}
+
+// ストロークをインク座標系へ投影する（塗った面積を数える用）
+function strokeInkPts(stroke) {
+  return stroke.latlngs.map(ll => toInk(ll[0], ll[1]));
 }
 
 /* 塗られた面積は、ペン半径の1/3を1辺とするマス目を敷いて、ペンが通ったマスを
@@ -1089,7 +1090,44 @@ function strokeScreenPts(stroke) {
    つけ足す（毎回すべて数え直すと重いため）。 */
 const INK_CELL_RATIO = 1 / 3;
 let inkCells = new Set();
-let inkCellSize = 0;
+
+/* 面積を数えるのは画面座標ではなく、その国道専用の固定座標系（インク座標系）で行う。
+   画面座標で数えると、ズームやパンでマス目の切れ目の当たり方が変わってしまい、
+   1本も描き足していないのに残量が数%動いて見える。インク座標系は
+   「そのルートの全長が INK_REF_LEN、原点はルートの起点」となるようメルカトル座標を
+   正規化したもので、画面の見え方には一切依存しない。結果として、ペン幅・マス目・
+   インクの上限はすべて全国道共通の定数になり、残量はズームしてもパンしても動かない。
+   （なぞり判定に使う画面上のペン幅 traceTolerance は、これまで通り画面の縮尺に比例させる） */
+const INK_REF_LEN = 2000;
+const INK_PEN_RADIUS = INK_REF_LEN * TOLERANCE_TO_ROUTE_RATIO;
+const inkCellSize = INK_PEN_RADIUS * INK_CELL_RATIO;
+let inkSpace = null;
+
+// Leafletの表示と同じ形になるようメルカトル図法で平面に落とす（単位は度のまま）
+function mercator(lat, lng) {
+  return { x: lng, y: Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) * (180 / Math.PI) };
+}
+
+function buildInkSpace(h) {
+  const pts = h.path.map(w => mercator(w[0], w[1]));
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  inkSpace = { id: h.id, ox: pts[0].x, oy: pts[0].y, k: len > 0 ? INK_REF_LEN / len : 1 };
+  // 素直に1本でなぞったときに塗れる面積（帯＋両端の丸み）を基準にする
+  const r = INK_PEN_RADIUS;
+  inkBudget = (2 * r * INK_REF_LEN + Math.PI * r * r) * INK_BUDGET_RATIO;
+}
+
+function toInk(lat, lng) {
+  const m = mercator(lat, lng);
+  return { x: (m.x - inkSpace.ox) * inkSpace.k, y: (m.y - inkSpace.oy) * inkSpace.k };
+}
+
+// 画面座標をインク座標へ（なぞっている最中の1点を数えるため）
+function screenToInk(pos) {
+  const ll = quizProjector.unproject(pos.x, pos.y);
+  return toInk(ll[0], ll[1]);
+}
 
 // 中心(x,y)にペンを1回押したときに覆うマスへ印をつける。
 // 新しく印がついたマスは added に控える（予算を超えたら取り消せるように）
@@ -1097,7 +1135,7 @@ function stampPen(x, y, added) {
   // 半径が何マス分かは四捨五入で求める。ceilだと、割り切れるはずの比
   // (半径÷マス=3)が浮動小数点で3.0000000000000004になった瞬間に4マスへ跳ね、
   // 同じ操作なのに塗った面積が1.7倍に変わってしまう
-  const rad = Math.max(1, Math.round(traceTolerance / inkCellSize));
+  const rad = Math.max(1, Math.round(INK_PEN_RADIUS / inkCellSize));
   const cx = Math.round(x / inkCellSize), cy = Math.round(y / inkCellSize);
   for (let i = -rad; i <= rad; i++) {
     for (let j = -rad; j <= rad; j++) {
@@ -1122,10 +1160,9 @@ function stampSegment(a, b, added) {
 function inkFromCells() { return inkCells.size * inkCellSize * inkCellSize; }
 
 function recomputeDrawnInk() {
-  inkCellSize = Math.max(1, traceTolerance * INK_CELL_RATIO);
   inkCells = new Set();
-  const all = strokes.map(strokeScreenPts);
-  if (activeStroke) all.push(strokeScreenPts(activeStroke));
+  const all = strokes.map(strokeInkPts);
+  if (activeStroke) all.push(strokeInkPts(activeStroke));
   all.forEach(pts => {
     if (!pts.length) return;
     stampPen(pts[0].x, pts[0].y);
@@ -1309,7 +1346,8 @@ function beginStroke(evt, pos) {
   capturePointer(evt.pointerId);
   // ペンを置いた時点でペン先の円のぶんが塗られる。ここを数えないと、
   // チョンと置くだけの操作がタダになってしまう
-  stampPen(pos.x, pos.y);
+  const ink = screenToInk(pos);
+  stampPen(ink.x, ink.y);
   drawnInk = inkFromCells();
   renderInkGauge();
   renderQuiz();
@@ -1441,12 +1479,11 @@ quizOverlay.addEventListener("pointermove", evt => {
   if (!activeStroke || evt.pointerId !== drawPointerId || penEmpty) return;
 
   const pos = getLocalPos(evt);
-  const pts = strokeScreenPts(activeStroke);
-  const last = pts[pts.length - 1];
+  const prev = activeStroke.latlngs[activeStroke.latlngs.length - 1];
   // この区間を塗ったことにして、面積が残量を超えるなら塗るのをやめる。
   // 面積は重なり方で決まるので、長さのように「あと何px引けるか」を先に計算できない。
   const added = [];
-  stampSegment(last, pos, added);
+  stampSegment(toInk(prev[0], prev[1]), screenToInk(pos), added);
   const inkAfter = inkFromCells();
   if (inkAfter > inkBudget) {
     added.forEach(key => inkCells.delete(key));
