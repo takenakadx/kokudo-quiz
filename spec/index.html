@@ -276,9 +276,9 @@
       各国道が通る主要都市を人手で「経由地」として与え、区間ごとに短く並び替える方式で経路を復元しています。
     </p>
     <div class="stats">
-      <div class="stat total"><div class="n" id="statTotal">36</div><div class="l">収録対象 合計</div></div>
+      <div class="stat total"><div class="n" id="statTotal">45</div><div class="l">収録対象 合計</div></div>
       <div class="stat done"><div class="n" id="statDone">35</div><div class="l">実装済み</div></div>
-      <div class="stat p3"><div class="n" id="statP3">1</div><div class="l">候補</div></div>
+      <div class="stat p3"><div class="n" id="statP3">10</div><div class="l">候補</div></div>
     </div>
   </header>
 
@@ -348,7 +348,16 @@ const ROWS = [
   { status: "done", num: "413", name: "国道413号", start: "相模原", end: "富士吉田", note: "道志みち。ツーリングで有名。", src: "osm" },
   { status: "done", num: "439", name: "国道439号", start: "徳島", end: "四万十", note: "<span class=\"warn\">「酷道」</span>として全国的に有名。剣山周辺の山間部を抜ける。", src: "osm" },
 
-  // 候補
+  // 候補（経由都市・補足情報は用意済み。生データの取得待ち）
+  { status: "p2", num: "13", name: "国道13号", start: "福島", end: "秋田", note: "奥羽山脈の西側を縦断。米沢・山形・新庄・横手を経由。生データ未取得。" },
+  { status: "p2", num: "18", name: "国道18号", start: "高崎", end: "上越", note: "中山道・北国街道筋。<span class=\"warn\">碓氷峠</span>で上州から信州へ。生データ未取得。" },
+  { status: "p2", num: "21", name: "国道21号", start: "瑞浪", end: "米原", note: "中山道にほぼ沿う。大垣から<span class=\"warn\">関ケ原</span>を越えて近江へ。生データ未取得。" },
+  { status: "p2", num: "24", name: "国道24号", start: "京都", end: "和歌山", note: "奈良盆地を南北に貫き、五條から紀の川沿いを下る。生データ未取得。" },
+  { status: "p2", num: "26", name: "国道26号", start: "大阪", end: "和歌山", note: "大阪湾東岸を堺・岸和田と南下。24号との対比。生データ未取得。" },
+  { status: "p2", num: "27", name: "国道27号", start: "敦賀", end: "京丹波", note: "若狭湾沿いに小浜・舞鶴へ。丹波で9号に合流して終わる。生データ未取得。" },
+  { status: "p2", num: "28", name: "国道28号", start: "神戸", end: "徳島", note: "淡路島を縦断。<span class=\"warn\">明石海峡・鳴門海峡は海上区間</span>。生データ未取得。" },
+  { status: "p2", num: "29", name: "国道29号", start: "姫路", end: "鳥取", note: "<span class=\"warn\">戸倉峠</span>を越えて播磨から因幡へ。中国山地を横断。生データ未取得。" },
+  { status: "p2", num: "30", name: "国道30号", start: "岡山", end: "高松", note: "玉野市宇野まで南下し<span class=\"warn\">宇高航路(海上区間)</span>で高松へ。生データ未取得。" },
   { status: "p3", num: "317", name: "国道317号", start: "尾道", end: "今治", note: "しまなみ海道。瀬戸内海を橋で渡る超有名ルート。生データ未取得。" }
 ];
 
@@ -411,7 +420,16 @@ document.getElementById("filters").addEventListener("click", evt => {
   applyFilter(btn.dataset.filter);
 });
 
+// 件数はROWSから数える（手で書いておくと国道を足したときにズレる）
+function renderStats() {
+  const done = ROWS.filter(r => r.status === "done").length;
+  document.getElementById("statTotal").textContent = ROWS.length;
+  document.getElementById("statDone").textContent = done;
+  document.getElementById("statP3").textContent = ROWS.length - done;
+}
+
 renderRows();
+renderStats();
 </script>
 </body>
 </html>

@@ -1,11 +1,12 @@
 # 実ルートデータの取得手順
 
-`highways-data.js` の `waypoints` は現在、主要都市を手動で結んだ折れ線です。
-このフォルダに実際の道路線形（OpenStreetMapの経路データ）を置いてもらえれば、
-Claude 側でそれを取り込んで `waypoints` をより正確な形状に置き換えます。
+収録するルート形状は、このフォルダに置かれた実際の道路線形（OpenStreetMapの
+経路データ）から `tools/process_routes.py` が生成します。国道を追加するには、
+まずその国道の生データをこのフォルダに置く必要があります。
 
-この開発環境からは Overpass API・OSRM などの外部APIに一切アクセスできない
-状態のため、お手数をおかけしますがユーザー側で取得をお願いします。
+この開発環境からは Overpass API をはじめ OSM 系のサーバーに一切アクセスできない
+（ネットワークポリシーで遮断されている）ため、お手数をおかけしますがユーザー側で
+取得をお願いします。取得後の取り込み・経路の組み立て・確認はこちらで行います。
 
 ## 使うツール
 
@@ -36,46 +37,27 @@ Claude 側でそれを取り込んで `waypoints` をより正確な形状に置
 表記ゆれ（例: 「国道1号線」）にも `~` (正規表現部分一致) でマッチするように
 してあります。
 
-| 国道 | 出力ファイル名 |
-|---|---|
-| 国道1号 | `data-raw/1.geojson` |
-| 国道2号 | `data-raw/2.geojson` |
-| 国道3号 | `data-raw/3.geojson` |
-| 国道4号 | `data-raw/4.geojson` |
-| 国道5号 | `data-raw/5.geojson` |
-| 国道6号 | `data-raw/6.geojson` |
-| 国道7号 | `data-raw/7.geojson` |
-| 国道8号 | `data-raw/8.geojson` |
-| 国道9号 | `data-raw/9.geojson` |
-| 国道10号 | `data-raw/10.geojson` |
-| 国道11号 | `data-raw/11.geojson` |
-| 国道12号 | `data-raw/12.geojson` |
-| 国道14号 | `data-raw/14.geojson` |
-| 国道15号 | `data-raw/15.geojson` |
-| 国道16号 | `data-raw/16.geojson` |
-| 国道17号 | `data-raw/17.geojson` |
-| 国道19号 | `data-raw/19.geojson` |
-| 国道20号 | `data-raw/20.geojson` |
-| 国道22号 | `data-raw/22.geojson` |
-| 国道23号 | `data-raw/23.geojson` |
-| 国道25号 | `data-raw/25.geojson` |
-| 国道41号 | `data-raw/41.geojson` |
-| 国道42号 | `data-raw/42.geojson` |
-| 国道43号 | `data-raw/43.geojson` |
-| 国道58号 | `data-raw/58.geojson`（※大半が海上区間のため、データが取れない/歯抜けになる可能性が高いです。ダメそうなら省略してOKです） |
-| 国道134号 | `data-raw/134.geojson` |
-| 国道135号 | `data-raw/135.geojson` |
-| 国道158号 | `data-raw/158.geojson` |
-| 国道171号 | `data-raw/171.geojson` |
-| 国道176号 | `data-raw/176.geojson` |
-| 国道246号 | `data-raw/246.geojson` |
-| 国道317号 | `data-raw/317.geojson` |
-| 国道357号 | `data-raw/357.geojson` |
-| 国道411号 | `data-raw/411.geojson` |
-| 国道413号 | `data-raw/413.geojson` |
-| 国道439号 | `data-raw/439.geojson` |
+### いま取得をお願いしたいもの（10本）
 
-上の3〜43号の14本、134〜439号の3桁国道10本は、収録国道を増やすタスク（Issue #2）向けに新しく追加した候補です。
+| 国道 | 出力ファイル名 | 区間（想定） | 備考 |
+|---|---|---|---|
+| 国道13号 | `data-raw/13.geojson` | 福島 → 秋田 | |
+| 国道18号 | `data-raw/18.geojson` | 高崎 → 上越 | |
+| 国道21号 | `data-raw/21.geojson` | 瑞浪 → 米原 | |
+| 国道24号 | `data-raw/24.geojson` | 京都 → 和歌山 | |
+| 国道26号 | `data-raw/26.geojson` | 大阪 → 和歌山 | |
+| 国道27号 | `data-raw/27.geojson` | 敦賀 → 京丹波 | |
+| 国道28号 | `data-raw/28.geojson` | 神戸 → 徳島 | ※明石海峡・鳴門海峡が海上区間なので、淡路島の手前と後ろで必ず途切れます。そのままでOKです |
+| 国道29号 | `data-raw/29.geojson` | 姫路 → 鳥取 | |
+| 国道30号 | `data-raw/30.geojson` | 岡山 → 高松 | ※宇野〜高松が宇高航路（海上区間）なので玉野市で途切れます。そのままでOKです |
+| 国道317号 | `data-raw/317.geojson` | 松山 → 今治 → 尾道 | ※しまなみ海道。橋の区間は自動車専用道のため歯抜けになる可能性があります |
+
+### すでに取得済み（再取得は不要）
+
+1号 / 2号 / 3号 / 4号 / 5号 / 6号 / 7号 / 8号 / 9号 / 10号 / 11号 / 12号 /
+14号 / 15号 / 16号 / 17号 / 19号 / 20号 / 22号 / 23号 / 25号 / 41号 / 42号 /
+43号 / 58号 / 134号 / 135号 / 158号 / 171号 / 176号 / 246号 / 357号 / 411号 /
+413号 / 439号（計35本、`data-raw/◯◯.geojson` として収録済み）
 
 ### クエリのテンプレート
 
