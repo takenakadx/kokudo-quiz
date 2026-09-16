@@ -78,7 +78,7 @@
 
   .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
     margin-top: 22px;
   }
@@ -247,6 +247,108 @@
   .note-cell { color: var(--muted); font-size: 13.3px; line-height: 1.6; }
   .note-cell .warn { color: var(--warn); font-weight: 500; }
 
+  .coverage { margin-top: 34px; }
+  .cov-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 4px;
+  }
+  .cov-head h2 {
+    font-family: "Shippori Mincho", serif;
+    font-size: 18px;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .cov-note {
+    color: var(--muted);
+    font-size: 13.3px;
+    line-height: 1.75;
+    margin: 6px 0 14px;
+    max-width: 62ch;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+  .legend i.done { background: var(--done); border-color: var(--done); }
+  .legend i.prep { background: var(--p2); border-color: var(--p2); }
+  .legend i.todo { background: var(--panel); }
+  .legend i.vacant { background: var(--line); }
+
+  .cov-band {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .cov-band + .cov-band { margin-top: 10px; }
+  .cov-band h3 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .band-note {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .cov-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 4px;
+  }
+  .cov-cell {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    padding: 5px 2px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    text-decoration: none;
+    display: block;
+  }
+  .cov-cell.done {
+    background: var(--done-soft);
+    border-color: var(--done);
+    color: var(--done);
+    font-weight: 700;
+  }
+  .cov-cell.prep {
+    background: var(--p2-soft);
+    border-color: var(--p2);
+    color: var(--p2);
+    font-weight: 700;
+  }
+  .cov-cell.vacant {
+    background: var(--line);
+    border-color: var(--line);
+    color: var(--muted);
+    opacity: 0.55;
+    text-decoration: line-through;
+  }
+  a.cov-cell:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
+  tbody tr.flash { background: var(--accent-soft); }
+
   footer {
     margin-top: 34px;
     padding-top: 16px;
@@ -259,6 +361,7 @@
 
   @media (max-width: 620px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
+    .cov-grid { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); }
     td.route-cell { gap: 8px; }
   }
 </style>
@@ -274,11 +377,13 @@
       収録済みの国道はすべて <span class="src-badge osm" style="display:inline-flex">実データ</span>、つまり
       OpenStreetMapの実際の道路形状から生成したルートです。生データは順序不定の断片の集まりなので、
       各国道が通る主要都市を人手で「経由地」として与え、区間ごとに短く並び替える方式で経路を復元しています。
+      実在する国道459路線すべての対応状況は、ページ下部の<a href="#coverage-section" style="color:var(--accent)">全国道の対応状況</a>にまとめてあります。
     </p>
     <div class="stats">
-      <div class="stat total"><div class="n" id="statTotal">45</div><div class="l">収録対象 合計</div></div>
+      <div class="stat total"><div class="n" id="statAll">459</div><div class="l">国道 総数</div></div>
       <div class="stat done"><div class="n" id="statDone">35</div><div class="l">実装済み</div></div>
-      <div class="stat p3"><div class="n" id="statP3">10</div><div class="l">候補</div></div>
+      <div class="stat p2"><div class="n" id="statPrep">10</div><div class="l">準備済み（データ待ち）</div></div>
+      <div class="stat p3"><div class="n" id="statTodo">414</div><div class="l">未着手</div></div>
     </div>
   </header>
 
@@ -301,6 +406,23 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+
+  <section class="coverage" id="coverage-section">
+    <div class="cov-head"><h2>全国道の対応状況</h2></div>
+    <p class="cov-note">
+      一般国道は<strong>459路線</strong>あります。番号は1号から507号まで振られていますが、
+      59〜100号は将来の一級国道用に空けられたまま使われておらず、109・110・111号と214・215・216号は
+      他の国道に編入されて廃止されたため、計48個が欠番です。
+      色が付いているものがこのアプリの対応済み・準備済みで、番号を押すと上の表の該当行へ移動します。
+    </p>
+    <div class="legend">
+      <span><i class="done"></i>実装済み</span>
+      <span><i class="prep"></i>準備済み（生データ待ち）</span>
+      <span><i class="todo"></i>未着手</span>
+      <span><i class="vacant"></i>欠番</span>
+    </div>
+    <div id="coverage"></div>
+  </section>
 
   <footer>
     データ出典：ルート形状は <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> の実際の道路データ由来。経由都市を人手で与えて点群を並び替える方式で生成しています。取得手順は、リポジトリ内 <a href="https://github.com/takenakadx/kokudo-quiz/blob/main/data-raw/README.md">data-raw/README.md</a> を参照してください。
@@ -387,7 +509,7 @@ function renderRows() {
       const srcBadge = r.src === "osm"
         ? `<span class="src-badge osm" title="OpenStreetMapの実道路データ">実データ</span>`
         : (r.status === "done" ? `<span class="src-badge manual" title="経由都市を結んだ簡略ルート">簡略</span>` : "");
-      html += `<tr data-status="${status}">
+      html += `<tr data-status="${status}" id="r${r.num}">
         <td class="section-cell"><span class="pill ${meta.pillClass}">${meta.label}</span></td>
         <td class="route-cell">
           <span class="sign"><span class="${digitClass(r.num)}">${r.num}</span></span>
@@ -420,16 +542,96 @@ document.getElementById("filters").addEventListener("click", evt => {
   applyFilter(btn.dataset.filter);
 });
 
-// 件数はROWSから数える（手で書いておくと国道を足したときにズレる）
+/* 一般国道の番号は1〜507まで振られているが、実在するのは459路線。
+   59〜100号は将来の一級国道用に空けられたまま使われていない。
+   109号(→108号)・110号(→48号)・111号(→45号)・214〜216号(→57号)は
+   他の国道へ編入されて廃止された。合わせて48個が欠番。 */
+const MAX_ROUTE = 507;
+const VACANT = new Set([
+  ...Array.from({ length: 42 }, (_, i) => 59 + i), // 59〜100号
+  109, 110, 111, 214, 215, 216,
+]);
+
+// 番号→対応状況。上の表に載っている国道だけが done / prep で、あとは未着手。
+function coverageStatus(num) {
+  if (VACANT.has(num)) return "vacant";
+  const row = ROWS.find(r => Number(r.num) === num);
+  if (!row) return "todo";
+  return row.status === "done" ? "done" : "prep";
+}
+
+// 桁数ごとに帯を分けて並べる（欠番が42個続く59〜100号だけは1行の注記にまとめる）
+const COV_BANDS = [
+  { title: "一桁・二桁国道（1〜58号）", from: 1, to: 58 },
+  { title: "三桁国道（101〜199号）", from: 101, to: 199 },
+  { title: "三桁国道（200〜299号）", from: 200, to: 299 },
+  { title: "三桁国道（300〜399号）", from: 300, to: 399 },
+  { title: "三桁国道（400〜507号）", from: 400, to: MAX_ROUTE },
+];
+
+function renderCoverage() {
+  let html = "";
+  COV_BANDS.forEach(band => {
+    let cells = "";
+    for (let n = band.from; n <= band.to; n++) {
+      const st = coverageStatus(n);
+      if (st === "vacant") {
+        cells += `<span class="cov-cell vacant" title="${n}号は欠番">${n}</span>`;
+      } else if (st === "todo") {
+        cells += `<span class="cov-cell todo">${n}</span>`;
+      } else {
+        const label = st === "done" ? "実装済み" : "準備済み（生データ待ち）";
+        cells += `<a class="cov-cell ${st}" href="#r${n}" title="国道${n}号：${label}">${n}</a>`;
+      }
+    }
+    // 59〜100号は42個まるごと欠番なので、マス目を並べず1行の注記にする
+    const footnote = band.to === 58
+      ? `<p class="band-note">59〜100号は将来の一級国道用に空けられた番号で、42号ぶんがまるごと欠番です（58号の次は101号）。</p>`
+      : "";
+    html += `<div class="cov-band"><h3>${band.title}</h3><div class="cov-grid">${cells}</div>${footnote}</div>`;
+  });
+  document.getElementById("coverage").innerHTML = html;
+}
+
+// 件数はROWS・欠番リストから数える（手で書いておくと国道を足したときにズレる）
 function renderStats() {
-  const done = ROWS.filter(r => r.status === "done").length;
-  document.getElementById("statTotal").textContent = ROWS.length;
+  let done = 0, prep = 0, all = 0;
+  for (let n = 1; n <= MAX_ROUTE; n++) {
+    const st = coverageStatus(n);
+    if (st === "vacant") continue;
+    all++;
+    if (st === "done") done++;
+    else if (st === "prep") prep++;
+  }
+  document.getElementById("statAll").textContent = all;
   document.getElementById("statDone").textContent = done;
-  document.getElementById("statP3").textContent = ROWS.length - done;
+  document.getElementById("statPrep").textContent = prep;
+  document.getElementById("statTodo").textContent = all - done - prep;
+}
+
+// カバレッジ表から飛んだ行は、フィルターで隠れていても見えるようにしてから光らせる。
+// 同じ番号を続けて押すとhashchangeが起きないので、クリック自体からも呼ぶ
+window.addEventListener("hashchange", () => highlightRow(location.hash.slice(1)));
+document.getElementById("coverage").addEventListener("click", evt => {
+  const link = evt.target.closest("a.cov-cell");
+  if (link) highlightRow(link.getAttribute("href").slice(1));
+});
+
+function highlightRow(id) {
+  const row = id && document.getElementById(id);
+  if (!row || row.tagName !== "TR") return;
+  document.querySelectorAll("#filters button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.filter === "all")));
+  applyFilter("all");
+  document.querySelectorAll("tbody tr.flash").forEach(tr => tr.classList.remove("flash"));
+  row.classList.add("flash");
+  row.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
 renderRows();
+renderCoverage();
 renderStats();
+if (location.hash) highlightRow(location.hash.slice(1));
 </script>
 </body>
 </html>

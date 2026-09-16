@@ -21,7 +21,7 @@
 - 収録国道や成績、難易度フィルターの選択、効果音のON/OFFはすべて端末内（`localStorage`）にのみ保存され、外部サーバーへの送信は行いません（地図タイルの読み込みを除く）。
 
 ## 収録国道とルートデータ
-現在35路線を収録しており、すべてのルート形状は[OpenStreetMap](https://www.openstreetmap.org/copyright)の実際の道路データから生成しています。収録国道の一覧・区間・補足情報は[国道収録仕様書](https://takenakadx.github.io/kokudo-quiz/spec/)にまとめています。
+現在35路線を収録しており、すべてのルート形状は[OpenStreetMap](https://www.openstreetmap.org/copyright)の実際の道路データから生成しています。収録国道の一覧・区間・補足情報は[国道収録仕様書](https://takenakadx.github.io/kokudo-quiz/spec/)にまとめています。同じページに、実在する国道459路線（欠番48個を除く1〜507号）すべての対応状況を一覧できる表も載せているので、次にどれを追加するかはそこを見て決められます。
 
 さらに13・18・21・24・26〜30号の9路線と317号は、経由都市（`tools/process_routes.py` の `CHECKPOINTS`）と補足情報（`tools/gen_highways_data.py` の `META`）を用意済みで、生データ（`data-raw/◯◯.geojson`）が置かれ次第そのまま収録されます。取得手順は [`data-raw/README.md`](data-raw/README.md) を参照してください。
 
