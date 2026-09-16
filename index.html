@@ -134,9 +134,10 @@
   }
   /* 学習モードも1画面に収める。収まらないのは国道一覧と補足情報だけなので、
      その2つの内側をスクロールさせ、地図には残りの高さを渡す */
+  #panel-study .study-filter-row { flex: 0 0 auto; }
   #panel-study .hwy-list {
     flex: 0 1 auto;
-    max-height: 32%;
+    max-height: 28%;
     overflow-y: auto;
     margin-bottom: 0;
   }
@@ -217,6 +218,38 @@
   .gesture-hint b { color: var(--blue); font-weight: 700; }
   @media (max-width: 480px) {
     .gesture-hint { font-size: 10px; padding: 5px 8px; }
+  }
+
+  /* 分類名（「北海道・東北地方」など）が切れないよう、セレクトを検索欄より広く取る */
+  .study-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .study-filter-row .filter-select { flex: 2 1 160px; }
+  .filter-search {
+    flex: 1 1 90px;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: inherit;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .study-count {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .hwy-list-empty {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 6px 2px;
   }
 
   .hwy-list {
@@ -444,6 +477,12 @@
 <main>
   <!-- 学習モード -->
   <section id="panel-study" class="panel">
+    <div class="study-filter-row">
+      <select class="filter-select" id="study-cat-select" aria-label="表示する国道の分類"></select>
+      <input class="filter-search" id="study-search" type="search" inputmode="numeric"
+             placeholder="番号で検索" aria-label="国道の番号で検索">
+      <span class="study-count" id="study-count"></span>
+    </div>
     <div class="hwy-list" id="study-hwy-list"></div>
     <div class="map-wrap">
       <div id="study-map" class="leaflet-map"></div>
@@ -629,6 +668,55 @@ function pathLength(points) {
   return len;
 }
 
+/* ================= 国道の分類（学習モード・クイズモードで共通） =================
+   国道は一桁/二桁/三桁で見た目の印象がかなり違い（一桁は誰もが知る幹線、三桁は
+   マイナーな路線が多い）、地方でまとめると「関東の国道だけ」のように的を絞って
+   練習できる。都道府県→地方の対応表から、国道が通る地方を機械的に求めているので、
+   国道を増やしても分類の定義を触る必要はない。
+   1つの国道は複数の地方にまたがるのが普通なので、分類は排他的な「フォルダ」ではなく
+   重複ありの絞り込みとして扱う（16号は関東の4都県、58号は九州と沖縄、という具合）。 */
+const PREF_REGION = {
+  "北海道": "北海道",
+  "青森県": "東北", "岩手県": "東北", "宮城県": "東北", "秋田県": "東北", "山形県": "東北", "福島県": "東北",
+  "茨城県": "関東", "栃木県": "関東", "群馬県": "関東", "埼玉県": "関東", "千葉県": "関東", "東京都": "関東", "神奈川県": "関東",
+  "新潟県": "中部", "富山県": "中部", "石川県": "中部", "福井県": "中部", "山梨県": "中部", "長野県": "中部", "岐阜県": "中部", "静岡県": "中部", "愛知県": "中部",
+  "三重県": "近畿", "滋賀県": "近畿", "京都府": "近畿", "大阪府": "近畿", "兵庫県": "近畿", "奈良県": "近畿", "和歌山県": "近畿",
+  "鳥取県": "中国", "島根県": "中国", "岡山県": "中国", "広島県": "中国", "山口県": "中国",
+  "徳島県": "四国", "香川県": "四国", "愛媛県": "四国", "高知県": "四国",
+  "福岡県": "九州", "佐賀県": "九州", "長崎県": "九州", "熊本県": "九州", "大分県": "九州", "宮崎県": "九州", "鹿児島県": "九州", "沖縄県": "九州",
+};
+function routeNumber(h) { return Number(h.number.match(/\d+/)[0]); }
+function highwayRegions(h) { return [...new Set(h.prefectures.map(p => PREF_REGION[p]))]; }
+
+// test: 国道→真偽。regions: いずれかの地方を通れば対象（1つの国道が複数の地方に
+// またがるのは普通のことなので、地方カテゴリはOR条件・重複ありで扱う）。
+const MAP_CATEGORIES = [
+  { key: "", label: "すべての国道", test: () => true },
+  { key: "digit1", label: "一桁国道", test: h => routeNumber(h) < 10 },
+  { key: "digit2", label: "二桁国道", test: h => routeNumber(h) >= 10 && routeNumber(h) < 100 },
+  { key: "digit3", label: "三桁国道", test: h => routeNumber(h) >= 100 },
+  { key: "region-hokkaido-tohoku", label: "北海道・東北地方", regions: ["北海道", "東北"] },
+  { key: "region-kanto", label: "関東地方", regions: ["関東"] },
+  { key: "region-chubu", label: "中部地方", regions: ["中部"] },
+  { key: "region-kinki", label: "近畿地方", regions: ["近畿"] },
+  { key: "region-chugoku-shikoku", label: "中国・四国地方", regions: ["中国", "四国"] },
+  { key: "region-kyushu", label: "九州・沖縄地方", regions: ["九州"] },
+];
+function matchesCategory(h, cat) {
+  if (cat.regions) return highwayRegions(h).some(r => cat.regions.includes(r));
+  return cat.test(h);
+}
+function highwaysInCategory(cat) { return HIGHWAYS.filter(h => matchesCategory(h, cat)); }
+
+
+/* 番号での絞り込み。"17" と入れたら17号だけでなく171号・176号も出す
+   （番号をうろ覚えのときに探せるように、前方一致ではなく部分一致にしている） */
+function matchesQuery(h, query) {
+  const q = query.trim();
+  if (!q) return true;
+  return String(routeNumber(h)).includes(q);
+}
+
 /* ================= 学習モード ================= */
 const studyMap = createMap("study-map", true);
 const studyLayerGroup = L.layerGroup().addTo(studyMap);
@@ -638,12 +726,53 @@ let studyHighway = null;
 let studyAnimId = null;
 let studyRouteLine = null;
 
-HIGHWAYS.forEach(h => {
-  const btn = document.createElement("button");
-  btn.textContent = h.number;
-  btn.addEventListener("click", () => selectStudyHighway(h, btn));
-  studyList.appendChild(btn);
+/* 一覧は分類セレクトと番号検索で絞り込む。収録国道が増えても、ボタンが
+   何十個も並んで目的の国道を探せなくなることがないように。分類はクイズの
+   「マップ」と同じ定義を使っているので、増やすときは1か所直せば両方に効く。 */
+const STUDY_CAT_KEY = "kokudoStudyCategory.v1";
+const studyCatSelect = document.getElementById("study-cat-select");
+const studySearch = document.getElementById("study-search");
+const studyCountEl = document.getElementById("study-count");
+
+studyCatSelect.innerHTML = MAP_CATEGORIES
+  .map(cat => `<option value="${cat.key}">${cat.label}（${highwaysInCategory(cat).length}本）</option>`)
+  .join("");
+try {
+  const saved = localStorage.getItem(STUDY_CAT_KEY) || "";
+  if (MAP_CATEGORIES.some(c => c.key === saved)) studyCatSelect.value = saved;
+} catch (e) { /* ignore */ }
+
+function studyPool() {
+  const cat = MAP_CATEGORIES.find(c => c.key === studyCatSelect.value) || MAP_CATEGORIES[0];
+  return HIGHWAYS.filter(h => matchesCategory(h, cat) && matchesQuery(h, studySearch.value));
+}
+
+function renderStudyList() {
+  const pool = studyPool();
+  studyList.innerHTML = "";
+  pool.forEach(h => {
+    const btn = document.createElement("button");
+    btn.textContent = h.number;
+    // 選択中の国道は、絞り込みを変えて再描画しても選択状態を保つ
+    if (studyHighway && studyHighway.id === h.id) btn.classList.add("active");
+    btn.addEventListener("click", () => selectStudyHighway(h, btn));
+    studyList.appendChild(btn);
+  });
+  if (!pool.length) {
+    const msg = document.createElement("p");
+    msg.className = "hwy-list-empty";
+    msg.textContent = "この条件に合う国道はありません";
+    studyList.appendChild(msg);
+  }
+  studyCountEl.textContent = `${pool.length} / ${HIGHWAYS.length}本`;
+}
+
+studyCatSelect.addEventListener("change", () => {
+  try { localStorage.setItem(STUDY_CAT_KEY, studyCatSelect.value); } catch (e) { /* ignore */ }
+  renderStudyList();
 });
+studySearch.addEventListener("input", renderStudyList);
+renderStudyList();
 
 /* 学習モードの情報欄とクイズの結果で共通に使う、国道の補足情報。
    通過都道府県は1県で完結する国道(北海道・湘南など)でも自然に読めるようにしている。 */
@@ -657,7 +786,7 @@ function routeInfoHtml(h) {
 
 function selectStudyHighway(h, btn) {
   studyHighway = h;
-  [...studyList.children].forEach(b => b.classList.remove("active"));
+  [...studyList.children].forEach(b => b.classList && b.classList.remove("active"));
   if (btn) btn.classList.add("active");
   studyInfo.innerHTML =
     `<strong>${h.number}</strong>：${h.startLabel} → ${h.endLabel}<br>` +
@@ -817,43 +946,6 @@ function diffStars(level) {
   const empty = "☆".repeat(3 - level);
   return ` <span class="diff-badge" title="${DIFF_LABEL[level]}">${filled}${empty}</span>`;
 }
-
-/* ---- マップ（出題範囲）フィルター ----
-   国道は一桁/二桁/三桁で見た目の印象がかなり違い（一桁は誰もが知る幹線、三桁は
-   マイナーな路線が多い）、地方でまとめると「関東の国道だけ」のように的を絞って
-   練習できる。都道府県→地方の対応表から、国道が通る地方を機械的に求めている。 */
-const PREF_REGION = {
-  "北海道": "北海道",
-  "青森県": "東北", "岩手県": "東北", "宮城県": "東北", "秋田県": "東北", "山形県": "東北", "福島県": "東北",
-  "茨城県": "関東", "栃木県": "関東", "群馬県": "関東", "埼玉県": "関東", "千葉県": "関東", "東京都": "関東", "神奈川県": "関東",
-  "新潟県": "中部", "富山県": "中部", "石川県": "中部", "福井県": "中部", "山梨県": "中部", "長野県": "中部", "岐阜県": "中部", "静岡県": "中部", "愛知県": "中部",
-  "三重県": "近畿", "滋賀県": "近畿", "京都府": "近畿", "大阪府": "近畿", "兵庫県": "近畿", "奈良県": "近畿", "和歌山県": "近畿",
-  "鳥取県": "中国", "島根県": "中国", "岡山県": "中国", "広島県": "中国", "山口県": "中国",
-  "徳島県": "四国", "香川県": "四国", "愛媛県": "四国", "高知県": "四国",
-  "福岡県": "九州", "佐賀県": "九州", "長崎県": "九州", "熊本県": "九州", "大分県": "九州", "宮崎県": "九州", "鹿児島県": "九州", "沖縄県": "九州",
-};
-function routeNumber(h) { return Number(h.number.match(/\d+/)[0]); }
-function highwayRegions(h) { return [...new Set(h.prefectures.map(p => PREF_REGION[p]))]; }
-
-// test: 国道→真偽。regions: いずれかの地方を通れば対象（1つの国道が複数の地方に
-// またがるのは普通のことなので、地方カテゴリはOR条件・重複ありで扱う）。
-const MAP_CATEGORIES = [
-  { key: "", label: "すべての国道", test: () => true },
-  { key: "digit1", label: "一桁国道", test: h => routeNumber(h) < 10 },
-  { key: "digit2", label: "二桁国道", test: h => routeNumber(h) >= 10 && routeNumber(h) < 100 },
-  { key: "digit3", label: "三桁国道", test: h => routeNumber(h) >= 100 },
-  { key: "region-hokkaido-tohoku", label: "北海道・東北地方", regions: ["北海道", "東北"] },
-  { key: "region-kanto", label: "関東地方", regions: ["関東"] },
-  { key: "region-chubu", label: "中部地方", regions: ["中部"] },
-  { key: "region-kinki", label: "近畿地方", regions: ["近畿"] },
-  { key: "region-chugoku-shikoku", label: "中国・四国地方", regions: ["中国", "四国"] },
-  { key: "region-kyushu", label: "九州・沖縄地方", regions: ["九州"] },
-];
-function matchesCategory(h, cat) {
-  if (cat.regions) return highwayRegions(h).some(r => cat.regions.includes(r));
-  return cat.test(h);
-}
-function highwaysInCategory(cat) { return HIGHWAYS.filter(h => matchesCategory(h, cat)); }
 
 const MAP_KEY = "kokudoQuizMapCategory.v1";
 const mapSelectEl = document.getElementById("quiz-map-select");
