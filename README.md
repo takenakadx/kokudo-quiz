@@ -29,13 +29,15 @@
 `highways-data.js` は `tools/gen_highways_data.py` が生成するため直接編集しません。アプリ本体（`index.html`）は `HIGHWAYS` 配列を読むだけなので、国道を増やしてもアプリのコード変更は不要です。
 
 ### 国道を追加・修正する手順
-1. `data-raw/README.md` の手順で、Overpassからその国道の生データ（GeoJSON）を取得して `data-raw/◯◯.geojson` に置く
+1. `python3 tools/fetch_raw.py 〈番号〉` で生データ（GeoJSON）を取得する（番号を省略すると未取得の全路線。詳しくは [`data-raw/README.md`](data-raw/README.md)）
 2. `tools/process_routes.py` の `CHECKPOINTS` に、その国道が通る主要都市の座標を**通る順に**追記する
 3. `python3 tools/process_routes.py` を実行する（`tools/processed/◯◯.json` が生成され、品質指標が表示される）
 4. `tools/gen_highways_data.py` の `META` に表示名・通過都道府県・難易度・豆知識を追記し、実行して `highways-data.js` を再生成する
 
 ### なぜ「経由都市」を人手で与えるのか
 Overpassから取得できる生データは、その国道を構成する道路の実際の座標ではありますが、**順序も向きもバラバラな断片の集まり**です。単純に「起点から近い断片を順につなぐ」方式では、交差点や並走路で分岐を取り違えて経路が迷子になります。そこで各国道が通る主要都市を「経由地」として人手で与え、**経由地間の短い区間ごとに断片を並び替える**ことで、道を取り違えてもその区間内に影響が収まるようにしています（`tools/process_routes.py` の `CHECKPOINTS` と `walk_leg`）。経由地の座標は大まかでよく、実データ上の最も近い点に自動でスナップされます。
+
+取得スクリプトのテストは `python3 tools/tests/test_fetch_raw.py` のように単体で実行できます（ネットワークにはつながず、既存の生データだけで検証します）。
 
 `process_routes.py` は各ルートについて次の品質指標を出力します。`maxjump` が大きい場合は、その付近で生データが欠けているか、経由地が実際の道から離れた場所を指しています。
 
