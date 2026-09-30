@@ -381,9 +381,9 @@
     </p>
     <div class="stats">
       <div class="stat total"><div class="n" id="statAll">459</div><div class="l">国道 総数</div></div>
-      <div class="stat done"><div class="n" id="statDone">35</div><div class="l">実装済み</div></div>
-      <div class="stat p2"><div class="n" id="statPrep">10</div><div class="l">準備済み（データ待ち）</div></div>
-      <div class="stat p3"><div class="n" id="statTodo">414</div><div class="l">未着手</div></div>
+      <div class="stat done"><div class="n" id="statDone">48</div><div class="l">実装済み</div></div>
+      <div class="stat p2"><div class="n" id="statPrep">1</div><div class="l">準備済み（データ待ち）</div></div>
+      <div class="stat p3"><div class="n" id="statTodo">410</div><div class="l">未着手</div></div>
     </div>
   </header>
 
@@ -455,6 +455,19 @@ const ROWS = [
   { status: "done", num: "22", name: "国道22号", start: "名古屋", end: "岐阜", note: "名岐バイパス。中部圏の主要幹線。", src: "osm" },
   { status: "done", num: "23", name: "国道23号", start: "豊橋", end: "伊勢", note: "名豊道路・名四国道を経て伊勢神宮へ。<span class=\"warn\">起点は名古屋ではなく豊橋</span>。", src: "osm" },
   { status: "done", num: "25", name: "国道25号", start: "四日市", end: "大阪", note: "名阪国道。<span class=\"warn\">起点の名古屋〜四日市は1号との重複区間</span>。", src: "osm" },
+  { status: "done", num: "13", name: "国道13号", start: "福島", end: "秋田", note: "奥羽山脈の西側を縦断。米沢・山形・新庄・横手を経由。", src: "osm" },
+  { status: "done", num: "18", name: "国道18号", start: "高崎", end: "上越", note: "中山道・北国街道筋。<span class=\"warn\">碓氷峠</span>で上州から信州へ。", src: "osm" },
+  { status: "done", num: "21", name: "国道21号", start: "瑞浪", end: "米原", note: "中山道にほぼ沿う。大垣から<span class=\"warn\">関ケ原</span>を越えて近江へ。", src: "osm" },
+  { status: "done", num: "24", name: "国道24号", start: "京都", end: "和歌山", note: "奈良盆地を南北に貫き、五條から紀の川沿いを下る。", src: "osm" },
+  { status: "done", num: "26", name: "国道26号", start: "大阪", end: "和歌山", note: "大阪湾東岸を堺・岸和田と南下。24号との対比。", src: "osm" },
+  { status: "done", num: "27", name: "国道27号", start: "敦賀", end: "京丹波", note: "若狭湾沿いに小浜・舞鶴へ。丹波で9号に合流して終わる。", src: "osm" },
+  { status: "done", num: "28", name: "国道28号", start: "神戸", end: "徳島", note: "淡路島を縦断。<span class=\"warn\">明石海峡・鳴門海峡は海上区間</span>（生データにも航路が入っている）。", src: "osm" },
+  { status: "done", num: "29", name: "国道29号", start: "姫路", end: "鳥取", note: "<span class=\"warn\">戸倉峠</span>を越えて播磨から因幡へ。<span class=\"warn\">生データは姫路市街を含まず市北部から</span>。", src: "osm" },
+  { status: "done", num: "30", name: "国道30号", start: "岡山", end: "高松", note: "玉野市宇野まで南下し<span class=\"warn\">宇高航路（海上区間）</span>で高松へ。", src: "osm" },
+  { status: "done", num: "31", name: "国道31号", start: "海田", end: "呉", note: "広島県内で完結する約19kmの短い国道。広島湾沿いに呉へ。", src: "osm" },
+  { status: "done", num: "32", name: "国道32号", start: "高松", end: "高知", note: "猪ノ鼻峠を越え、吉野川沿いに<span class=\"warn\">大歩危</span>を経て高知へ。", src: "osm" },
+  { status: "done", num: "33", name: "国道33号", start: "高知", end: "松山", note: "仁淀川沿いに遡り、三坂峠を越えて松山へ下る。", src: "osm" },
+  { status: "done", num: "34", name: "国道34号", start: "鳥栖", end: "長崎", note: "長崎街道筋。武雄・嬉野を経て大村湾沿いに長崎へ。", src: "osm" },
   { status: "done", num: "41", name: "国道41号", start: "名古屋", end: "富山", note: "飛騨街道。下呂・高山を経て中部を縦断。", src: "osm" },
   { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。", src: "osm" },
   { status: "done", num: "43", name: "国道43号", start: "大阪", end: "神戸", note: "阪神国道。片側5車線もある幅の広い幹線。", src: "osm" },
@@ -471,15 +484,6 @@ const ROWS = [
   { status: "done", num: "439", name: "国道439号", start: "徳島", end: "四万十", note: "<span class=\"warn\">「酷道」</span>として全国的に有名。剣山周辺の山間部を抜ける。", src: "osm" },
 
   // 候補（経由都市・補足情報は用意済み。生データの取得待ち）
-  { status: "p2", num: "13", name: "国道13号", start: "福島", end: "秋田", note: "奥羽山脈の西側を縦断。米沢・山形・新庄・横手を経由。生データ未取得。" },
-  { status: "p2", num: "18", name: "国道18号", start: "高崎", end: "上越", note: "中山道・北国街道筋。<span class=\"warn\">碓氷峠</span>で上州から信州へ。生データ未取得。" },
-  { status: "p2", num: "21", name: "国道21号", start: "瑞浪", end: "米原", note: "中山道にほぼ沿う。大垣から<span class=\"warn\">関ケ原</span>を越えて近江へ。生データ未取得。" },
-  { status: "p2", num: "24", name: "国道24号", start: "京都", end: "和歌山", note: "奈良盆地を南北に貫き、五條から紀の川沿いを下る。生データ未取得。" },
-  { status: "p2", num: "26", name: "国道26号", start: "大阪", end: "和歌山", note: "大阪湾東岸を堺・岸和田と南下。24号との対比。生データ未取得。" },
-  { status: "p2", num: "27", name: "国道27号", start: "敦賀", end: "京丹波", note: "若狭湾沿いに小浜・舞鶴へ。丹波で9号に合流して終わる。生データ未取得。" },
-  { status: "p2", num: "28", name: "国道28号", start: "神戸", end: "徳島", note: "淡路島を縦断。<span class=\"warn\">明石海峡・鳴門海峡は海上区間</span>。生データ未取得。" },
-  { status: "p2", num: "29", name: "国道29号", start: "姫路", end: "鳥取", note: "<span class=\"warn\">戸倉峠</span>を越えて播磨から因幡へ。中国山地を横断。生データ未取得。" },
-  { status: "p2", num: "30", name: "国道30号", start: "岡山", end: "高松", note: "玉野市宇野まで南下し<span class=\"warn\">宇高航路(海上区間)</span>で高松へ。生データ未取得。" },
   { status: "p3", num: "317", name: "国道317号", start: "尾道", end: "今治", note: "しまなみ海道。瀬戸内海を橋で渡る超有名ルート。生データ未取得。" }
 ];
 
