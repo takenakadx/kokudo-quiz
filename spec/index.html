@@ -381,9 +381,9 @@
     </p>
     <div class="stats">
       <div class="stat total"><div class="n" id="statAll">459</div><div class="l">国道 総数</div></div>
-      <div class="stat done"><div class="n" id="statDone">48</div><div class="l">実装済み</div></div>
+      <div class="stat done"><div class="n" id="statDone">68</div><div class="l">実装済み</div></div>
       <div class="stat p2"><div class="n" id="statPrep">1</div><div class="l">準備済み（データ待ち）</div></div>
-      <div class="stat p3"><div class="n" id="statTodo">410</div><div class="l">未着手</div></div>
+      <div class="stat p3"><div class="n" id="statTodo">390</div><div class="l">未着手</div></div>
     </div>
   </header>
 
@@ -468,9 +468,29 @@ const ROWS = [
   { status: "done", num: "32", name: "国道32号", start: "高松", end: "高知", note: "猪ノ鼻峠を越え、吉野川沿いに<span class=\"warn\">大歩危</span>を経て高知へ。", src: "osm" },
   { status: "done", num: "33", name: "国道33号", start: "高知", end: "松山", note: "仁淀川沿いに遡り、三坂峠を越えて松山へ下る。", src: "osm" },
   { status: "done", num: "34", name: "国道34号", start: "鳥栖", end: "長崎", note: "長崎街道筋。武雄・嬉野を経て大村湾沿いに長崎へ。", src: "osm" },
+  { status: "done", num: "35", name: "国道35号", start: "佐世保", end: "武雄", note: "佐世保から早岐・有田を経て武雄へ。県境をまたぐ約35kmの短い国道。", src: "osm" },
+  { status: "done", num: "36", name: "国道36号", start: "札幌", end: "室蘭", note: "札幌と道南を結ぶ大動脈。千歳・苫小牧を経て太平洋沿いに室蘭へ。", src: "osm" },
+  { status: "done", num: "37", name: "国道37号", start: "長万部", end: "室蘭", note: "<span class=\"warn\">内浦湾(噴火湾)</span>の北岸を回り、洞爺湖・伊達を経て室蘭へ。", src: "osm" },
+  { status: "done", num: "38", name: "国道38号", start: "滝川", end: "釧路", note: "富良野から<span class=\"warn\">狩勝峠</span>を越えて十勝平野へ下り、帯広を経て釧路へ。", src: "osm" },
+  { status: "done", num: "39", name: "国道39号", start: "旭川", end: "網走", note: "<span class=\"warn\">石北峠</span>で大雪山系を越え、北見・美幌を経てオホーツク海側へ。", src: "osm" },
+  { status: "done", num: "40", name: "国道40号", start: "旭川", end: "稚内", note: "天塩川に沿って北上し、日本最北の都市・稚内まで道北を縦断する。", src: "osm" },
   { status: "done", num: "41", name: "国道41号", start: "名古屋", end: "富山", note: "飛騨街道。下呂・高山を経て中部を縦断。", src: "osm" },
   { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。", src: "osm" },
   { status: "done", num: "43", name: "国道43号", start: "大阪", end: "神戸", note: "阪神国道。片側5車線もある幅の広い幹線。", src: "osm" },
+  { status: "done", num: "44", name: "国道44号", start: "釧路", end: "根室", note: "厚岸・浜中を経て、日本最東端の都市・根室へ至る。", src: "osm" },
+  { status: "done", num: "45", name: "国道45号", start: "仙台", end: "青森", note: "<span class=\"warn\">三陸海岸</span>沿いに東北の太平洋側を縦断する。4号と対をなす道。", src: "osm" },
+  { status: "done", num: "46", name: "国道46号", start: "盛岡", end: "秋田", note: "<span class=\"warn\">仙岩峠</span>で奥羽山脈を越え、田沢湖・角館を経て秋田へ。", src: "osm" },
+  { status: "done", num: "47", name: "国道47号", start: "仙台", end: "酒田", note: "鳴子温泉から最上町へ抜け、新庄から最上川沿いに酒田へ下る。", src: "osm" },
+  { status: "done", num: "48", name: "国道48号", start: "仙台", end: "山形", note: "作並・<span class=\"warn\">関山峠</span>を越えて仙台と山形を最短で結ぶ関山街道。", src: "osm" },
+  { status: "done", num: "49", name: "国道49号", start: "いわき", end: "新潟", note: "郡山・会津若松を経て阿賀野川沿いに下り、太平洋側と日本海側を結ぶ。", src: "osm" },
+  { status: "done", num: "50", name: "国道50号", start: "前橋", end: "水戸", note: "東京を通らず北関東を東西に貫く。<span class=\"warn\">生データに往復する断片があり、経路組み立てを修正</span>。", src: "osm" },
+  { status: "done", num: "51", name: "国道51号", start: "千葉", end: "水戸", note: "成田・佐原を経て利根川を渡り、霞ヶ浦の東側を回って水戸へ。", src: "osm" },
+  { status: "done", num: "52", name: "国道52号", start: "静岡(清水)", end: "甲斐", note: "富士川沿いに身延を経て甲府盆地へ。駿河と甲斐を結ぶ旧・身延道。", src: "osm" },
+  { status: "done", num: "53", name: "国道53号", start: "岡山", end: "鳥取", note: "津山から<span class=\"warn\">黒尾峠</span>を越えて智頭へ。中国地方を南北に横断。", src: "osm" },
+  { status: "done", num: "54", name: "国道54号", start: "広島", end: "松江", note: "三次から<span class=\"warn\">赤名峠</span>を越えて出雲へ。瀬戸内側と山陰側を結ぶ。", src: "osm" },
+  { status: "done", num: "55", name: "国道55号", start: "徳島", end: "高知", note: "四国の太平洋側を回り<span class=\"warn\">室戸岬</span>を経て高知へ。56号と合わせて四国一周。", src: "osm" },
+  { status: "done", num: "56", name: "国道56号", start: "高知", end: "松山", note: "四万十・宿毛から豊後水道沿いを北上し、宇和島・大洲を経て松山へ。", src: "osm" },
+  { status: "done", num: "57", name: "国道57号", start: "大分", end: "長崎", note: "阿蘇の外輪山を越えて熊本へ。<span class=\"warn\">熊本〜島原はフェリーの海上区間</span>。", src: "osm" },
   { status: "done", num: "58", name: "国道58号", start: "鹿児島", end: "那覇", note: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。", src: "osm" },
   { status: "done", num: "134", name: "国道134号", start: "横須賀", end: "大磯", note: "湘南海岸線。鎌倉・江ノ島・茅ヶ崎を通る。", src: "osm" },
   { status: "done", num: "135", name: "国道135号", start: "熱海", end: "下田", note: "伊豆半島東岸の観光道路。", src: "osm" },
