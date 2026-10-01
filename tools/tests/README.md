@@ -17,6 +17,7 @@ Playwright と Chromium の場所は `harness.js` が解決します。見つか
 | `test_fetch_raw.py` | 取得スクリプトの番号解釈・欠番の扱い・クエリの正規表現・Overpass JSONの変換 |
 | `test_stitch.py` | 細切れにしたwayをつなぎ直すと元のサブラインに戻る（峠のヘアピン対策込み） |
 | `test_format_equivalence.py` | `fetch_raw.py` の出力形式でも復元結果が現行と完全一致する |
+| `test_difficulty.py` | 難易度がどの段階にも実用的な数で割れているか、主要幹線が★1か、豆知識が効いているか |
 | `smoke.js` | 全路線のデータ健全性、学習モードの表示、クイズを通しで6問、フィルターの選択肢 |
 | `ux.js` | 複数ストローク、2本指=pan・1本指=描画、中ボタンpan、ヒント、採点 |
 | `fit.js` | 6種類の画面サイズで1画面に収まる（スクロールせずボタンに届く） |

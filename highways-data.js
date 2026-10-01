@@ -294,7 +294,7 @@ const HIGHWAYS = [
     startLabel: "大阪",
     endLabel: "北九州(門司)",
     prefectures: ["大阪府", "兵庫県", "岡山県", "広島県", "山口県", "福岡県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 528,
     fact: "大阪から瀬戸内海沿いを西へ進み、関門海峡を越えて北九州まで至る。",
     path: [
@@ -553,7 +553,7 @@ const HIGHWAYS = [
     startLabel: "北九州(門司)",
     endLabel: "鹿児島",
     prefectures: ["福岡県", "佐賀県", "熊本県", "鹿児島県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 389,
     fact: "国道2号の終点から続き、福岡・熊本を経て九州を縦断する大動脈。",
     path: [
@@ -1126,7 +1126,7 @@ const HIGHWAYS = [
     startLabel: "函館",
     endLabel: "札幌",
     prefectures: ["北海道"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 282,
     fact: "函館から長万部・倶知安・小樽を経て札幌に至る、北海道の主要国道。",
     path: [
@@ -1383,7 +1383,7 @@ const HIGHWAYS = [
     startLabel: "東京",
     endLabel: "仙台",
     prefectures: ["東京都", "千葉県", "茨城県", "福島県", "宮城県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 347,
     fact: "東京から水戸・いわきなど太平洋沿いを北上して仙台に至る。",
     path: [
@@ -1650,7 +1650,7 @@ const HIGHWAYS = [
     startLabel: "新潟",
     endLabel: "青森",
     prefectures: ["新潟県", "山形県", "秋田県", "青森県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 470,
     fact: "日本海沿いに新潟から酒田・秋田・弘前を経て青森まで北上する。",
     path: [
@@ -1875,7 +1875,7 @@ const HIGHWAYS = [
     startLabel: "新潟",
     endLabel: "京都",
     prefectures: ["新潟県", "富山県", "石川県", "福井県", "滋賀県", "京都府"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 576,
     fact: "日本海側の新潟・富山・金沢・福井を結び京都へ至る北陸の大動脈。",
     path: [
@@ -2120,7 +2120,7 @@ const HIGHWAYS = [
     startLabel: "京都",
     endLabel: "下関",
     prefectures: ["京都府", "兵庫県", "鳥取県", "島根県", "山口県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 634,
     fact: "山陰地方(日本海側)を横断して京都から下関まで結ぶ。",
     path: [
@@ -2371,7 +2371,7 @@ const HIGHWAYS = [
     startLabel: "北九州(小倉)",
     endLabel: "鹿児島",
     prefectures: ["福岡県", "大分県", "宮崎県", "鹿児島県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 446,
     fact: "3号とは反対に、東九州側(別府・大分・宮崎)を回って鹿児島へ至る。",
     path: [
@@ -2638,7 +2638,7 @@ const HIGHWAYS = [
     startLabel: "徳島",
     endLabel: "松山",
     prefectures: ["徳島県", "香川県", "愛媛県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 230,
     fact: "徳島から高松・西条を経て松山へ、瀬戸内海側の四国を横断する。",
     path: [
@@ -2929,7 +2929,7 @@ const HIGHWAYS = [
     startLabel: "福島",
     endLabel: "秋田",
     prefectures: ["福島県", "山形県", "秋田県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 301,
     fact: "奥羽山脈の西側を縦断し、米沢・山形・新庄・横手を経て秋田へ至る。",
     path: [
@@ -3257,7 +3257,7 @@ const HIGHWAYS = [
     startLabel: "横浜",
     endLabel: "横浜(一周)",
     prefectures: ["神奈川県", "東京都", "埼玉県", "千葉県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 265,
     fact: "東京都心を通らず、横浜・八王子・さいたま・千葉をぐるっと環状に結ぶ首都圏の大動脈。",
     path: [
@@ -3477,7 +3477,7 @@ const HIGHWAYS = [
     startLabel: "東京",
     endLabel: "新潟",
     prefectures: ["東京都", "埼玉県", "群馬県", "新潟県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 350,
     fact: "中山道・三国街道にあたり、東京から高崎・三国峠を越えて新潟へ至る。",
     path: [
@@ -3713,7 +3713,7 @@ const HIGHWAYS = [
     startLabel: "高崎",
     endLabel: "上越",
     prefectures: ["群馬県", "長野県", "新潟県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 191,
     fact: "中山道・北国街道筋。碓氷峠で上州から信州へ入り、長野を経て日本海側へ抜ける。",
     path: [
@@ -3898,7 +3898,7 @@ const HIGHWAYS = [
     startLabel: "名古屋",
     endLabel: "長野",
     prefectures: ["愛知県", "岐阜県", "長野県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 255,
     fact: "中山道の木曽路を通り、名古屋から塩尻・松本を経て長野へ至る。",
     path: [
@@ -4130,7 +4130,7 @@ const HIGHWAYS = [
     startLabel: "東京",
     endLabel: "塩尻",
     prefectures: ["東京都", "神奈川県", "山梨県", "長野県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 216,
     fact: "旧甲州街道にあたり、東京から山梨・諏訪を経て塩尻で中山道と合流する。",
     path: [
@@ -4321,7 +4321,7 @@ const HIGHWAYS = [
     startLabel: "瑞浪",
     endLabel: "米原",
     prefectures: ["岐阜県", "滋賀県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 100,
     fact: "中山道にほぼ沿う短い国道。大垣から関ケ原を越えて近江へ入る。",
     path: [
@@ -4449,7 +4449,7 @@ const HIGHWAYS = [
     startLabel: "豊橋",
     endLabel: "伊勢",
     prefectures: ["愛知県", "三重県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 168,
     fact: "豊橋から名豊道路・名四国道を経て四日市・津・松阪を通り、伊勢神宮のある伊勢市へ至る。",
     path: [
@@ -4573,7 +4573,7 @@ const HIGHWAYS = [
     startLabel: "京都",
     endLabel: "和歌山",
     prefectures: ["京都府", "奈良県", "和歌山県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 136,
     fact: "奈良盆地を南北に貫き、五條から紀の川沿いを下って和歌山へ至る。",
     path: [
@@ -4693,7 +4693,7 @@ const HIGHWAYS = [
     startLabel: "四日市",
     endLabel: "大阪",
     prefectures: ["三重県", "奈良県", "大阪府"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 149,
     fact: "名阪国道。四日市から亀山・天理を経て大阪へ至る(起点の名古屋〜四日市は国道1号との重複区間)。",
     path: [
@@ -4832,7 +4832,7 @@ const HIGHWAYS = [
     startLabel: "大阪",
     endLabel: "和歌山",
     prefectures: ["大阪府", "和歌山県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 70,
     fact: "大阪湾の東岸を堺・岸和田と南下する。24号とは違い海沿いを通る和歌山への道。",
     path: [
@@ -4896,7 +4896,7 @@ const HIGHWAYS = [
     startLabel: "敦賀",
     endLabel: "京丹波",
     prefectures: ["福井県", "京都府"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 134,
     fact: "若狭湾に沿って敦賀から小浜・舞鶴へ。丹波で国道9号に合流して終わる。",
     path: [
@@ -5008,7 +5008,7 @@ const HIGHWAYS = [
     startLabel: "神戸",
     endLabel: "徳島",
     prefectures: ["兵庫県", "徳島県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 105,
     fact: "淡路島を縦断して本州と四国を結ぶ。明石海峡と鳴門海峡は海上区間。",
     path: [
@@ -5102,7 +5102,7 @@ const HIGHWAYS = [
     startLabel: "姫路",
     endLabel: "鳥取",
     prefectures: ["兵庫県", "鳥取県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 108,
     fact: "戸倉峠を越えて播磨から因幡へ抜ける、中国山地を南北に横断する道。",
     path: [
@@ -5214,7 +5214,7 @@ const HIGHWAYS = [
     startLabel: "岡山",
     endLabel: "高松",
     prefectures: ["岡山県", "香川県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 43,
     fact: "岡山から玉野市宇野まで南下し、宇高航路(海上区間)で高松へ渡る。",
     path: [
@@ -5251,7 +5251,7 @@ const HIGHWAYS = [
     startLabel: "海田",
     endLabel: "呉",
     prefectures: ["広島県"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 19,
     fact: "広島県内だけで完結する約19kmの短い国道。海田町から広島湾沿いに呉へ至る。",
     path: [
@@ -5289,7 +5289,7 @@ const HIGHWAYS = [
     startLabel: "高松",
     endLabel: "高知",
     prefectures: ["香川県", "徳島県", "高知県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 136,
     fact: "讃岐から猪ノ鼻峠を越え、吉野川沿いに大歩危を経て高知へ。四国を縦断する。",
     path: [
@@ -5427,7 +5427,7 @@ const HIGHWAYS = [
     startLabel: "高知",
     endLabel: "松山",
     prefectures: ["高知県", "愛媛県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 116,
     fact: "仁淀川沿いに遡り、三坂峠を越えて松山へ下る。四国山地を斜めに横断する。",
     path: [
@@ -5546,7 +5546,7 @@ const HIGHWAYS = [
     startLabel: "鳥栖",
     endLabel: "長崎",
     prefectures: ["佐賀県", "長崎県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 132,
     fact: "長崎街道筋。佐賀・武雄・嬉野を経て、大村湾沿いに長崎へ至る。",
     path: [
@@ -5683,7 +5683,7 @@ const HIGHWAYS = [
     startLabel: "佐世保",
     endLabel: "武雄",
     prefectures: ["長崎県", "佐賀県"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 35,
     fact: "佐世保から早岐・有田を経て武雄へ至る、県境をまたぐ約30kmの短い国道。",
     path: [
@@ -5731,7 +5731,7 @@ const HIGHWAYS = [
     startLabel: "札幌",
     endLabel: "室蘭",
     prefectures: ["北海道"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 133,
     fact: "札幌と道南を結ぶ大動脈。千歳・苫小牧を経て太平洋沿いに室蘭へ至る。",
     path: [
@@ -5826,7 +5826,7 @@ const HIGHWAYS = [
     startLabel: "長万部",
     endLabel: "室蘭",
     prefectures: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 77,
     fact: "内浦湾(噴火湾)の北岸を回り、洞爺湖・伊達を経て室蘭へ。5号と36号をつなぐ。",
     path: [
@@ -5907,7 +5907,7 @@ const HIGHWAYS = [
     startLabel: "滝川",
     endLabel: "釧路",
     prefectures: ["北海道"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 295,
     fact: "富良野から狩勝峠を越えて十勝平野へ下り、帯広を経て釧路まで道央と道東を結ぶ。",
     path: [
@@ -6143,7 +6143,7 @@ const HIGHWAYS = [
     startLabel: "旭川",
     endLabel: "網走",
     prefectures: ["北海道"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 216,
     fact: "石北峠で大雪山系を越え、北見・美幌を経てオホーツク海側の網走へ至る。",
     path: [
@@ -6323,7 +6323,7 @@ const HIGHWAYS = [
     startLabel: "旭川",
     endLabel: "稚内",
     prefectures: ["北海道"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 250,
     fact: "天塩川に沿って北上し、日本最北の都市・稚内まで道北を縦断する。",
     path: [
@@ -6511,7 +6511,7 @@ const HIGHWAYS = [
     startLabel: "名古屋",
     endLabel: "富山",
     prefectures: ["愛知県", "岐阜県", "富山県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 239,
     fact: "飛騨街道。名古屋から下呂・高山を経て富山へ、中部地方を縦断する。",
     path: [
@@ -6716,7 +6716,7 @@ const HIGHWAYS = [
     startLabel: "和歌山",
     endLabel: "松阪",
     prefectures: ["和歌山県", "三重県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 352,
     fact: "紀伊半島の海沿いをぐるっと回り、和歌山から新宮を経て松阪へ至る。",
     path: [
@@ -7001,7 +7001,7 @@ const HIGHWAYS = [
     startLabel: "釧路",
     endLabel: "根室",
     prefectures: ["北海道"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 121,
     fact: "釧路湿原の南から厚岸・浜中を経て、日本最東端の都市・根室へ至る。",
     path: [
@@ -7129,7 +7129,7 @@ const HIGHWAYS = [
     startLabel: "仙台",
     endLabel: "青森",
     prefectures: ["宮城県", "岩手県", "青森県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 506,
     fact: "三陸海岸に沿って東北の太平洋側を縦断する。4号と対をなす道。",
     path: [
@@ -7353,7 +7353,7 @@ const HIGHWAYS = [
     startLabel: "盛岡",
     endLabel: "秋田",
     prefectures: ["岩手県", "秋田県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 116,
     fact: "仙岩峠で奥羽山脈を越え、田沢湖・角館を経て秋田へ。東北を横断する。",
     path: [
@@ -7459,7 +7459,7 @@ const HIGHWAYS = [
     startLabel: "仙台",
     endLabel: "酒田",
     prefectures: ["宮城県", "山形県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 169,
     fact: "鳴子温泉から最上町へ抜け、新庄から最上川沿いに日本海側の酒田へ下る。",
     path: [
@@ -7591,7 +7591,7 @@ const HIGHWAYS = [
     startLabel: "仙台",
     endLabel: "山形",
     prefectures: ["宮城県", "山形県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 68,
     fact: "作並・関山峠を越えて仙台と山形を最短で結ぶ、通称・関山街道。",
     path: [
@@ -7665,7 +7665,7 @@ const HIGHWAYS = [
     startLabel: "いわき",
     endLabel: "新潟",
     prefectures: ["福島県", "新潟県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 234,
     fact: "郡山・会津若松を経て阿賀野川沿いに下り、太平洋側と日本海側を結ぶ。",
     path: [
@@ -7861,7 +7861,7 @@ const HIGHWAYS = [
     startLabel: "前橋",
     endLabel: "水戸",
     prefectures: ["群馬県", "栃木県", "茨城県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 144,
     fact: "東京を通らずに北関東を東西に貫く。桐生・足利・佐野と両毛地域を結ぶ。",
     path: [
@@ -7980,7 +7980,7 @@ const HIGHWAYS = [
     startLabel: "千葉",
     endLabel: "水戸",
     prefectures: ["千葉県", "茨城県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 124,
     fact: "成田・佐原を経て利根川を渡り、霞ヶ浦の東側を回って水戸へ至る。",
     path: [
@@ -8100,7 +8100,7 @@ const HIGHWAYS = [
     startLabel: "静岡(清水)",
     endLabel: "甲斐",
     prefectures: ["静岡県", "山梨県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 89,
     fact: "富士川沿いに身延を経て甲府盆地へ。駿河と甲斐を結ぶ旧・身延道。",
     path: [
@@ -8192,7 +8192,7 @@ const HIGHWAYS = [
     startLabel: "岡山",
     endLabel: "鳥取",
     prefectures: ["岡山県", "鳥取県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 135,
     fact: "津山から黒尾峠を越えて智頭へ。中国地方を南北に横断する。",
     path: [
@@ -8322,7 +8322,7 @@ const HIGHWAYS = [
     startLabel: "広島",
     endLabel: "松江",
     prefectures: ["広島県", "島根県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 166,
     fact: "三次から赤名峠を越えて出雲へ。瀬戸内側と山陰側を最短で結ぶ。",
     path: [
@@ -8465,7 +8465,7 @@ const HIGHWAYS = [
     startLabel: "徳島",
     endLabel: "高知",
     prefectures: ["徳島県", "高知県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 205,
     fact: "四国の太平洋側を回り、室戸岬を経て高知へ至る。56号と合わせて四国を一周する。",
     path: [
@@ -8650,7 +8650,7 @@ const HIGHWAYS = [
     startLabel: "高知",
     endLabel: "松山",
     prefectures: ["高知県", "愛媛県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 293,
     fact: "四万十・宿毛から豊後水道沿いを北上し、宇和島・大洲を経て松山へ至る長大路線。",
     path: [
@@ -8950,7 +8950,7 @@ const HIGHWAYS = [
     startLabel: "大分",
     endLabel: "長崎",
     prefectures: ["大分県", "熊本県", "長崎県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 275,
     fact: "阿蘇の外輪山を越えて熊本へ。熊本〜島原はフェリーの海上区間になっている。",
     path: [
@@ -9184,7 +9184,7 @@ const HIGHWAYS = [
     startLabel: "鹿児島",
     endLabel: "那覇",
     prefectures: ["鹿児島県", "沖縄県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 800,
     fact: "日本一長い国道。大半が海上区間(フェリー)で、種子島・奄美群島を経て沖縄・那覇まで続く。",
     path: [
@@ -9750,7 +9750,7 @@ const HIGHWAYS = [
     endLabel: "大館",
     prefectures: ["青森県", "秋田県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 130,
     path: [
       [40.27539, 140.50694],
@@ -10179,7 +10179,7 @@ const HIGHWAYS = [
     endLabel: "盛岡",
     prefectures: ["岩手県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 90,
     path: [
       [39.70222, 141.15426],
@@ -10467,7 +10467,7 @@ const HIGHWAYS = [
     endLabel: "由利本荘",
     prefectures: ["宮城県", "秋田県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 184,
     path: [
       [39.38641, 140.03200],
@@ -10629,7 +10629,7 @@ const HIGHWAYS = [
     endLabel: "酒田",
     prefectures: ["山形県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 144,
     path: [
       [38.95286, 139.83687],
@@ -10956,7 +10956,7 @@ const HIGHWAYS = [
     endLabel: "浪江",
     prefectures: ["福島県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 68,
     path: [
       [37.49545, 141.00171],
@@ -11153,7 +11153,7 @@ const HIGHWAYS = [
     endLabel: "新潟",
     prefectures: ["新潟県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 86,
     path: [
       [37.92159, 139.04684],
@@ -11226,7 +11226,7 @@ const HIGHWAYS = [
     endLabel: "小千谷",
     prefectures: ["長野県", "新潟県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 123,
     path: [
       [37.33158, 138.81337],
@@ -11351,7 +11351,7 @@ const HIGHWAYS = [
     endLabel: "会津若松",
     prefectures: ["茨城県", "福島県"],
     regions: ["東北", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 196,
     path: [
       [37.51794, 139.93314],
@@ -11526,7 +11526,7 @@ const HIGHWAYS = [
     endLabel: "宇都宮",
     prefectures: ["栃木県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 39,
     path: [
       [36.53667, 139.88082],
@@ -11842,7 +11842,7 @@ const HIGHWAYS = [
     endLabel: "豊島",
     prefectures: ["栃木県", "東京都"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 158,
     path: [
       [36.75371, 139.60431],
@@ -11965,7 +11965,7 @@ const HIGHWAYS = [
     endLabel: "水戸",
     prefectures: ["栃木県", "茨城県"],
     regions: ["東北", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 69,
     path: [
       [36.39733, 140.44457],
@@ -12040,7 +12040,7 @@ const HIGHWAYS = [
     endLabel: "水戸",
     prefectures: ["千葉県", "茨城県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 87,
     path: [
       [36.37210, 140.47565],
@@ -12226,7 +12226,7 @@ const HIGHWAYS = [
     endLabel: "千葉",
     prefectures: ["千葉県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 82,
     path: [
       [35.64218, 140.11444],
@@ -12353,7 +12353,7 @@ const HIGHWAYS = [
     endLabel: "千葉",
     prefectures: ["千葉県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 132,
     path: [
       [35.61058, 140.12455],
@@ -12464,7 +12464,7 @@ const HIGHWAYS = [
     endLabel: "相模原",
     prefectures: ["神奈川県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 61,
     path: [
       [35.58607, 139.34461],
@@ -13126,7 +13126,7 @@ const HIGHWAYS = [
     endLabel: "上田",
     prefectures: ["山梨県", "長野県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 105,
     path: [
       [36.40765, 138.25445],
@@ -13634,7 +13634,7 @@ const HIGHWAYS = [
     endLabel: "浜松",
     prefectures: ["静岡県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 101,
     path: [
       [34.70825, 137.74546],
@@ -13824,7 +13824,7 @@ const HIGHWAYS = [
     endLabel: "浜松",
     prefectures: ["長野県", "静岡県"],
     regions: ["中部", "関東"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 246,
     path: [
       [34.72790, 137.78608],
@@ -14600,7 +14600,7 @@ const HIGHWAYS = [
     endLabel: "岐阜",
     prefectures: ["石川県", "岐阜県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 198,
     path: [
       [35.38823, 136.75456],
@@ -14792,7 +14792,7 @@ const HIGHWAYS = [
     startLabel: "福井",
     endLabel: "松本",
     prefectures: ["福井県", "岐阜県", "長野県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 250,
     fact: "福井から九頭竜湖・高山・安房峠を越えて松本へ至る山岳国道。上高地への入口。",
     path: [
@@ -14968,7 +14968,7 @@ const HIGHWAYS = [
     endLabel: "金沢",
     prefectures: ["石川県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 68,
     path: [
       [36.57208, 136.65585],
@@ -15084,7 +15084,7 @@ const HIGHWAYS = [
     endLabel: "大津",
     prefectures: ["福井県", "滋賀県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 98,
     path: [
       [35.08355, 135.88369],
@@ -15188,7 +15188,7 @@ const HIGHWAYS = [
     endLabel: "敦賀",
     prefectures: ["京都府", "福井県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 143,
     path: [
       [35.63337, 136.08053],
@@ -15342,7 +15342,7 @@ const HIGHWAYS = [
     endLabel: "津",
     prefectures: ["大阪府", "三重県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 113,
     path: [
       [34.71473, 136.50926],
@@ -15450,7 +15450,7 @@ const HIGHWAYS = [
     endLabel: "津",
     prefectures: ["大阪府", "三重県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 126,
     path: [
       [34.66598, 136.51912],
@@ -15899,7 +15899,7 @@ const HIGHWAYS = [
     endLabel: "新宮",
     prefectures: ["奈良県", "和歌山県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 179,
     path: [
       [33.71917, 135.98695],
@@ -16042,7 +16042,7 @@ const HIGHWAYS = [
     startLabel: "京都",
     endLabel: "神戸",
     prefectures: ["京都府", "大阪府", "兵庫県"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 65,
     fact: "西国街道。京都から高槻・西宮を経て神戸へ至る。",
     path: [
@@ -16173,7 +16173,7 @@ const HIGHWAYS = [
     startLabel: "大阪",
     endLabel: "舞鶴",
     prefectures: ["大阪府", "兵庫県", "京都府"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 160,
     fact: "大阪から宝塚・三田・福知山を経て舞鶴へ。渋滞の名所としても有名。",
     path: [
@@ -16333,7 +16333,7 @@ const HIGHWAYS = [
     endLabel: "岩美",
     prefectures: ["京都府", "鳥取県"],
     regions: ["中国", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 177,
     path: [
       [35.57298, 134.31554],
@@ -16519,7 +16519,7 @@ const HIGHWAYS = [
     endLabel: "湯梨浜",
     prefectures: ["兵庫県", "鳥取県"],
     regions: ["中国", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 154,
     path: [
       [35.49662, 133.87323],
@@ -16674,7 +16674,7 @@ const HIGHWAYS = [
     endLabel: "松江",
     prefectures: ["岡山県", "島根県"],
     regions: ["中国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 195,
     path: [
       [35.45896, 133.06071],
@@ -17188,7 +17188,7 @@ const HIGHWAYS = [
     endLabel: "尾道",
     prefectures: ["島根県", "広島県"],
     regions: ["中国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 166,
     path: [
       [34.40267, 133.18755],
@@ -18039,7 +18039,7 @@ const HIGHWAYS = [
     endLabel: "徳島",
     prefectures: ["愛媛県", "徳島県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 136,
     path: [
       [34.07164, 134.55814],
@@ -18182,7 +18182,7 @@ const HIGHWAYS = [
     endLabel: "海陽",
     prefectures: ["香川県", "徳島県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 153,
     path: [
       [33.60173, 134.35147],
@@ -18388,7 +18388,7 @@ const HIGHWAYS = [
     endLabel: "徳島",
     prefectures: ["高知県", "徳島県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 176,
     path: [
       [34.06655, 134.55703],
@@ -18580,7 +18580,7 @@ const HIGHWAYS = [
     endLabel: "大分",
     prefectures: ["高知県", "大分県"],
     regions: ["九州", "四国"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 253,
     path: [
       [33.23698, 131.60236],
@@ -18808,7 +18808,7 @@ const HIGHWAYS = [
     endLabel: "北九州",
     prefectures: ["福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 32,
     path: [
       [33.85813, 130.70035],
@@ -18856,7 +18856,7 @@ const HIGHWAYS = [
     endLabel: "筑紫野",
     prefectures: ["福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 60,
     path: [
       [33.45199, 130.54733],
@@ -18980,7 +18980,7 @@ const HIGHWAYS = [
     endLabel: "長崎",
     prefectures: ["福岡県", "長崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 196,
     path: [
       [32.74523, 129.87409],
@@ -19340,7 +19340,7 @@ const HIGHWAYS = [
     endLabel: "佐世保",
     prefectures: ["長崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 48,
     path: [
       [33.05476, 129.75939],
@@ -19382,7 +19382,7 @@ const HIGHWAYS = [
     endLabel: "時津",
     prefectures: ["佐賀県", "長崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 108,
     path: [
       [32.83068, 129.84743],
@@ -19498,7 +19498,7 @@ const HIGHWAYS = [
     endLabel: "佐賀",
     prefectures: ["熊本県", "佐賀県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 85,
     path: [
       [33.27203, 130.27104],
@@ -19626,7 +19626,7 @@ const HIGHWAYS = [
     endLabel: "大分",
     prefectures: ["福岡県", "大分県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 133,
     path: [
       [33.23698, 131.60236],
@@ -19745,7 +19745,7 @@ const HIGHWAYS = [
     endLabel: "北九州",
     prefectures: ["大分県", "福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 76,
     path: [
       [33.86579, 130.76167],
@@ -20108,7 +20108,7 @@ const HIGHWAYS = [
     endLabel: "延岡",
     prefectures: ["熊本県", "宮崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 144,
     path: [
       [32.58662, 131.67738],
@@ -20222,7 +20222,7 @@ const HIGHWAYS = [
     endLabel: "宮崎",
     prefectures: ["熊本県", "宮崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 200,
     path: [
       [31.97399, 131.43997],
@@ -20411,7 +20411,7 @@ const HIGHWAYS = [
     endLabel: "霧島",
     prefectures: ["宮崎県", "鹿児島県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 182,
     path: [
       [31.70639, 130.78665],
@@ -20842,7 +20842,7 @@ const HIGHWAYS = [
     endLabel: "鹿児島",
     prefectures: ["鹿児島県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 52,
     path: [
       [31.59355, 130.55266],
@@ -20904,7 +20904,7 @@ const HIGHWAYS = [
     endLabel: "鹿児島",
     prefectures: ["鹿児島県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 153,
     path: [
       [31.59355, 130.55266],
@@ -21278,7 +21278,7 @@ const HIGHWAYS = [
     endLabel: "江差",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 304,
     path: [
       [41.92061, 140.15147],
@@ -21537,7 +21537,7 @@ const HIGHWAYS = [
     endLabel: "せたな",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 200,
     path: [
       [42.41229, 139.88085],
@@ -21719,7 +21719,7 @@ const HIGHWAYS = [
     endLabel: "留萌",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 129,
     path: [
       [43.93454, 141.66437],
@@ -21822,7 +21822,7 @@ const HIGHWAYS = [
     endLabel: "留萌",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 186,
     path: [
       [43.93454, 141.66437],
@@ -22084,7 +22084,7 @@ const HIGHWAYS = [
     endLabel: "浦河",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 195,
     path: [
       [42.16243, 142.77480],
@@ -22352,7 +22352,7 @@ const HIGHWAYS = [
     endLabel: "浦河",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 260,
     path: [
       [42.16243, 142.77480],
@@ -23070,7 +23070,7 @@ const HIGHWAYS = [
     endLabel: "網走",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 149,
     path: [
       [44.01972, 144.26810],
@@ -23746,7 +23746,7 @@ const HIGHWAYS = [
     endLabel: "根室",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 153,
     path: [
       [43.22963, 145.25172],
@@ -24034,7 +24034,7 @@ const HIGHWAYS = [
     endLabel: "豊橋",
     prefectures: ["愛知県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 152,
     path: [
       [34.76786, 137.39051],
@@ -24159,7 +24159,7 @@ const HIGHWAYS = [
     endLabel: "岐阜",
     prefectures: ["愛知県", "岐阜県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 115,
     path: [
       [35.38823, 136.75456],
@@ -24278,7 +24278,7 @@ const HIGHWAYS = [
     endLabel: "金沢",
     prefectures: ["石川県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 177,
     path: [
       [37.45709, 137.24070],
@@ -24461,7 +24461,7 @@ const HIGHWAYS = [
     endLabel: "岡山",
     prefectures: ["兵庫県", "岡山県"],
     regions: ["中国", "近畿"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 144,
     path: [
       [34.65628, 133.92618],
@@ -24579,7 +24579,7 @@ const HIGHWAYS = [
     endLabel: "諫早",
     prefectures: ["長崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 143,
     path: [
       [32.84093, 130.02691],
@@ -24721,7 +24721,7 @@ const HIGHWAYS = [
     endLabel: "会津若松",
     prefectures: ["新潟県", "福島県"],
     regions: ["中部", "東北", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 199,
     path: [
       [37.49842, 139.92864],
@@ -25645,7 +25645,7 @@ const HIGHWAYS = [
     endLabel: "江津",
     prefectures: ["広島県", "島根県"],
     regions: ["中国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 114,
     path: [
       [35.01445, 132.23454],
@@ -25823,7 +25823,7 @@ const HIGHWAYS = [
     endLabel: "佐賀",
     prefectures: ["福岡県", "佐賀県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 46,
     path: [
       [33.27430, 130.29372],
@@ -25876,7 +25876,7 @@ const HIGHWAYS = [
     endLabel: "久留米",
     prefectures: ["佐賀県", "福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 26,
     path: [
       [33.31457, 130.51276],
@@ -26082,7 +26082,7 @@ const HIGHWAYS = [
     endLabel: "熊本",
     prefectures: ["熊本県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 156,
     path: [
       [32.79694, 130.70691],
@@ -26332,7 +26332,7 @@ const HIGHWAYS = [
     endLabel: "宮崎",
     prefectures: ["熊本県", "宮崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 114,
     path: [
       [31.95162, 131.26778],
@@ -26441,7 +26441,7 @@ const HIGHWAYS = [
     endLabel: "宮崎",
     prefectures: ["鹿児島県", "宮崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 165,
     path: [
       [31.91666, 131.42332],
@@ -26695,7 +26695,7 @@ const HIGHWAYS = [
     endLabel: "標津",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 112,
     path: [
       [43.65138, 145.13629],
@@ -26808,7 +26808,7 @@ const HIGHWAYS = [
     endLabel: "紋別",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 234,
     path: [
       [44.37533, 143.30960],
@@ -27627,7 +27627,7 @@ const HIGHWAYS = [
     endLabel: "苫小牧",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 314,
     path: [
       [42.63900, 141.61180],
@@ -27968,7 +27968,7 @@ const HIGHWAYS = [
     endLabel: "森",
     prefectures: ["北海道"],
     regions: ["北海道", "東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 114,
     path: [
       [42.09256, 140.57709],
@@ -28068,7 +28068,7 @@ const HIGHWAYS = [
     endLabel: "野辺地",
     prefectures: ["北海道", "青森県"],
     regions: ["北海道", "東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 146,
     path: [
       [40.84662, 141.12611],
@@ -28192,7 +28192,7 @@ const HIGHWAYS = [
     endLabel: "函館",
     prefectures: ["青森県", "北海道"],
     regions: ["北海道", "東北"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 172,
     path: [
       [41.78947, 140.73189],
@@ -28335,7 +28335,7 @@ const HIGHWAYS = [
     endLabel: "久慈",
     prefectures: ["岩手県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 111,
     path: [
       [40.18693, 141.78783],
@@ -28421,7 +28421,7 @@ const HIGHWAYS = [
     endLabel: "平川",
     prefectures: ["岩手県", "青森県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 124,
     path: [
       [40.44267, 140.63491],
@@ -28679,7 +28679,7 @@ const HIGHWAYS = [
     endLabel: "鹿角",
     prefectures: ["秋田県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 112,
     path: [
       [40.26416, 140.77047],
@@ -28782,7 +28782,7 @@ const HIGHWAYS = [
     endLabel: "山形",
     prefectures: ["宮城県", "山形県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 68,
     path: [
       [38.23469, 140.33003],
@@ -29455,7 +29455,7 @@ const HIGHWAYS = [
     endLabel: "柏崎",
     prefectures: ["群馬県", "新潟県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 189,
     path: [
       [37.36759, 138.57514],
@@ -30607,7 +30607,7 @@ const HIGHWAYS = [
     endLabel: "名古屋",
     prefectures: ["愛知県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 33,
     path: [
       [35.05197, 136.84532],
@@ -30638,7 +30638,7 @@ const HIGHWAYS = [
     endLabel: "若狭",
     prefectures: ["岐阜県", "福井県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 122,
     path: [
       [35.46270, 135.86226],
@@ -30803,7 +30803,7 @@ const HIGHWAYS = [
     endLabel: "南越前",
     prefectures: ["石川県", "福井県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 143,
     path: [
       [35.79780, 136.19498],
@@ -30913,7 +30913,7 @@ const HIGHWAYS = [
     endLabel: "彦根",
     prefectures: ["三重県", "滋賀県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 87,
     path: [
       [35.26707, 136.26641],
@@ -31110,7 +31110,7 @@ const HIGHWAYS = [
     endLabel: "奈良",
     prefectures: ["大阪府", "奈良県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 32,
     path: [
       [34.68192, 135.80050],
@@ -31152,7 +31152,7 @@ const HIGHWAYS = [
     endLabel: "大阪",
     prefectures: ["三重県", "大阪府"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 142,
     path: [
       [34.63114, 135.54686],
@@ -31988,7 +31988,7 @@ const HIGHWAYS = [
     endLabel: "尾道",
     prefectures: ["愛媛県", "広島県"],
     regions: ["中国", "四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 116,
     path: [
       [34.41133, 133.21458],
@@ -32413,7 +32413,7 @@ const HIGHWAYS = [
     endLabel: "久留米",
     prefectures: ["福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 83,
     path: [
       [33.31340, 130.52240],
@@ -32548,7 +32548,7 @@ const HIGHWAYS = [
     endLabel: "宇城",
     prefectures: ["長崎県", "熊本県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 106,
     path: [
       [32.60613, 130.44026],
@@ -32930,7 +32930,7 @@ const HIGHWAYS = [
     endLabel: "出水",
     prefectures: ["鹿児島県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 63,
     path: [
       [32.11058, 130.32761],
@@ -33002,7 +33002,7 @@ const HIGHWAYS = [
     endLabel: "那覇",
     prefectures: ["沖縄県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 78,
     path: [
       [26.20928, 127.67464],
@@ -33121,7 +33121,7 @@ const HIGHWAYS = [
     endLabel: "大宜味",
     prefectures: ["沖縄県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 146,
     path: [
       [26.67515, 128.10387],
@@ -33241,7 +33241,7 @@ const HIGHWAYS = [
     endLabel: "北見",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 170,
     path: [
       [43.86319, 143.94887],
@@ -33585,7 +33585,7 @@ const HIGHWAYS = [
     endLabel: "釧路",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 234,
     path: [
       [42.97991, 144.38586],
@@ -34232,7 +34232,7 @@ const HIGHWAYS = [
     endLabel: "八戸",
     prefectures: ["岩手県", "青森県"],
     regions: ["東北"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 244,
     path: [
       [40.51396, 141.49852],
@@ -35090,7 +35090,7 @@ const HIGHWAYS = [
     endLabel: "気仙沼",
     prefectures: ["宮城県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 124,
     path: [
       [38.91410, 141.54912],
@@ -35340,7 +35340,7 @@ const HIGHWAYS = [
     endLabel: "柴田",
     prefectures: ["茨城県", "宮城県"],
     regions: ["東北", "関東"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 252,
     path: [
       [38.07055, 140.81014],
@@ -35580,7 +35580,7 @@ const HIGHWAYS = [
     endLabel: "上越",
     prefectures: ["新潟県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 190,
     path: [
       [37.16532, 138.25650],
@@ -35978,7 +35978,7 @@ const HIGHWAYS = [
     endLabel: "柏崎",
     prefectures: ["群馬県", "新潟県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 199,
     path: [
       [37.36045, 138.55223],
@@ -36180,7 +36180,7 @@ const HIGHWAYS = [
     endLabel: "鉾田",
     prefectures: ["群馬県", "茨城県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 172,
     path: [
       [36.11801, 140.58784],
@@ -36500,7 +36500,7 @@ const HIGHWAYS = [
     startLabel: "千葉",
     endLabel: "横須賀",
     prefectures: ["千葉県", "東京都", "神奈川県"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 88,
     fact: "東京湾岸道路。千葉から東京・横浜を経て横須賀へ、東京湾をぐるりと結ぶ。",
     path: [
@@ -36618,7 +36618,7 @@ const HIGHWAYS = [
     endLabel: "金沢",
     prefectures: ["富山県", "石川県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 58,
     path: [
       [36.57208, 136.65585],
@@ -36683,7 +36683,7 @@ const HIGHWAYS = [
     endLabel: "小松",
     prefectures: ["富山県", "石川県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 141,
     path: [
       [36.40381, 136.41155],
@@ -36926,7 +36926,7 @@ const HIGHWAYS = [
     endLabel: "静岡",
     prefectures: ["愛知県", "静岡県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 152,
     path: [
       [34.97056, 138.38472],
@@ -37431,7 +37431,7 @@ const HIGHWAYS = [
     endLabel: "若狭",
     prefectures: ["京都府", "福井県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 68,
     path: [
       [35.46270, 135.86226],
@@ -37554,7 +37554,7 @@ const HIGHWAYS = [
     endLabel: "松阪",
     prefectures: ["奈良県", "三重県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 122,
     path: [
       [34.56332, 136.52809],
@@ -37651,7 +37651,7 @@ const HIGHWAYS = [
     endLabel: "奈良",
     prefectures: ["和歌山県", "奈良県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 127,
     path: [
       [34.61361, 135.95874],
@@ -37745,7 +37745,7 @@ const HIGHWAYS = [
     endLabel: "串本",
     prefectures: ["大阪府", "和歌山県"],
     regions: ["近畿"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 213,
     path: [
       [33.48341, 135.76281],
@@ -38060,7 +38060,7 @@ const HIGHWAYS = [
     endLabel: "鳥取",
     prefectures: ["兵庫県", "鳥取県"],
     regions: ["中国", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 102,
     path: [
       [35.52153, 134.21533],
@@ -39117,7 +39117,7 @@ const HIGHWAYS = [
     endLabel: "佐世保",
     prefectures: ["長崎県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 188,
     path: [
       [33.16749, 129.72428],
@@ -39306,7 +39306,7 @@ const HIGHWAYS = [
     endLabel: "福岡",
     prefectures: ["福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 56,
     path: [
       [33.17688, 130.40460],
@@ -39427,7 +39427,7 @@ const HIGHWAYS = [
     endLabel: "熊本",
     prefectures: ["大分県", "熊本県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 129,
     path: [
       [32.84545, 130.71597],
@@ -39523,7 +39523,7 @@ const HIGHWAYS = [
     endLabel: "湯前",
     prefectures: ["大分県", "熊本県"],
     regions: ["九州"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 218,
     path: [
       [32.28134, 130.98293],
@@ -39871,7 +39871,7 @@ const HIGHWAYS = [
     endLabel: "那覇",
     prefectures: ["沖縄県"],
     regions: ["九州"],
-    difficulty: 2,
+    difficulty: 1,
     lengthKm: 474,
     path: [
       [26.21137, 127.67510],
@@ -39971,7 +39971,7 @@ const HIGHWAYS = [
     endLabel: "網走",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 152,
     path: [
       [42.97991, 144.38586],
@@ -40264,7 +40264,7 @@ const HIGHWAYS = [
     endLabel: "弘前",
     prefectures: ["青森県"],
     regions: ["北海道", "東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 152,
     path: [
       [41.29320, 141.22059],
@@ -40484,7 +40484,7 @@ const HIGHWAYS = [
     endLabel: "盛岡",
     prefectures: ["岩手県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 58,
     path: [
       [39.32804, 141.48198],
@@ -40657,7 +40657,7 @@ const HIGHWAYS = [
     endLabel: "由利本荘",
     prefectures: ["宮城県", "秋田県"],
     regions: ["東北"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 269,
     path: [
       [39.38641, 140.03200],
@@ -41284,7 +41284,7 @@ const HIGHWAYS = [
     endLabel: "沼田",
     prefectures: ["福島県", "群馬県"],
     regions: ["東北", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 169,
     path: [
       [36.63188, 139.03679],
@@ -41433,7 +41433,7 @@ const HIGHWAYS = [
     endLabel: "新潟",
     prefectures: ["新潟県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 87,
     path: [
       [37.36038, 138.55159],
@@ -41785,7 +41785,7 @@ const HIGHWAYS = [
     endLabel: "上越",
     prefectures: ["群馬県", "新潟県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 120,
     path: [
       [37.11274, 138.27693],
@@ -41880,7 +41880,7 @@ const HIGHWAYS = [
     endLabel: "高崎",
     prefectures: ["長野県", "群馬県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 193,
     path: [
       [36.51358, 137.85684],
@@ -42063,7 +42063,7 @@ const HIGHWAYS = [
     endLabel: "入間",
     prefectures: ["栃木県", "埼玉県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 59,
     path: [
       [35.84223, 139.38647],
@@ -42230,7 +42230,7 @@ const HIGHWAYS = [
     endLabel: "成田",
     prefectures: ["神奈川県", "千葉県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 119,
     path: [
       [35.76065, 140.30465],
@@ -42440,7 +42440,7 @@ const HIGHWAYS = [
     startLabel: "青梅",
     endLabel: "甲府",
     prefectures: ["東京都", "山梨県"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 101,
     fact: "青梅街道。青梅から奥多摩湖・柳沢峠を越えて甲府へ至る(起点は新宿)。",
     path: [
@@ -42589,7 +42589,7 @@ const HIGHWAYS = [
     startLabel: "相模原",
     endLabel: "富士吉田",
     prefectures: ["神奈川県", "山梨県"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 70,
     fact: "道志みち。相模原から道志・山中湖を経て富士吉田へ、ツーリングで有名。",
     path: [
@@ -42721,7 +42721,7 @@ const HIGHWAYS = [
     endLabel: "富山",
     prefectures: ["石川県", "富山県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 67,
     path: [
       [36.88582, 136.77713],
@@ -43015,7 +43015,7 @@ const HIGHWAYS = [
     endLabel: "飯田",
     prefectures: ["福井県", "長野県"],
     regions: ["中部"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 252,
     path: [
       [35.97004, 136.50103],
@@ -43342,7 +43342,7 @@ const HIGHWAYS = [
     endLabel: "近江八幡",
     prefectures: ["三重県", "滋賀県"],
     regions: ["中部", "近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 62,
     path: [
       [35.11840, 136.13122],
@@ -43404,7 +43404,7 @@ const HIGHWAYS = [
     endLabel: "紀北",
     prefectures: ["滋賀県", "三重県"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 156,
     path: [
       [34.21172, 136.33435],
@@ -44801,7 +44801,7 @@ const HIGHWAYS = [
     endLabel: "下関",
     prefectures: ["山口県"],
     regions: ["中国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 71,
     path: [
       [34.31612, 130.89655],
@@ -44859,7 +44859,7 @@ const HIGHWAYS = [
     endLabel: "高松",
     prefectures: ["兵庫県", "香川県"],
     regions: ["中国", "四国", "近畿"],
-    difficulty: 3,
+    difficulty: 1,
     lengthKm: 93,
     path: [
       [34.79682, 134.66659],
@@ -44940,7 +44940,7 @@ const HIGHWAYS = [
     endLabel: "岩国",
     prefectures: ["愛媛県", "山口県"],
     regions: ["中国", "四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 112,
     path: [
       [33.94422, 132.43913],
@@ -45044,7 +45044,7 @@ const HIGHWAYS = [
     endLabel: "坂出",
     prefectures: ["徳島県", "香川県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 163,
     path: [
       [34.30185, 133.84853],
@@ -45184,7 +45184,7 @@ const HIGHWAYS = [
     startLabel: "徳島",
     endLabel: "四万十",
     prefectures: ["徳島県", "高知県"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 334,
     fact: "「酷道」として全国的に有名。徳島から剣山周辺の山間部を抜けて四万十へ至る。",
     path: [
@@ -45656,7 +45656,7 @@ const HIGHWAYS = [
     endLabel: "大川",
     prefectures: ["大分県", "福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 162,
     path: [
       [33.20612, 130.38073],
@@ -46020,7 +46020,7 @@ const HIGHWAYS = [
     endLabel: "人吉",
     prefectures: ["熊本県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 134,
     path: [
       [32.21626, 130.73788],
@@ -46865,7 +46865,7 @@ const HIGHWAYS = [
     endLabel: "伊達",
     prefectures: ["北海道"],
     regions: ["北海道"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 123,
     path: [
       [43.05160, 141.37106],
@@ -47165,7 +47165,7 @@ const HIGHWAYS = [
     endLabel: "気仙沼",
     prefectures: ["岩手県", "宮城県"],
     regions: ["東北"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 153,
     path: [
       [38.79148, 141.51697],
@@ -47805,7 +47805,7 @@ const HIGHWAYS = [
     endLabel: "柏崎",
     prefectures: ["新潟県"],
     regions: ["中部", "関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 122,
     path: [
       [37.36038, 138.55159],
@@ -48326,7 +48326,7 @@ const HIGHWAYS = [
     endLabel: "横浜",
     prefectures: ["東京都", "神奈川県"],
     regions: ["関東"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 27,
     path: [
       [35.47491, 139.60023],
@@ -48669,7 +48669,7 @@ const HIGHWAYS = [
     endLabel: "輪島",
     prefectures: ["富山県", "石川県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 98,
     path: [
       [37.32252, 136.90956],
@@ -49045,7 +49045,7 @@ const HIGHWAYS = [
     endLabel: "牧之原",
     prefectures: ["愛知県", "静岡県"],
     regions: ["中部"],
-    difficulty: 2,
+    difficulty: 3,
     lengthKm: 243,
     path: [
       [34.67903, 138.20018],
@@ -49279,7 +49279,7 @@ const HIGHWAYS = [
     endLabel: "浜松",
     prefectures: ["長野県", "静岡県"],
     regions: ["中部"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 105,
     path: [
       [35.46282, 137.87477],
@@ -49863,7 +49863,7 @@ const HIGHWAYS = [
     endLabel: "大阪",
     prefectures: ["大阪府"],
     regions: ["近畿"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 46,
     path: [
       [34.60924, 135.48573],
@@ -50397,7 +50397,7 @@ const HIGHWAYS = [
     endLabel: "松江",
     prefectures: ["島根県"],
     regions: ["中国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 139,
     path: [
       [36.09339, 132.99420],
@@ -50923,7 +50923,7 @@ const HIGHWAYS = [
     endLabel: "大豊",
     prefectures: ["香川県", "高知県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 169,
     path: [
       [33.76577, 133.66504],
@@ -51177,7 +51177,7 @@ const HIGHWAYS = [
     endLabel: "須崎",
     prefectures: ["愛媛県", "高知県"],
     regions: ["四国"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 120,
     path: [
       [33.42762, 133.29661],
@@ -51281,7 +51281,7 @@ const HIGHWAYS = [
     endLabel: "福岡",
     prefectures: ["福岡県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 67,
     path: [
       [33.90197, 130.80602],
@@ -51501,7 +51501,7 @@ const HIGHWAYS = [
     endLabel: "阿久根",
     prefectures: ["長崎県", "鹿児島県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 106,
     path: [
       [32.02305, 130.19410],
@@ -52097,7 +52097,7 @@ const HIGHWAYS = [
     endLabel: "西原",
     prefectures: ["沖縄県"],
     regions: ["九州"],
-    difficulty: 3,
+    difficulty: 2,
     lengthKm: 12,
     path: [
       [26.22412, 127.73817],
