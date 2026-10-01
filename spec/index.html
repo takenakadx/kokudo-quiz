@@ -214,6 +214,15 @@
   }
   .src-badge.osm { background: var(--done-soft); color: var(--done); }
   .src-badge.manual { background: var(--line); color: var(--muted); }
+  .auto-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    margin-right: 4px;
+  }
 
   .section-cell {
     text-align: center;
@@ -376,14 +385,16 @@
       国道クイズアプリ（<a href="../" style="color:var(--accent)">kokudo-quiz</a>）に収録する国道の対応状況・区間・補足情報をまとめた一覧です。
       収録済みの国道はすべて <span class="src-badge osm" style="display:inline-flex">実データ</span>、つまり
       OpenStreetMapの実際の道路形状から生成したルートです。生データは順序不定の断片の集まりなので、
-      各国道が通る主要都市を人手で「経由地」として与え、区間ごとに短く並び替える方式で経路を復元しています。
+      経路の復元方法は2通りあります。<strong>68路線</strong>は各国道が通る主要都市を人手で「経由地」として与えて区間ごとに並び替えたもの、
+      残りは<span class="auto-badge" style="display:inline-block">自動</span>、つまり生データをグラフとみなして両端の間の最短経路を取ったものです
+      （自動のほうは起終点・通過都道府県もOpenStreetMapのタグから機械的に付けているため、途中で通る県は一覧に出ません）。
       実在する国道459路線すべての対応状況は、ページ下部の<a href="#coverage-section" style="color:var(--accent)">全国道の対応状況</a>にまとめてあります。
     </p>
     <div class="stats">
       <div class="stat total"><div class="n" id="statAll">459</div><div class="l">国道 総数</div></div>
-      <div class="stat done"><div class="n" id="statDone">68</div><div class="l">実装済み</div></div>
-      <div class="stat p2"><div class="n" id="statPrep">1</div><div class="l">準備済み（データ待ち）</div></div>
-      <div class="stat p3"><div class="n" id="statTodo">390</div><div class="l">未着手</div></div>
+      <div class="stat done"><div class="n" id="statDone">441</div><div class="l">実装済み</div></div>
+      <div class="stat p2"><div class="n" id="statPrep">17</div><div class="l">収録見送り</div></div>
+      <div class="stat p3"><div class="n" id="statTodo">1</div><div class="l">未着手</div></div>
     </div>
   </header>
 
@@ -413,11 +424,11 @@
       一般国道は<strong>459路線</strong>あります。番号は1号から507号まで振られていますが、
       59〜100号は将来の一級国道用に空けられたまま使われておらず、109・110・111号と214・215・216号は
       他の国道に編入されて廃止されたため、計48個が欠番です。
-      色が付いているものがこのアプリの対応済み・準備済みで、番号を押すと上の表の該当行へ移動します。
+      緑が収録済み、オレンジが収録を見送った路線（短すぎてなぞれない、タグが足りないなど。理由は表に出ています）。番号を押すと上の表の該当行へ移動します。
     </p>
     <div class="legend">
       <span><i class="done"></i>実装済み</span>
-      <span><i class="prep"></i>準備済み（生データ待ち）</span>
+      <span><i class="prep"></i>収録を見送った路線</span>
       <span><i class="todo"></i>未着手</span>
       <span><i class="vacant"></i>欠番</span>
     </div>
@@ -429,83 +440,102 @@
   </footer>
 </div>
 
+<script src="routes.js"></script>
 <script>
 "use strict";
 
-const ROWS = [
-  // 実装済み（すべてOpenStreetMapの実道路データ由来）
-  { status: "done", num: "1", name: "国道1号", start: "東京", end: "大阪", note: "旧東海道にほぼ沿う、日本を代表する幹線国道。", src: "osm" },
-  { status: "done", num: "2", name: "国道2号", start: "大阪", end: "北九州(門司)", note: "瀬戸内海沿いを西へ進み関門海峡を越える。", src: "osm" },
-  { status: "done", num: "3", name: "国道3号", start: "北九州(門司)", end: "鹿児島", note: "2号の終点から続く九州縦断の大動脈。", src: "osm" },
-  { status: "done", num: "4", name: "国道4号", start: "東京", end: "青森", note: "日本で最も長い国道。東北地方を縦断。", src: "osm" },
-  { status: "done", num: "5", name: "国道5号", start: "函館", end: "札幌", note: "長万部・倶知安・小樽を経て札幌へ。", src: "osm" },
-  { status: "done", num: "6", name: "国道6号", start: "東京", end: "仙台", note: "水戸・いわきなど太平洋沿いを北上。", src: "osm" },
-  { status: "done", num: "7", name: "国道7号", start: "新潟", end: "青森", note: "日本海沿いに酒田・秋田・弘前を経て北上。", src: "osm" },
-  { status: "done", num: "8", name: "国道8号", start: "新潟", end: "京都", note: "新潟・富山・金沢・福井を結ぶ北陸の大動脈。", src: "osm" },
-  { status: "done", num: "9", name: "国道9号", start: "京都", end: "下関", note: "山陰地方(日本海側)を横断。萩から内陸へ入る。", src: "osm" },
-  { status: "done", num: "10", name: "国道10号", start: "北九州(小倉)", end: "鹿児島", note: "東九州側(別府・大分・宮崎)を回るルート。3号との対比。", src: "osm" },
-  { status: "done", num: "11", name: "国道11号", start: "徳島", end: "松山", note: "瀬戸内海側の四国を横断。高松・西条を経由。", src: "osm" },
-  { status: "done", num: "12", name: "国道12号", start: "札幌", end: "旭川", note: "美唄〜滝川に<span class=\"warn\">日本最長29.2kmの直線</span>がある。", src: "osm" },
-  { status: "done", num: "14", name: "国道14号", start: "東京(日本橋)", end: "千葉", note: "市川・船橋を経て千葉へ。京葉間の旧来の幹線。", src: "osm" },
-  { status: "done", num: "15", name: "国道15号", start: "東京(日本橋)", end: "横浜", note: "第一京浜。品川・川崎を経て横浜へ。", src: "osm" },
-  { status: "done", num: "16", name: "国道16号", start: "横浜", end: "横浜(一周)", note: "都心を通らず首都圏を環状に結ぶ。", src: "osm" },
-  { status: "done", num: "17", name: "国道17号", start: "東京", end: "新潟", note: "中山道・三国街道ルート。三国峠を越える。", src: "osm" },
-  { status: "done", num: "19", name: "国道19号", start: "名古屋", end: "長野", note: "中山道の木曽路を通り塩尻・松本を経由。", src: "osm" },
-  { status: "done", num: "20", name: "国道20号", start: "東京", end: "塩尻", note: "旧甲州街道。塩尻で中山道と合流。", src: "osm" },
-  { status: "done", num: "22", name: "国道22号", start: "名古屋", end: "岐阜", note: "名岐バイパス。中部圏の主要幹線。", src: "osm" },
-  { status: "done", num: "23", name: "国道23号", start: "豊橋", end: "伊勢", note: "名豊道路・名四国道を経て伊勢神宮へ。<span class=\"warn\">起点は名古屋ではなく豊橋</span>。", src: "osm" },
-  { status: "done", num: "25", name: "国道25号", start: "四日市", end: "大阪", note: "名阪国道。<span class=\"warn\">起点の名古屋〜四日市は1号との重複区間</span>。", src: "osm" },
-  { status: "done", num: "13", name: "国道13号", start: "福島", end: "秋田", note: "奥羽山脈の西側を縦断。米沢・山形・新庄・横手を経由。", src: "osm" },
-  { status: "done", num: "18", name: "国道18号", start: "高崎", end: "上越", note: "中山道・北国街道筋。<span class=\"warn\">碓氷峠</span>で上州から信州へ。", src: "osm" },
-  { status: "done", num: "21", name: "国道21号", start: "瑞浪", end: "米原", note: "中山道にほぼ沿う。大垣から<span class=\"warn\">関ケ原</span>を越えて近江へ。", src: "osm" },
-  { status: "done", num: "24", name: "国道24号", start: "京都", end: "和歌山", note: "奈良盆地を南北に貫き、五條から紀の川沿いを下る。", src: "osm" },
-  { status: "done", num: "26", name: "国道26号", start: "大阪", end: "和歌山", note: "大阪湾東岸を堺・岸和田と南下。24号との対比。", src: "osm" },
-  { status: "done", num: "27", name: "国道27号", start: "敦賀", end: "京丹波", note: "若狭湾沿いに小浜・舞鶴へ。丹波で9号に合流して終わる。", src: "osm" },
-  { status: "done", num: "28", name: "国道28号", start: "神戸", end: "徳島", note: "淡路島を縦断。<span class=\"warn\">明石海峡・鳴門海峡は海上区間</span>（生データにも航路が入っている）。", src: "osm" },
-  { status: "done", num: "29", name: "国道29号", start: "姫路", end: "鳥取", note: "<span class=\"warn\">戸倉峠</span>を越えて播磨から因幡へ。<span class=\"warn\">生データは姫路市街を含まず市北部から</span>。", src: "osm" },
-  { status: "done", num: "30", name: "国道30号", start: "岡山", end: "高松", note: "玉野市宇野まで南下し<span class=\"warn\">宇高航路（海上区間）</span>で高松へ。", src: "osm" },
-  { status: "done", num: "31", name: "国道31号", start: "海田", end: "呉", note: "広島県内で完結する約19kmの短い国道。広島湾沿いに呉へ。", src: "osm" },
-  { status: "done", num: "32", name: "国道32号", start: "高松", end: "高知", note: "猪ノ鼻峠を越え、吉野川沿いに<span class=\"warn\">大歩危</span>を経て高知へ。", src: "osm" },
-  { status: "done", num: "33", name: "国道33号", start: "高知", end: "松山", note: "仁淀川沿いに遡り、三坂峠を越えて松山へ下る。", src: "osm" },
-  { status: "done", num: "34", name: "国道34号", start: "鳥栖", end: "長崎", note: "長崎街道筋。武雄・嬉野を経て大村湾沿いに長崎へ。", src: "osm" },
-  { status: "done", num: "35", name: "国道35号", start: "佐世保", end: "武雄", note: "佐世保から早岐・有田を経て武雄へ。県境をまたぐ約35kmの短い国道。", src: "osm" },
-  { status: "done", num: "36", name: "国道36号", start: "札幌", end: "室蘭", note: "札幌と道南を結ぶ大動脈。千歳・苫小牧を経て太平洋沿いに室蘭へ。", src: "osm" },
-  { status: "done", num: "37", name: "国道37号", start: "長万部", end: "室蘭", note: "<span class=\"warn\">内浦湾(噴火湾)</span>の北岸を回り、洞爺湖・伊達を経て室蘭へ。", src: "osm" },
-  { status: "done", num: "38", name: "国道38号", start: "滝川", end: "釧路", note: "富良野から<span class=\"warn\">狩勝峠</span>を越えて十勝平野へ下り、帯広を経て釧路へ。", src: "osm" },
-  { status: "done", num: "39", name: "国道39号", start: "旭川", end: "網走", note: "<span class=\"warn\">石北峠</span>で大雪山系を越え、北見・美幌を経てオホーツク海側へ。", src: "osm" },
-  { status: "done", num: "40", name: "国道40号", start: "旭川", end: "稚内", note: "天塩川に沿って北上し、日本最北の都市・稚内まで道北を縦断する。", src: "osm" },
-  { status: "done", num: "41", name: "国道41号", start: "名古屋", end: "富山", note: "飛騨街道。下呂・高山を経て中部を縦断。", src: "osm" },
-  { status: "done", num: "42", name: "国道42号", start: "和歌山", end: "松阪", note: "紀伊半島の海沿いをぐるっと回る。", src: "osm" },
-  { status: "done", num: "43", name: "国道43号", start: "大阪", end: "神戸", note: "阪神国道。片側5車線もある幅の広い幹線。", src: "osm" },
-  { status: "done", num: "44", name: "国道44号", start: "釧路", end: "根室", note: "厚岸・浜中を経て、日本最東端の都市・根室へ至る。", src: "osm" },
-  { status: "done", num: "45", name: "国道45号", start: "仙台", end: "青森", note: "<span class=\"warn\">三陸海岸</span>沿いに東北の太平洋側を縦断する。4号と対をなす道。", src: "osm" },
-  { status: "done", num: "46", name: "国道46号", start: "盛岡", end: "秋田", note: "<span class=\"warn\">仙岩峠</span>で奥羽山脈を越え、田沢湖・角館を経て秋田へ。", src: "osm" },
-  { status: "done", num: "47", name: "国道47号", start: "仙台", end: "酒田", note: "鳴子温泉から最上町へ抜け、新庄から最上川沿いに酒田へ下る。", src: "osm" },
-  { status: "done", num: "48", name: "国道48号", start: "仙台", end: "山形", note: "作並・<span class=\"warn\">関山峠</span>を越えて仙台と山形を最短で結ぶ関山街道。", src: "osm" },
-  { status: "done", num: "49", name: "国道49号", start: "いわき", end: "新潟", note: "郡山・会津若松を経て阿賀野川沿いに下り、太平洋側と日本海側を結ぶ。", src: "osm" },
-  { status: "done", num: "50", name: "国道50号", start: "前橋", end: "水戸", note: "東京を通らず北関東を東西に貫く。<span class=\"warn\">生データに往復する断片があり、経路組み立てを修正</span>。", src: "osm" },
-  { status: "done", num: "51", name: "国道51号", start: "千葉", end: "水戸", note: "成田・佐原を経て利根川を渡り、霞ヶ浦の東側を回って水戸へ。", src: "osm" },
-  { status: "done", num: "52", name: "国道52号", start: "静岡(清水)", end: "甲斐", note: "富士川沿いに身延を経て甲府盆地へ。駿河と甲斐を結ぶ旧・身延道。", src: "osm" },
-  { status: "done", num: "53", name: "国道53号", start: "岡山", end: "鳥取", note: "津山から<span class=\"warn\">黒尾峠</span>を越えて智頭へ。中国地方を南北に横断。", src: "osm" },
-  { status: "done", num: "54", name: "国道54号", start: "広島", end: "松江", note: "三次から<span class=\"warn\">赤名峠</span>を越えて出雲へ。瀬戸内側と山陰側を結ぶ。", src: "osm" },
-  { status: "done", num: "55", name: "国道55号", start: "徳島", end: "高知", note: "四国の太平洋側を回り<span class=\"warn\">室戸岬</span>を経て高知へ。56号と合わせて四国一周。", src: "osm" },
-  { status: "done", num: "56", name: "国道56号", start: "高知", end: "松山", note: "四万十・宿毛から豊後水道沿いを北上し、宇和島・大洲を経て松山へ。", src: "osm" },
-  { status: "done", num: "57", name: "国道57号", start: "大分", end: "長崎", note: "阿蘇の外輪山を越えて熊本へ。<span class=\"warn\">熊本〜島原はフェリーの海上区間</span>。", src: "osm" },
-  { status: "done", num: "58", name: "国道58号", start: "鹿児島", end: "那覇", note: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。", src: "osm" },
-  { status: "done", num: "134", name: "国道134号", start: "横須賀", end: "大磯", note: "湘南海岸線。鎌倉・江ノ島・茅ヶ崎を通る。", src: "osm" },
-  { status: "done", num: "135", name: "国道135号", start: "熱海", end: "下田", note: "伊豆半島東岸の観光道路。", src: "osm" },
-  { status: "done", num: "158", name: "国道158号", start: "福井", end: "松本", note: "九頭竜湖・高山・安房峠を越える山岳国道。上高地への入口。", src: "osm" },
-  { status: "done", num: "171", name: "国道171号", start: "京都", end: "神戸", note: "西国街道。高槻・西宮を経由。", src: "osm" },
-  { status: "done", num: "176", name: "国道176号", start: "大阪", end: "舞鶴", note: "宝塚・三田・福知山を経由。<span class=\"warn\">渋滞の名所</span>。生データは綾部付近まで。", src: "osm" },
-  { status: "done", num: "246", name: "国道246号", start: "東京(三宅坂)", end: "沼津", note: "渋谷・厚木・御殿場を経て沼津で1号と合流。", src: "osm" },
-  { status: "done", num: "357", name: "国道357号", start: "千葉", end: "横須賀", note: "東京湾岸道路。<span class=\"warn\">起点は木更津ではなく千葉</span>。", src: "osm" },
-  { status: "done", num: "411", name: "国道411号", start: "青梅", end: "甲府", note: "青梅街道。奥多摩湖・柳沢峠を越える。<span class=\"warn\">起点の新宿〜青梅は生データ対象外</span>。", src: "osm" },
-  { status: "done", num: "413", name: "国道413号", start: "相模原", end: "富士吉田", note: "道志みち。ツーリングで有名。", src: "osm" },
-  { status: "done", num: "439", name: "国道439号", start: "徳島", end: "四万十", note: "<span class=\"warn\">「酷道」</span>として全国的に有名。剣山周辺の山間部を抜ける。", src: "osm" },
+/* 手で書いた補足。これ以外の路線は spec/routes.js の内容だけで表示する。 */
+const NOTES = {
+  1: "旧東海道にほぼ沿う、日本を代表する幹線国道。",
+  2: "瀬戸内海沿いを西へ進み関門海峡を越える。",
+  3: "2号の終点から続く九州縦断の大動脈。",
+  4: "日本で最も長い国道。東北地方を縦断。",
+  5: "長万部・倶知安・小樽を経て札幌へ。",
+  6: "水戸・いわきなど太平洋沿いを北上。",
+  7: "日本海沿いに酒田・秋田・弘前を経て北上。",
+  8: "新潟・富山・金沢・福井を結ぶ北陸の大動脈。",
+  9: "山陰地方(日本海側)を横断。萩から内陸へ入る。",
+  10: "東九州側(別府・大分・宮崎)を回るルート。3号との対比。",
+  11: "瀬戸内海側の四国を横断。高松・西条を経由。",
+  12: "美唄〜滝川に<span class=\"warn\">日本最長29.2kmの直線</span>がある。",
+  13: "奥羽山脈の西側を縦断。米沢・山形・新庄・横手を経由。",
+  14: "市川・船橋を経て千葉へ。京葉間の旧来の幹線。",
+  15: "第一京浜。品川・川崎を経て横浜へ。",
+  16: "都心を通らず首都圏を環状に結ぶ。",
+  17: "中山道・三国街道ルート。三国峠を越える。",
+  18: "中山道・北国街道筋。<span class=\"warn\">碓氷峠</span>で上州から信州へ。",
+  19: "中山道の木曽路を通り塩尻・松本を経由。",
+  20: "旧甲州街道。塩尻で中山道と合流。",
+  21: "中山道にほぼ沿う。大垣から<span class=\"warn\">関ケ原</span>を越えて近江へ。",
+  22: "名岐バイパス。中部圏の主要幹線。",
+  23: "名豊道路・名四国道を経て伊勢神宮へ。<span class=\"warn\">起点は名古屋ではなく豊橋</span>。",
+  24: "奈良盆地を南北に貫き、五條から紀の川沿いを下る。",
+  25: "名阪国道。<span class=\"warn\">起点の名古屋〜四日市は1号との重複区間</span>。",
+  26: "大阪湾東岸を堺・岸和田と南下。24号との対比。",
+  27: "若狭湾沿いに小浜・舞鶴へ。丹波で9号に合流して終わる。",
+  28: "淡路島を縦断。<span class=\"warn\">明石海峡・鳴門海峡は海上区間</span>（生データにも航路が入っている）。",
+  29: "<span class=\"warn\">戸倉峠</span>を越えて播磨から因幡へ。<span class=\"warn\">生データは姫路市街を含まず市北部から</span>。",
+  30: "玉野市宇野まで南下し<span class=\"warn\">宇高航路（海上区間）</span>で高松へ。",
+  31: "広島県内で完結する約19kmの短い国道。広島湾沿いに呉へ。",
+  32: "猪ノ鼻峠を越え、吉野川沿いに<span class=\"warn\">大歩危</span>を経て高知へ。",
+  33: "仁淀川沿いに遡り、三坂峠を越えて松山へ下る。",
+  34: "長崎街道筋。武雄・嬉野を経て大村湾沿いに長崎へ。",
+  35: "佐世保から早岐・有田を経て武雄へ。県境をまたぐ約35kmの短い国道。",
+  36: "札幌と道南を結ぶ大動脈。千歳・苫小牧を経て太平洋沿いに室蘭へ。",
+  37: "<span class=\"warn\">内浦湾(噴火湾)</span>の北岸を回り、洞爺湖・伊達を経て室蘭へ。",
+  38: "富良野から<span class=\"warn\">狩勝峠</span>を越えて十勝平野へ下り、帯広を経て釧路へ。",
+  39: "<span class=\"warn\">石北峠</span>で大雪山系を越え、北見・美幌を経てオホーツク海側へ。",
+  40: "天塩川に沿って北上し、日本最北の都市・稚内まで道北を縦断する。",
+  41: "飛騨街道。下呂・高山を経て中部を縦断。",
+  42: "紀伊半島の海沿いをぐるっと回る。",
+  43: "阪神国道。片側5車線もある幅の広い幹線。",
+  44: "厚岸・浜中を経て、日本最東端の都市・根室へ至る。",
+  45: "<span class=\"warn\">三陸海岸</span>沿いに東北の太平洋側を縦断する。4号と対をなす道。",
+  46: "<span class=\"warn\">仙岩峠</span>で奥羽山脈を越え、田沢湖・角館を経て秋田へ。",
+  47: "鳴子温泉から最上町へ抜け、新庄から最上川沿いに酒田へ下る。",
+  48: "作並・<span class=\"warn\">関山峠</span>を越えて仙台と山形を最短で結ぶ関山街道。",
+  49: "郡山・会津若松を経て阿賀野川沿いに下り、太平洋側と日本海側を結ぶ。",
+  50: "東京を通らず北関東を東西に貫く。<span class=\"warn\">生データに往復する断片があり、経路組み立てを修正</span>。",
+  51: "成田・佐原を経て利根川を渡り、霞ヶ浦の東側を回って水戸へ。",
+  52: "富士川沿いに身延を経て甲府盆地へ。駿河と甲斐を結ぶ旧・身延道。",
+  53: "津山から<span class=\"warn\">黒尾峠</span>を越えて智頭へ。中国地方を南北に横断。",
+  54: "三次から<span class=\"warn\">赤名峠</span>を越えて出雲へ。瀬戸内側と山陰側を結ぶ。",
+  55: "四国の太平洋側を回り<span class=\"warn\">室戸岬</span>を経て高知へ。56号と合わせて四国一周。",
+  56: "四万十・宿毛から豊後水道沿いを北上し、宇和島・大洲を経て松山へ。",
+  57: "阿蘇の外輪山を越えて熊本へ。<span class=\"warn\">熊本〜島原はフェリーの海上区間</span>。",
+  58: "日本一長い国道。<span class=\"warn\">大半が海上区間(フェリー)</span>。",
+  134: "湘南海岸線。鎌倉・江ノ島・茅ヶ崎を通る。",
+  135: "伊豆半島東岸の観光道路。",
+  158: "九頭竜湖・高山・安房峠を越える山岳国道。上高地への入口。",
+  171: "西国街道。高槻・西宮を経由。",
+  176: "宝塚・三田・福知山を経由。<span class=\"warn\">渋滞の名所</span>。生データは綾部付近まで。",
+  246: "渋谷・厚木・御殿場を経て沼津で1号と合流。",
+  317: "しまなみ海道。瀬戸内海を橋で渡る超有名ルート。生データ未取得。",
+  357: "東京湾岸道路。<span class=\"warn\">起点は木更津ではなく千葉</span>。",
+  411: "青梅街道。奥多摩湖・柳沢峠を越える。<span class=\"warn\">起点の新宿〜青梅は生データ対象外</span>。",
+  413: "道志みち。ツーリングで有名。",
+  439: "<span class=\"warn\">「酷道」</span>として全国的に有名。剣山周辺の山間部を抜ける。"
+};
 
-  // 候補（経由都市・補足情報は用意済み。生データの取得待ち）
-  { status: "p3", num: "317", name: "国道317号", start: "尾道", end: "今治", note: "しまなみ海道。瀬戸内海を橋で渡る超有名ルート。生データ未取得。" }
-];
+/* 収録状況は spec/routes.js（tools/gen_highways_data.py が生成）から組み立てる。
+   路線が増えるたびにこのファイルを手で直さなくて済むように。 */
+const ROWS = SPEC_ROUTES.map(r => {
+  const via = r.prefs.length > 1 ? r.prefs.join("〜") : r.prefs[0] + "内で完結";
+  const auto = r.auto
+    ? '<span class="auto-badge" title="OpenStreetMapのタグと経路から自動生成">自動</span> '
+    : "";
+  return {
+    status: r.excluded ? "p3" : "done",
+    num: String(r.num),
+    name: "国道" + r.num + "号",
+    start: r.start,
+    end: r.end,
+    note: r.excluded
+      ? `収録見送り：${r.excluded}`
+      : auto + (NOTES[r.num] || `${via}　約${r.len}km`),
+    src: "osm",
+  };
+});
 
 const STATUS_META = {
   done: { label: "実装済み", pillClass: "done", groupTitle: "実装済み" },

@@ -26,6 +26,7 @@ Overpassからのエクスポートは、ルートを構成する多数の断片
 
 使い方: python3 tools/process_routes.py
 """
+import heapq
 import json, math, os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -476,6 +477,119 @@ def bridge_via_checkpoints(chains, checkpoints, min_significant_km=0.2, max_brid
             full_path.extend(leg_path)
     return full_path, legs
 
+
+# ---------------------------------------------------------------------------
+# 経由地を人手で与えない自動組み立て
+#
+# 収録路線が459本になると、全部に経由地を手で書くのは現実的でない。そこで
+# 経由地が無い路線は、生データ全体を「点=座標、辺=線分」のグラフとみなし、
+# 最も離れた2点の間の最短経路を取る。リレーションには旧道・バイパス・上下線が
+# 混ざっていて実距離の1.15〜1.67倍の長さがあるが、最短経路はその中から
+# 1本の通し経路だけを選ぶので、往復や寄り道が入らない。
+#
+# 経由地を手で与えた68路線で答え合わせしたところ、64路線が手動版と10km以内
+# （55路線は5km以内）に一致した。ずれる路線は自動版のほうが完全なこともある
+# （42号は手動版が省いた伊勢湾フェリー区間を含む）。
+# ---------------------------------------------------------------------------
+
+def build_graph(segs):
+    adj = {}
+    for seg in segs:
+        prev = round_key(seg[0])
+        adj.setdefault(prev, {})
+        for pt in seg[1:]:
+            k = round_key(pt)
+            adj.setdefault(k, {})
+            if k != prev:
+                d = haversine(prev, k)
+                if d < adj[prev].get(k, float("inf")):
+                    adj[prev][k] = d
+                    adj[k][prev] = d
+            prev = k
+    return adj
+
+
+def graph_components(adj):
+    seen, comps = set(), []
+    for start in adj:
+        if start in seen:
+            continue
+        stack, comp = [start], []
+        seen.add(start)
+        while stack:
+            u = stack.pop()
+            comp.append(u)
+            for v in adj[u]:
+                if v not in seen:
+                    seen.add(v)
+                    stack.append(v)
+        comps.append(comp)
+    return comps
+
+
+def bridge_components(adj, max_km=400.0):
+    """離れた成分どうしを最寄りの点で繋ぐ。海上区間やデータの欠落を渡るため。"""
+    comps = sorted(graph_components(adj), key=len, reverse=True)
+    if not comps:
+        return []
+    merged, bridges = list(comps[0]), []
+    for comp in comps[1:]:
+        if len(comp) < 2:
+            continue
+        # 全点どうしを比べると重いので、粗く間引いた点で当たりを付ける
+        step_a = max(1, len(merged) // 400)
+        step_b = max(1, len(comp) // 400)
+        best = None
+        for a in merged[::step_a]:
+            for b in comp[::step_b]:
+                d = haversine(a, b)
+                if best is None or d < best[0]:
+                    best = (d, a, b)
+        if best and best[0] <= max_km:
+            d, a, b = best
+            adj[a][b] = d
+            adj[b][a] = d
+            bridges.append(round(d, 2))
+            merged += comp
+    return bridges
+
+
+def dijkstra(adj, src):
+    dist, prev = {src: 0.0}, {}
+    pq = [(0.0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist.get(u, float("inf")):
+            continue
+        for v, w in adj[u].items():
+            nd = d + w
+            if nd < dist.get(v, float("inf")):
+                dist[v] = nd
+                prev[v] = u
+                heapq.heappush(pq, (nd, v))
+    return dist, prev
+
+
+def assemble_auto(segs):
+    """経由地なしで1本の経路を組み立てる。木の直径と同じ要領で、Dijkstraを
+    2回回して道のりが最も長くなる2点(=路線の両端)を求め、その間の最短経路を返す。"""
+    adj = build_graph(segs)
+    if len(adj) < 2:
+        return [], []
+    bridges = bridge_components(adj)
+    dist, _ = dijkstra(adj, next(iter(adj)))
+    far_a = max(dist.items(), key=lambda kv: kv[1])[0]
+    dist, _ = dijkstra(adj, far_a)
+    far_b = max(dist.items(), key=lambda kv: kv[1])[0]
+    _, prev = dijkstra(adj, far_a)
+    if far_b == far_a:
+        return [], bridges
+    path = [far_b]
+    while path[-1] != far_a:
+        path.append(prev[path[-1]])
+    return path[::-1], bridges
+
+
 def douglas_peucker(points, tolerance_km):
     if len(points) < 3:
         return points
@@ -540,17 +654,31 @@ def process(route_id):
     if not segs:
         return {"id": route_id, "error": "no line segments"}
 
-    chains = exact_merge(segs)
-    checkpoints, snap_dists = snap_checkpoints(CHECKPOINTS[route_id], segs)
-    # 経由地の先頭/末尾がその国道の起点/終点そのものなので、ズレの基準にも使う
-    exp_start, exp_end = CHECKPOINTS[route_id][0], CHECKPOINTS[route_id][-1]
-    walked, legs = bridge_via_checkpoints(chains, checkpoints)
-    bridges = [b for leg in legs for b in leg["bridges"]]
+    if route_id in CHECKPOINTS:
+        chains = exact_merge(segs)
+        checkpoints, snap_dists = snap_checkpoints(CHECKPOINTS[route_id], segs)
+        # 経由地の先頭/末尾がその国道の起点/終点そのものなので、ズレの基準にも使う
+        exp_start, exp_end = CHECKPOINTS[route_id][0], CHECKPOINTS[route_id][-1]
+        walked, legs = bridge_via_checkpoints(chains, checkpoints)
+        bridges = [b for leg in legs for b in leg["bridges"]]
+    else:
+        # 経由地が無い路線は自動で組み立てる（上の assemble_auto のコメント参照）
+        walked, bridges = assemble_auto(segs)
+        legs, snap_dists = [], []
+        exp_start = walked[0] if walked else None
+        exp_end = walked[-1] if walked else None
+    if len(walked) < 3:
+        return {"id": route_id, "error": "経路を組み立てられない"}
     total_len = chain_length_km(walked)
 
+    # 点数の上限は路線の長さに比例させる(1kmあたり約1点、40〜300点)。459路線を
+    # 全部300点で持つと highways-data.js が2MB近くなり、短い路線にはその精度も要らない。
+    # なぞり判定のペン幅は路線自身の画面上の長さに比例する(index.html参照)ため、
+    # 短い路線ほど細かい形が要るわけではない。
+    budget = max(40, min(300, round(total_len)))
     simplified = douglas_peucker(walked, tolerance_km=0.08)
     tol = 0.08
-    while len(simplified) > 300 and tol < 2.0:
+    while len(simplified) > budget and tol < 2.0:
         tol *= 1.6
         simplified = douglas_peucker(walked, tolerance_km=tol)
 
@@ -559,7 +687,7 @@ def process(route_id):
 
     return {
         "id": route_id,
-        "used_checkpoints": True,
+        "used_checkpoints": route_id in CHECKPOINTS,
         "checkpoint_snap_km": snap_dists,
         "legs": legs,
         "raw_points": len(walked),
@@ -582,7 +710,9 @@ def process(route_id):
     }
 
 if __name__ == "__main__":
-    results = [process(i) for i in sorted(CHECKPOINTS)]
+    available = sorted(int(f[:-len(".geojson")]) for f in os.listdir(DATA_DIR)
+                       if f.endswith(".geojson"))
+    results = [process(i) for i in sorted(set(available) | set(CHECKPOINTS))]
     for r in results:
         if "error" in r:
             print(f"{r['id']:>4} | ERROR: {r['error']}")

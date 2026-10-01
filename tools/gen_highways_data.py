@@ -6,7 +6,9 @@ into an ordered path per route under tools/processed/. This script just attaches
 the human-facing metadata (labels, prefectures, difficulty, trivia) to each path.
 """
 import json
+import math
 import os
+import re
 
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "processed")
 OUT_FILE = os.path.join(os.path.dirname(__file__), os.pardir, "highways-data.js")
@@ -219,6 +221,139 @@ META = {
           "「酷道」として全国的に有名。徳島から剣山周辺の山間部を抜けて四万十へ至る。"),
 }
 
+
+# ---------------------------------------------------------------------------
+# META に手書きしていない路線ぶんの自動生成
+#
+# 459路線ぜんぶに起終点・通過県・豆知識を手で書くのは現実的でないので、
+# 生データ(OpenStreetMap)のタグから機械的に作る。
+#   起終点ラベル … リレーションの from / to タグ（99%の路線が持っている）
+#   通過都道府県 … from / to の都道府県名。途中の県はタグから分からないので入れない
+#   地方         … 経路上の点を、全路線の from / to から作った基準点で分類して求める
+#                  （マップの絞り込みは地方単位なので、都道府県より粗くて済む）
+#   豆知識       … 手で書けないので付けない（アプリ側で無い場合は表示しない）
+# ---------------------------------------------------------------------------
+RAW_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data-raw")
+# 神奈川県・和歌山県・鹿児島県は「3文字＋県」なので、..県 では取りこぼす
+PREF_RE = re.compile(r"^(北海道|東京都|京都府|大阪府|.{2,3}県)")
+SIDE_RE = re.compile(r"(旧道|支線|バイパス|旧線|廃道|延伸|事業)")
+
+PREF_REGION = {
+    "北海道": "北海道",
+    "青森県": "東北", "岩手県": "東北", "宮城県": "東北", "秋田県": "東北", "山形県": "東北", "福島県": "東北",
+    "茨城県": "関東", "栃木県": "関東", "群馬県": "関東", "埼玉県": "関東", "千葉県": "関東", "東京都": "関東", "神奈川県": "関東",
+    "新潟県": "中部", "富山県": "中部", "石川県": "中部", "福井県": "中部", "山梨県": "中部", "長野県": "中部",
+    "岐阜県": "中部", "静岡県": "中部", "愛知県": "中部",
+    "三重県": "近畿", "滋賀県": "近畿", "京都府": "近畿", "大阪府": "近畿", "兵庫県": "近畿", "奈良県": "近畿", "和歌山県": "近畿",
+    "鳥取県": "中国", "島根県": "中国", "岡山県": "中国", "広島県": "中国", "山口県": "中国",
+    "徳島県": "四国", "香川県": "四国", "愛媛県": "四国", "高知県": "四国",
+    "福岡県": "九州", "佐賀県": "九州", "長崎県": "九州", "熊本県": "九州", "大分県": "九州", "宮崎県": "九州",
+    "鹿児島県": "九州", "沖縄県": "九州",
+}
+
+
+def haversine(a, b):
+    r = 6371.0
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(h))
+
+
+def clean_place(value):
+    """タグの値を整える。稀に「北海道浦河町\tto=北海道釧路市」のように
+    2つのタグが1つの値に潰れているものがあるので、そこで切る。"""
+    if not value:
+        return None
+    return re.split(r"[\t\n]|\bto=", value)[0].strip() or None
+
+
+def raw_endpoints(route_id):
+    """その路線の from / to タグを返す。旧道・支線のリレーションは見ない。"""
+    f = os.path.join(RAW_DIR, "%d.geojson" % route_id)
+    if not os.path.exists(f):
+        return None, None
+    with open(f, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    props = [feat.get("properties") or {} for feat in doc.get("features", [])]
+    main = [q for q in props if not SIDE_RE.search(q.get("name", "") or "")] or props
+    for q in main:
+        frm, to = clean_place(q.get("from")), clean_place(q.get("to"))
+        if frm and to:
+            return frm, to
+    # from と to が1つのタグに潰れている場合は、そこから両方を取り出す
+    for q in main:
+        raw = q.get("from") or ""
+        m = re.search(r"\bto=(.+)$", raw)
+        if m and clean_place(raw):
+            return clean_place(raw), m.group(1).strip()
+    return None, None
+
+
+def city_label(place):
+    """「福岡県北九州市八幡西区」→「北九州」。ボタンや出題文に収まる長さにする。
+    郡名は地名として通じない（「福島県耶麻郡西会津町」は耶麻ではなく西会津）ので、
+    郡の部分は読み飛ばして町村名を採る。"""
+    if not place:
+        return None
+    body = PREF_RE.sub("", place)
+    body = re.sub(r"^.{1,4}郡", "", body)  # 郡は飛ばす
+    m = re.match(r"(.+?)(市|区|町|村)", body)
+    name = (m.group(1) if m else body).strip()
+    if name:
+        return name
+    m = PREF_RE.match(place)
+    return m.group(1) if m else place
+
+
+def build_region_seeds(paths):
+    """全路線の起終点を「この座標はこの地方」という基準点として集める。"""
+    seeds = []
+    for rid, path in paths.items():
+        frm, to = raw_endpoints(rid)
+        for place, pt in ((frm, path[0]), (to, path[-1])):
+            m = PREF_RE.match(place or "")
+            if m and m.group(1) in PREF_REGION:
+                seeds.append((tuple(pt), PREF_REGION[m.group(1)]))
+    return seeds
+
+
+def regions_of(path, seeds, k=5, min_share=0.05):
+    """経路上の点を近くの基準点で分類し、全体の5%以上を占めた地方を採用する。
+    県境付近の1点だけで地方が付いてしまうのを防ぐため。"""
+    tally, total = {}, 0
+    step = max(1, len(path) // 80)
+    for q in path[::step]:
+        near = sorted(seeds, key=lambda sd: haversine(sd[0], q))[:k]
+        weight = {}
+        for pt, reg in near:
+            weight[reg] = weight.get(reg, 0.0) + 1.0 / max(haversine(pt, q), 0.5)
+        best = max(weight.items(), key=lambda kv: kv[1])[0]
+        tally[best] = tally.get(best, 0) + 1
+        total += 1
+    return {r for r, c in tally.items() if c / total >= min_share}
+
+
+def auto_meta(route_id, path, length_km, seeds):
+    """タグから1路線ぶんのメタデータを作る。作れなければ (None, 理由) を返す。"""
+    frm, to = raw_endpoints(route_id)
+    if not frm or not to:
+        return None, "from/toタグが無い"
+    mf, mt = PREF_RE.match(frm), PREF_RE.match(to)
+    if not mf or not mt:
+        return None, "from/toから都道府県を読み取れない"
+    prefs = [mf.group(1)] + ([mt.group(1)] if mt.group(1) != mf.group(1) else [])
+    regions = regions_of(path, seeds) | {PREF_REGION[p] for p in prefs}
+    return {
+        "number": "国道%d号" % route_id,
+        "startLabel": city_label(frm),
+        "endLabel": city_label(to),
+        "prefectures": prefs,
+        "regions": sorted(regions),
+        # 長い路線ほど名前が知られているので、そこだけ難易度を分ける
+        "difficulty": 2 if length_km >= 200 else 3,
+    }, None
+
+
 def fmt_path(points):
     rows = ",\n      ".join("[%.5f, %.5f]" % (p[0], p[1]) for p in points)
     return "[\n      " + rows + "\n    ]"
@@ -235,26 +370,80 @@ if os.path.exists(report_file):
         if "len_km" in r:
             lengths[r["id"]] = r["len_km"]
 
+# 品質の基準。これを外れた路線は問題として成立しないので収録しない。
+#
+# 経路の「飛び」は厳しく見ない。自動組み立ては生データの線分だけを辺にした
+# グラフの最短経路なので、組み立てを誤って離れた場所へ飛ぶことが原理的に起きず、
+# 飛びが出るのは生データ側が途切れている所（フェリーの海上区間など）だけに限られる。
+# 国道58号(鹿児島〜沖縄)の246kmの飛びと同じで、これは正しい姿。ただし経路の
+# 大半が1回の飛びという場合は、復元できていないとみなして外す。
+MIN_LENGTH_KM = 10.0       # 日本全体の縮尺では数pxしかなく、なぞりようがない
+MIN_POINTS = 10            # 形が無さすぎるとなぞりようがない
+MAX_JUMP_RATIO = 0.6       # 全長の6割が1回の飛び＝つながりが復元できていない
+
+paths = {}
+for f in os.listdir(PROCESSED_DIR):
+    if f.endswith(".json") and not f.startswith("_"):
+        paths[int(f[:-len(".json")])] = json.load(open(os.path.join(PROCESSED_DIR, f)))
+
+jumps = {}
+for r in json.load(open(report_file)) if os.path.exists(report_file) else []:
+    if "max_jump_km" in r:
+        jumps[r["id"]] = r["max_jump_km"]
+
+seeds = build_region_seeds(paths)
+
 blocks = []
 missing = []
-for hid in sorted(META):
-    path_file = os.path.join(PROCESSED_DIR, f"{hid}.json")
-    if not os.path.exists(path_file):
+excluded = []
+auto_count = 0
+for hid in sorted(set(META) | set(paths)):
+    pts = paths.get(hid)
+    if not pts:
         missing.append(hid)
         continue
-    number, start_label, end_label, prefs, diff, fact = META[hid]
-    pts = json.load(open(path_file))
-    blocks.append(f"""  {{
-    id: {hid},
-    number: "{number}",
-    startLabel: "{start_label}",
-    endLabel: "{end_label}",
-    prefectures: {js_str_list(prefs)},
-    difficulty: {diff},
-    lengthKm: {round(lengths.get(hid, 0))},
-    fact: "{fact}",
-    path: {fmt_path(pts)}
-  }}""")
+    length_km = lengths.get(hid, 0)
+    fact = None
+    if hid in META:
+        number, start_label, end_label, prefs, diff, fact = META[hid]
+        regions = None
+    else:
+        meta, why = auto_meta(hid, pts, length_km, seeds)
+        if meta is None:
+            excluded.append((hid, why))
+            continue
+        number = meta["number"]
+        start_label, end_label = meta["startLabel"], meta["endLabel"]
+        prefs, regions, diff = meta["prefectures"], meta["regions"], meta["difficulty"]
+        # 手で内容を確かめていない路線は、品質の基準を満たすものだけ収録する
+        jump = jumps.get(hid, 0)
+        if length_km < MIN_LENGTH_KM:
+            excluded.append((hid, f"短すぎる({length_km}km)"))
+            continue
+        if len(pts) < MIN_POINTS:
+            excluded.append((hid, f"経路の点が少なすぎる({len(pts)}点)"))
+            continue
+        if length_km and jump > length_km * MAX_JUMP_RATIO:
+            excluded.append((hid, f"経路の大半が1回の飛び({jump}km / 全長{length_km}km)"))
+            continue
+        auto_count += 1
+    fields = [
+        f"    id: {hid}",
+        f'    number: "{number}"',
+        f'    startLabel: "{start_label}"',
+        f'    endLabel: "{end_label}"',
+        f"    prefectures: {js_str_list(prefs)}",
+    ]
+    if regions:
+        fields.append(f"    regions: {js_str_list(regions)}")
+    fields += [
+        f"    difficulty: {diff}",
+        f"    lengthKm: {round(length_km)}",
+    ]
+    if fact:
+        fields.append(f'    fact: "{fact}"')
+    fields.append(f"    path: {fmt_path(pts)}")
+    blocks.append("  {\n" + ",\n".join(fields) + "\n  }")
 
 header = '''/*
  * 国道データ
@@ -280,7 +469,40 @@ const HIGHWAYS = [
 with open(OUT_FILE, "w") as f:
     f.write(header + ",\n".join(blocks) + "\n];\n")
 
+# 仕様書ページ用の一覧も出す。highways-data.js は1.4MBあって仕様書から読むには
+# 重いので、経路を含まない軽い一覧を別に書き出す。
+SPEC_FILE = os.path.join(os.path.dirname(__file__), os.pardir, "spec", "routes.js")
+spec_rows = []
+for hid in sorted(set(META) | set(paths)):
+    why = dict(excluded).get(hid)
+    if hid in META:
+        number, start_label, end_label, prefs, diff, _fact = META[hid]
+        auto = False
+    else:
+        meta, _ = auto_meta(hid, paths[hid], lengths.get(hid, 0), seeds) if hid in paths else (None, None)
+        if meta:
+            number, start_label, end_label = meta["number"], meta["startLabel"], meta["endLabel"]
+            prefs, diff, auto = meta["prefectures"], meta["difficulty"], True
+        else:
+            # メタデータを作れなかった路線も、見送った理由とともに一覧には残す
+            start_label = end_label = "不明"
+            prefs, diff, auto = [], 3, True
+    spec_rows.append('  { num: %d, start: "%s", end: "%s", prefs: %s, diff: %d, len: %d, auto: %s%s }' % (
+        hid, start_label, end_label, js_str_list(prefs), diff, round(lengths.get(hid, 0)),
+        "true" if auto else "false",
+        ', excluded: "%s"' % why if why else ""))
+os.makedirs(os.path.dirname(SPEC_FILE), exist_ok=True)
+with open(SPEC_FILE, "w", encoding="utf-8") as f:
+    f.write("/* tools/gen_highways_data.py が生成。直接編集しない。\n"
+            "   仕様書ページ用の軽い一覧（経路の座標は含まない）。 */\nconst SPEC_ROUTES = [\n"
+            + ",\n".join(spec_rows) + "\n];\n")
+print("wrote", os.path.normpath(SPEC_FILE), f"({len(spec_rows)} routes)")
+
 print("wrote", os.path.normpath(OUT_FILE))
-print("routes:", len(blocks))
+print(f"routes: {len(blocks)} (手書きのMETA {len(blocks) - auto_count} / タグから自動生成 {auto_count})")
 if missing:
     print("SKIPPED (no processed path):", missing)
+if excluded:
+    print(f"EXCLUDED {len(excluded)}路線:")
+    for hid, why in excluded:
+        print(f"  国道{hid}号: {why}")

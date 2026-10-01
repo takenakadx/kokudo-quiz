@@ -686,7 +686,13 @@ const PREF_REGION = {
   "福岡県": "九州", "佐賀県": "九州", "長崎県": "九州", "熊本県": "九州", "大分県": "九州", "宮崎県": "九州", "鹿児島県": "九州", "沖縄県": "九州",
 };
 function routeNumber(h) { return Number(h.number.match(/\d+/)[0]); }
-function highwayRegions(h) { return [...new Set(h.prefectures.map(p => PREF_REGION[p]))]; }
+/* 通る地方。手書きで通過県を並べた路線は県から求め、タグから自動生成した路線は
+   生成時に経路の座標から判定した regions を持っているのでそれを使う（自動生成では
+   途中の県がタグから分からないため、県から求めると地方を取りこぼす）。 */
+function highwayRegions(h) {
+  if (h.regions) return h.regions;
+  return [...new Set(h.prefectures.map(p => PREF_REGION[p]))];
+}
 
 // test: 国道→真偽。regions: いずれかの地方を通れば対象（1つの国道が複数の地方に
 // またがるのは普通のことなので、地方カテゴリはOR条件・重複ありで扱う）。
@@ -781,7 +787,9 @@ function routeInfoHtml(h) {
     ? `通過：${h.prefectures.join(" → ")}`
     : `${h.prefectures[0]}内で完結`;
   const len = h.lengthKm ? `　総距離：約${h.lengthKm.toLocaleString()}km` : "";
-  return `<span class="route-meta">${via}${len}</span><br>${h.fact}`;
+  // 豆知識は手で書いた路線にしか無い。無い路線では行ごと出さない
+  const fact = h.fact ? `<br>${h.fact}` : "";
+  return `<span class="route-meta">${via}${len}</span>${fact}`;
 }
 
 function selectStudyHighway(h, btn) {
