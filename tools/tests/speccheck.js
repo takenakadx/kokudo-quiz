@@ -1,15 +1,15 @@
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
 const path = require('path');
 const fail = [];
 function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'  '+JSON.stringify(e):''}`); if(!c) fail.push(n); }
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const b = await chromium.launch(EXEC);
   // 仕様書の「実装済み」件数は、アプリが実際に収録している本数と一致していなければならない
-  const appCount = (require('fs').readFileSync(path.join(__dirname, 'highways-data.js'), 'utf8')
+  const appCount = (require('fs').readFileSync(DATA, 'utf8')
     .match(/\n  \{\s*id:/g) || []).length;
   const p = await b.newPage({ viewport: { width: 1100, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + path.join(__dirname, 'spec-check.html'));
+  await p.goto('file://' + SPEC);
   await p.waitForTimeout(300);
   const o = await p.evaluate(() => ({
     all: +document.getElementById('statAll').textContent,

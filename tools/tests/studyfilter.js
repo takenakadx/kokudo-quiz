@@ -1,16 +1,16 @@
 // 学習モードの分類セレクト・番号検索の回帰テスト
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
 const path = require('path');
 const fail = [];
 function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'  '+JSON.stringify(e):''}`); if(!c) fail.push(n); }
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const b = await chromium.launch(EXEC);
   const p = await b.newPage({ viewport: { width: 900, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   p.on('console', m => { const t = m.text();
     if (m.type() === 'error' && !t.includes('ERR_TUNNEL') && !t.includes('Failed to load resource')) errs.push(t); });
-  await p.addInitScript({ path: path.join(__dirname, 'leaflet-stub.js') });
-  await p.goto('file://' + path.join(__dirname, 'index.html'));
+  await p.addInitScript({ path: STUB });
+  await p.goto('file://' + APP);
   await p.waitForTimeout(400);
 
   const nums = () => p.evaluate(() => [...document.querySelectorAll('#study-hwy-list button')].map(b => b.textContent));

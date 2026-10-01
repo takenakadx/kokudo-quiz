@@ -1,8 +1,8 @@
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
 const path = require('path');
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const browser = await chromium.launch(EXEC);
   const page = await browser.newPage({ viewport: { width: 900, height: 800 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -13,8 +13,8 @@ const path = require('path');
     }
   });
 
-  await page.addInitScript({ path: path.join(__dirname, 'leaflet-stub.js') });
-  await page.goto('file://' + path.join(__dirname, 'index.html'));
+  await page.addInitScript({ path: STUB });
+  await page.goto('file://' + APP);
   await page.waitForTimeout(600);
 
   // 1. data sanity across every route
