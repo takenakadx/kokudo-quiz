@@ -273,6 +273,41 @@
     background: var(--blue-light);
     color: #fff;
   }
+  /* 学習モードで見た国道と、クイズでマスターした国道に印を付ける */
+  /* 「見た」はグレーにすると押せないように見えるので、薄い塗りで表す */
+  .hwy-list button.seen {
+    background: #eaf1fa;
+    border-color: var(--blue-light);
+  }
+  .hwy-list button.mastered {
+    border-color: #c99a1f;
+    color: #a87c0c;
+    background: #fdf6e3;
+    font-weight: 700;
+  }
+  .hwy-list button.active.seen,
+  .hwy-list button.active.mastered {
+    background: var(--blue-light);
+    border-color: var(--blue-light);
+    color: #fff;
+  }
+
+  /* 結果パネルのごほうび表示 */
+  .rewards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .reward {
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .reward.master { background: #fdf6e3; color: #a87c0c; border: 1px solid #e3cd8a; }
+  .reward.streak { background: #fdeee8; color: #c2501f; border: 1px solid #f0bda7; }
 
   .info-box {
     margin-top: 10px;
@@ -723,6 +758,35 @@ function matchesQuery(h, query) {
   return String(routeNumber(h)).includes(q);
 }
 
+/* 成績は端末内にのみ保存する。保存形は以前からのものに後から項目を足しているので、
+   古い保存データを読んでも落ちないよう、欠けている項目は既定値で埋める。
+     total/correct … 通算の出題数・正解数
+     streak/best   … 連続正解数と、その最高記録
+     byHighway     … 国道ごとの attempts/correct（マスター判定に使う）
+     viewed        … 学習モードで見た国道 */
+const STATS_KEY = "kokudoQuizStats.v1";
+const MASTER_CORRECT = 3;   // この回数だけ正解したらその国道は「マスター」
+
+function emptyStats() {
+  return { total: 0, correct: 0, streak: 0, best: 0, byHighway: {}, viewed: {} };
+}
+function loadStats() {
+  try {
+    return Object.assign(emptyStats(), JSON.parse(localStorage.getItem(STATS_KEY)) || {});
+  } catch (e) { return emptyStats(); }
+}
+function saveStats(s) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) { /* ignore */ }
+}
+
+function isMastered(id, s) {
+  return ((s || loadStats()).byHighway[id] || {}).correct >= MASTER_CORRECT;
+}
+// 1問でも正解した国道の数。「制覇率」の分子
+function clearedCount(s) {
+  return Object.values(s.byHighway).filter(h => h.correct > 0).length;
+}
+
 /* ================= 学習モード ================= */
 const studyMap = createMap("study-map", true);
 const studyLayerGroup = L.layerGroup().addTo(studyMap);
@@ -753,15 +817,33 @@ function studyPool() {
   return HIGHWAYS.filter(h => matchesCategory(h, cat) && matchesQuery(h, studySearch.value));
 }
 
+// 学習モードで開いた国道を控える（どこまで見たか分かるように）。
+// 一覧の描き直しは呼び出し側がまとめて行う
+function markViewed(id) {
+  const s = loadStats();
+  if (s.viewed[id]) return;
+  s.viewed[id] = true;
+  saveStats(s);
+}
+
 function renderStudyList() {
   const pool = studyPool();
+  const s = loadStats();
   studyList.innerHTML = "";
   pool.forEach(h => {
     const btn = document.createElement("button");
-    btn.textContent = h.number;
+    const mastered = isMastered(h.id, s);
+    btn.textContent = (mastered ? "★" : "") + h.number;
+    if (mastered) {
+      btn.classList.add("mastered");
+      btn.title = `クイズで${MASTER_CORRECT}回正解した国道`;
+    } else if (s.viewed[h.id]) {
+      btn.classList.add("seen");
+      btn.title = "学習モードで見た国道";
+    }
     // 選択中の国道は、絞り込みを変えて再描画しても選択状態を保つ
     if (studyHighway && studyHighway.id === h.id) btn.classList.add("active");
-    btn.addEventListener("click", () => selectStudyHighway(h, btn));
+    btn.addEventListener("click", () => selectStudyHighway(h));
     studyList.appendChild(btn);
   });
   if (!pool.length) {
@@ -770,7 +852,10 @@ function renderStudyList() {
     msg.textContent = "この条件に合う国道はありません";
     studyList.appendChild(msg);
   }
-  studyCountEl.textContent = `${pool.length} / ${HIGHWAYS.length}本`;
+  const seen = pool.filter(h => s.viewed[h.id] || isMastered(h.id, s)).length;
+  const mastered = pool.filter(h => isMastered(h.id, s)).length;
+  const progress = seen ? `　見た ${seen}` + (mastered ? `・★${mastered}` : "") : "";
+  studyCountEl.textContent = `${pool.length} / ${HIGHWAYS.length}本${progress}`;
 }
 
 studyCatSelect.addEventListener("change", () => {
@@ -792,10 +877,12 @@ function routeInfoHtml(h) {
   return `<span class="route-meta">${via}${len}</span>${fact}`;
 }
 
-function selectStudyHighway(h, btn) {
+function selectStudyHighway(h) {
   studyHighway = h;
-  [...studyList.children].forEach(b => b.classList && b.classList.remove("active"));
-  if (btn) btn.classList.add("active");
+  markViewed(h.id);
+  // 選択状態も「見た」印も一覧の描き直しで付く（押したボタンを直接いじると、
+  // 描き直しで作り直された別のボタンに印が付かず、選択が消えてしまう）
+  renderStudyList();
   studyInfo.innerHTML =
     `<strong>${h.number}</strong>：${h.startLabel} → ${h.endLabel}<br>` +
     routeInfoHtml(h);
@@ -1051,18 +1138,14 @@ soundToggleBtn.addEventListener("click", () => {
 });
 renderSoundToggle();
 
-const STATS_KEY = "kokudoQuizStats.v1";
-function loadStats() {
-  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { total: 0, correct: 0, byHighway: {} }; }
-  catch (e) { return { total: 0, correct: 0, byHighway: {} }; }
-}
-function saveStats(s) {
-  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) { /* ignore */ }
-}
 function renderStats() {
   const s = loadStats();
   const rate = s.total ? Math.round((s.correct / s.total) * 100) : 0;
-  quizStatsEl.textContent = `正解 ${s.correct} / 出題 ${s.total}（正解率 ${rate}%）`;
+  const parts = [`正解 ${s.correct} / 出題 ${s.total}（${rate}%）`];
+  if (s.streak > 0) parts.push(`${s.streak}問連続`);
+  if (s.best > 1) parts.push(`最高 ${s.best}`);
+  parts.push(`制覇 ${clearedCount(s)} / ${HIGHWAYS.length}`);
+  quizStatsEl.textContent = parts.join("　");
 }
 renderStats();
 
@@ -1380,13 +1463,22 @@ function finishAttempt() {
 
   const s = loadStats();
   s.total++;
-  if (result.grade === "correct") s.correct++;
   const hs = s.byHighway[currentHighway.id] || { attempts: 0, correct: 0 };
+  const wasMastered = hs.correct >= MASTER_CORRECT;
   hs.attempts++;
-  if (result.grade === "correct") hs.correct++;
+  if (result.grade === "correct") {
+    s.correct++;
+    hs.correct++;
+    s.streak++;
+    s.best = Math.max(s.best, s.streak);
+  } else {
+    s.streak = 0;   // 「惜しい」も連続は途切れる
+  }
   s.byHighway[currentHighway.id] = hs;
   saveStats(s);
   renderStats();
+  renderStudyList();   // マスターの印を学習モードの一覧にも反映する
+  const justMastered = !wasMastered && hs.correct >= MASTER_CORRECT;
 
   const pct = result.score;
   const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
@@ -1395,9 +1487,19 @@ function finishAttempt() {
     partial: `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`,
     incorrect: `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`
   }[result.grade];
+  // ごほうびの表示。連続正解とマスター到達は、そのときだけ出す
+  const rewards = [];
+  if (justMastered) {
+    rewards.push(`<span class="reward master">★ ${currentHighway.number}をマスター！</span>`);
+  }
+  if (s.streak >= 3) {
+    const best = s.streak === s.best && s.streak > 3 ? "（自己最高）" : "";
+    rewards.push(`<span class="reward streak">🔥 ${s.streak}問連続正解${best}</span>`);
+  }
+  const rewardHtml = rewards.length ? `<div class="rewards">${rewards.join("")}</div>` : "";
   // 補足情報は正誤に関わらず出す（間違えたときこそ覚えてもらいたいため）
   showResult(result.grade,
-    `${headline}<div class="result-info">` +
+    `${headline}${rewardHtml}<div class="result-info">` +
     `${currentHighway.number}：${currentHighway.startLabel} → ${currentHighway.endLabel}<br>` +
     `${routeInfoHtml(currentHighway)}</div>`);
   btnHint.disabled = true;
@@ -1687,7 +1789,7 @@ window.addEventListener("resize", () => {
 });
 
 /* 初期表示 */
-selectStudyHighway(HIGHWAYS[0], studyList.children[0]);
+selectStudyHighway(HIGHWAYS[0]);
 </script>
 </body>
 </html>

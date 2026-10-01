@@ -19,7 +19,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   const count = () => p.evaluate(() => document.getElementById('study-count').textContent);
 
   check('初期表示は全国道', (await nums()).length === total, await count());
-  check('件数表示は総数を含む', (await count()).endsWith(total + '本'), await count());
+  check('件数表示は総数を含む', (await count()).includes(total + '本'), await count());
 
   // 分類セレクトはクイズの「マップ」と同じ選択肢
   const opts = await p.evaluate(() => ({
