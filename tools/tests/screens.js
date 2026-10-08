@@ -76,6 +76,40 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   check('次の問題では線が消えて採点ボタンも消える',
     !v.buttons.includes('採点する') && (await p.evaluate(() => QZ.state().strokes)) === 0, v.buttons);
 
+  // ---- 採点しても、拡大してなぞった構図のままにする ----
+  // 短い国道は拡大してなぞるので、採点した瞬間に日本全体へ戻ると
+  // 正解ルートがどこだったのか確認できなくなる
+  const camera = await p.evaluate(() => {
+    QZ.ask(134);                       // 湘南の134号。日本全体では数pxしかない
+    zoomMapAround({ x: 195, y: 300 }, 1);
+    zoomMapAround({ x: 195, y: 300 }, 1);
+    zoomMapAround({ x: 195, y: 300 }, 1);
+    panMapBy(40, -30);
+    const before = { zoom: quizMap.getZoom(), pan: [quizMap._state.panX, quizMap._state.panY] };
+    QZ.stroke(0, QZ.points() - 1, 1, 20);
+    QZ.submit();
+    const judged = { zoom: quizMap.getZoom(), pan: [quizMap._state.panX, quizMap._state.panY] };
+    QZ.next();
+    const nextQ = { zoom: quizMap.getZoom() };
+    return { before, judged, nextQ };
+  });
+  check('採点しても拡大・移動した構図が保たれる',
+    camera.judged.zoom === camera.before.zoom &&
+    JSON.stringify(camera.judged.pan) === JSON.stringify(camera.before.pan), camera);
+  check('次の問題へ進むと日本全体の構図に戻る', camera.nextQ.zoom < camera.before.zoom, camera);
+
+  // ---- 「全部消す」は同じ問題のやり直しなので構図を変えない ----
+  const retried = await p.evaluate(() => {
+    QZ.ask(134);
+    zoomMapAround({ x: 195, y: 300 }, 1);
+    zoomMapAround({ x: 195, y: 300 }, 1);
+    const before = quizMap.getZoom();
+    QZ.stroke(0, 20, 1, 10);
+    QZ.clearAll();
+    return { before, after: quizMap.getZoom() };
+  });
+  check('「全部消す」でも構図は変わらない', retried.after === retried.before, retried);
+
   // ---- やめる → タイトル ----
   await p.evaluate(() => QZ.quit()); await p.waitForTimeout(150);
   v = await view();

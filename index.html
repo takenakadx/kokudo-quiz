@@ -783,9 +783,17 @@ function createMap(containerId, interactive) {
   return map;
 }
 
+// 日本全体の構図に戻す。新しい問題に移るときだけ使う
 function refitMap(map) {
   map.invalidateSize();
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
+}
+
+// 表示領域の大きさだけ測り直す。いまのpan/zoomはそのまま残す。
+// 採点した直後や画面サイズが変わったときに構図まで戻してしまうと、
+// 拡大して答えた人が「どこが正解だったのか」を確認できなくなるため。
+function resizeMap(map) {
+  map.invalidateSize();
 }
 
 // 国道のpath全体を囲む範囲。学習モードで国道を選んだときに、その国道いっぱいに
@@ -2004,7 +2012,7 @@ btnRetry.addEventListener("click", () => {
   hideResult();
   quizHintText.textContent = "";
   showScreen("playing");
-  refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
+  // 同じ問題をやり直すだけなので、拡大したまま続けられるよう構図は変えない
   afterMapMoved();
 });
 btnNext.addEventListener("click", () => {
@@ -2039,7 +2047,10 @@ function showScreen(name) {
   if (name === "result") { /* 中身は showResultScreen が作る */ }
   if (name === "stage") refreshIdlePrompt();   // 中で renderStageList() も呼ぶ
   if (name === "playing" || name === "judge") {
-    refitMap(quizMap);
+    // ここでは構図を戻さない。日本全体に戻すのは新しい問題に移るときだけ
+    // （startQuestion）。採点した瞬間に戻ると、拡大してなぞった人が
+    // 正解ルートを確認できなくなる
+    resizeMap(quizMap);
     if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
   }
   if (name === "study") {
@@ -2149,7 +2160,8 @@ showScreen("title");
 window.addEventListener("resize", () => {
   if (!panelStudy.hidden) fitStudyMap(studyHighway, false);
   if (!panelQuiz.hidden) {
-    refitMap(quizMap);
+    // スマホのアドレスバーの出入りでも呼ばれるので、構図は変えずに大きさだけ測り直す
+    resizeMap(quizMap);
     if (currentHighway) afterMapMoved(); // ペン幅・残量は画面上の長さ基準なので測り直す
   }
 });
