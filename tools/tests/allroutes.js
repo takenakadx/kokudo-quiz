@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 (async () => {
   const b = await chromium.launch(EXEC);
@@ -8,27 +8,15 @@ const path = require('path');
   await p.addInitScript({ path: STUB });
   await p.goto('file://' + APP);
   await p.waitForTimeout(400);
-  await p.click('#tab-quiz');
+  await openQuiz(p);
   const res = await p.evaluate(() => {
-    const ov = document.getElementById('quiz-overlay');
-    const fire = (t, x, y) => ov.dispatchEvent(new PointerEvent(t, {
-      pointerId: 1, pointerType: 'touch', bubbles: true, cancelable: true, clientX: x, clientY: y }));
     const out = [];
     for (const h of HIGHWAYS) {
-      currentHighway = h; answered = false; hintUsed = false;
-      clearStrokes(); quizLayerGroup.clearLayers(); hideResult();
-      refitMap(quizMap);
       // 短い国道は日本全体だとなぞれないので、その国道が画面いっぱいになるまで寄る
-      quizMap.fitBounds(highwayBounds(h), { padding: [40, 40], animate: false });
-      updateOfficialDenseCache(); renderQuiz(); renderInkGauge();
-      const r = ov.getBoundingClientRect();
-      const at = i => { const q = quizMap.latLngToContainerPoint(h.path[i]); return { x: r.x + q.x, y: r.y + q.y }; };
-      const first = at(0);
-      fire('pointerdown', first.x, first.y);
-      for (let i = 1; i < h.path.length; i++) { const q = at(i); fire('pointermove', q.x, q.y); }
-      const last = at(h.path.length - 1);
-      fire('pointerup', last.x, last.y);
-      out.push({ id: h.id, num: h.number, coverage: scoreAttempt().score, inkPct: Math.round(drawnInk / inkBudget * 100) });
+      QZ.ask(h.id, 'route');
+      QZ.traceAll();
+      const s = QZ.score();
+      out.push({ id: h.id, num: h.number, coverage: s.coverage, inkPct: s.inkPct });
     }
     return out;
   });

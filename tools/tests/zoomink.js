@@ -1,5 +1,5 @@
 // ズーム/パンしてもペン残量が動かないことの回帰テスト
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 const fail = [];
 function check(name, cond, extra) {
@@ -14,25 +14,16 @@ function check(name, cond, extra) {
   await p.addInitScript({ path: STUB });
   await p.goto('file://' + APP);
   await p.waitForTimeout(400);
-  await p.click('#tab-quiz');
+  await openQuiz(p);
   const out = await p.evaluate(() => {
-    const ov = document.getElementById('quiz-overlay');
-    const fire = (t, x, y) => ov.dispatchEvent(new PointerEvent(t, {
-      pointerId: 1, pointerType: 'touch', bubbles: true, cancelable: true, clientX: x, clientY: y }));
     const res = {};
     // 長い国道・短い国道・日本全体では数pxしかない国道をまぜて確認する
     for (const id of [4, 1, 42, 134, 43]) {
       const h = HIGHWAYS.find(x => x.id === id);
-      currentHighway = h; answered = false; hintUsed = false;
-      clearStrokes(); quizLayerGroup.clearLayers(); hideResult();
-      refitMap(quizMap); updateOfficialDenseCache(); renderQuiz(); renderInkGauge();
+      QZ.ask(id);
       // 半分だけなぞる（上限に当たっていない状態で残量の動きを見たい）
-      const r = ov.getBoundingClientRect();
-      const at = i => { const q = quizMap.latLngToContainerPoint(h.path[i]); return { x: r.x + q.x, y: r.y + q.y }; };
       const half = Math.floor(h.path.length / 2);
-      fire('pointerdown', at(0).x, at(0).y);
-      for (let i = 1; i <= half; i++) { const q = at(i); fire('pointermove', q.x, q.y); }
-      fire('pointerup', at(half).x, at(half).y);
+      QZ.stroke(0, half, 1, half);
       const pct = () => drawnInk / inkBudget * 100;
       const base = pct();
       const seen = [];

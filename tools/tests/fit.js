@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 const sizes = [
   ['phone-small', 360, 640], ['phone', 390, 844], ['phone-landscape', 844, 390],
@@ -12,20 +12,13 @@ const sizes = [
     await p.addInitScript({ path: STUB });
     await p.goto('file://' + APP);
     await p.waitForTimeout(300);
-    await p.click('#tab-quiz');
-    await p.click('#quiz-start');
-    await p.waitForTimeout(200);
-    // score an attempt so the result panel is showing too
+    await openQuiz(p, 200);
+    // 結果パネルも出ている状態にして、それでも1画面に収まるかを見る
     await p.evaluate(() => {
-      currentHighway = HIGHWAYS.find(x => x.id === 4);
-      answered = false; clearStrokes(); refitMap(quizMap); updateOfficialDenseCache(); renderQuizPrompt(); renderQuiz(); renderInkGauge();
-      const ov = document.getElementById('quiz-overlay'), r = ov.getBoundingClientRect();
-      const fire = (t, id, x, y) => ov.dispatchEvent(new PointerEvent(t, {pointerId:id, pointerType:'touch', bubbles:true, cancelable:true, clientX:x, clientY:y}));
-      const at = i => { const q = quizMap.latLngToContainerPoint(currentHighway.path[i]); return [r.x+q.x, r.y+q.y]; };
-      fire('pointerdown', 1, ...at(0));
-      for (let k=1;k<=20;k++) fire('pointermove', 1, ...at(Math.round(k*(currentHighway.path.length-1)/20)));
-      fire('pointerup', 1, ...at(currentHighway.path.length-1));
-      document.getElementById('quiz-submit').click();
+      QZ.startRandom();
+      QZ.ask(4);
+      QZ.stroke(0, QZ.points() - 1, 1, 20);
+      QZ.submit();
     });
     await p.waitForTimeout(250);
     const m = await p.evaluate(() => {

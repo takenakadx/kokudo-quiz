@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 
 const fail = [];
@@ -20,79 +20,10 @@ function check(name, cond, extra) {
   await page.goto('file://' + APP);
   await page.waitForTimeout(500);
 
-  // helpers injected into the page for driving pointer gestures on the overlay
-  await page.addScriptTag({ content: `
-    window.T = {
-      ov: () => document.getElementById('quiz-overlay'),
-      rect: () => document.getElementById('quiz-overlay').getBoundingClientRect(),
-      // route point i -> client coords
-      rp(i) {
-        const h = currentHighway, r = this.rect();
-        const n = h.path.length;
-        const p = quizMap.latLngToContainerPoint(h.path[Math.min(n - 1, Math.max(0, i))]);
-        return { x: r.x + p.x, y: r.y + p.y };
-      },
-      ev(type, o) {
-        this.ov().dispatchEvent(new PointerEvent(type, Object.assign({
-          pointerId: 1, pointerType: 'touch', button: 0, buttons: 1, bubbles: true, cancelable: true
-        }, o)));
-      },
-      // draw one stroke along route points [from..to]
-      stroke(from, to, pointerId) {
-        const id = pointerId || 1;
-        const step = (to - from) / 12;
-        const first = this.rp(from);
-        this.ev('pointerdown', { pointerId: id, clientX: first.x, clientY: first.y });
-        for (let k = 1; k <= 12; k++) {
-          const p = this.rp(Math.round(from + step * k));
-          this.ev('pointermove', { pointerId: id, clientX: p.x, clientY: p.y });
-        }
-        const last = this.rp(to);
-        this.ev('pointerup', { pointerId: id, clientX: last.x, clientY: last.y });
-      },
-      pick(id) {
-        currentHighway = HIGHWAYS.find(h => h.id === id);
-        hintUsed = false; answered = false;
-        clearStrokes();
-        quizLayerGroup.clearLayers();
-        hideResult();
-        document.getElementById('quiz-hint').textContent = '';
-        document.getElementById('quiz-next').disabled = true;
-        refitMap(quizMap);
-        updateOfficialDenseCache();
-        renderQuiz();
-        renderInkGauge();
-        if (routeTooSmallToTrace()) document.getElementById('quiz-hint').textContent = ZOOM_ADVICE;
-        return T.state();
-      },
-      routePx() { return Math.round(routeLengthPx); },
-      state() {
-        return {
-          strokes: strokes.length,
-          points: strokes.reduce((n, s) => n + s.latlngs.length, 0),
-          zoom: quizMap.getZoom(),
-          pan: [quizMap._state.panX, quizMap._state.panY],
-          answered, penEmpty,
-          drawn: Math.round(drawnInk), budget: Math.round(inkBudget),
-          submitDisabled: document.getElementById('quiz-submit').disabled,
-          undoDisabled: document.getElementById('quiz-undo').disabled,
-          clearDisabled: document.getElementById('quiz-retry').disabled,
-          nextDisabled: document.getElementById('quiz-next').disabled,
-          result: document.getElementById('quiz-result-body').textContent.slice(0, 40),
-          hint: document.getElementById('quiz-hint').textContent,
-        };
-      },
-      // where is the first stroke's first point on screen right now?
-      firstStrokeScreen() {
-        if (!strokes.length) return null;
-        const p = quizProjector.project(strokes[0].latlngs[0][0], strokes[0].latlngs[0][1]);
-        return { x: Math.round(p.x), y: Math.round(p.y) };
-      }
-    };
-  `});
-
-  await page.click('#tab-quiz');
-  await page.click('#quiz-start');
+  // ポインター操作は harness.js の QZ にまとめてある（UIを変えたらあちらを直す）
+  await openQuiz(page);
+  await page.addScriptTag({ content: 'window.T = window.QZ;' });
+  await page.evaluate(() => QZ.startRandom());
   await page.waitForTimeout(150);
   // 日本全体の縮尺でも十分な長さがある国道4号(東京-青森)に固定して、
   // ランダム出題で短い国道が選ばれても結果が変わらないようにする
@@ -112,7 +43,7 @@ function check(name, cond, extra) {
 
   // ---- 2. undo one stroke ----
   const before = s.drawn;
-  s = await page.evaluate(() => { document.getElementById('quiz-undo').click(); return T.state(); });
+  s = await page.evaluate(() => { QZ.undo(); return T.state(); });
   check('1本消すとストロークが減る', s.strokes === 2);
   check('1本消すとペン残量が戻る', s.drawn < before, { before, after: s.drawn });
 
@@ -212,13 +143,13 @@ function check(name, cond, extra) {
   check('ホイールでズームする', s.zoom > wheelBefore, { before: wheelBefore, after: s.zoom });
 
   // ---- 8. submit scores the attempt ----
-  s = await page.evaluate(() => { document.getElementById('quiz-submit').click(); return T.state(); });
+  s = await page.evaluate(() => { QZ.submit(); return T.state(); });
   check('採点ボタンで採点される', s.answered === true && s.result.length > 0, { result: s.result });
   check('採点後は採点ボタンが無効', s.submitDisabled === true);
   check('採点後は次の問題へ進める', s.nextDisabled === false);
 
   // ---- 9. clear all ----
-  s = await page.evaluate(() => { document.getElementById('quiz-retry').click(); return T.state(); });
+  s = await page.evaluate(() => { QZ.clearAll(); return T.state(); });
   check('全部消すで線が消える', s.strokes === 0 && s.answered === false, s);
 
   // ---- 10. short route: tell the user to zoom in instead of silently running dry ----
@@ -241,7 +172,7 @@ function check(name, cond, extra) {
     const n = currentHighway.path.length;
     const thirds = [[0, Math.floor(n / 3)], [Math.floor(n / 3), Math.floor(2 * n / 3)], [Math.floor(2 * n / 3), n - 1]];
     thirds.forEach(([a, b], i) => T.stroke(a, b, 50 + i));
-    document.getElementById('quiz-submit').click();
+    QZ.submit();
     return T.state();
   });
   check('分割してなぞっても正解判定になる', s.result.includes('正解'), { result: s.result, strokes: s.strokes });

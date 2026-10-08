@@ -1,5 +1,5 @@
 // Issue #7: 回答後に地図を動かすと、なぞった軌跡だけ取り残されるか
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 (async () => {
   const b = await chromium.launch(EXEC);
@@ -8,20 +8,11 @@ const path = require('path');
   await p.addInitScript({ path: STUB });
   await p.goto('file://' + APP);
   await p.waitForTimeout(400);
-  await p.click('#tab-quiz'); await p.waitForTimeout(150);
+  await openQuiz(p);
   const out = await p.evaluate(() => {
-    const ov = document.getElementById('quiz-overlay');
-    const fire=(t,x,y)=>ov.dispatchEvent(new PointerEvent(t,{pointerId:1,pointerType:'touch',bubbles:true,cancelable:true,clientX:x,clientY:y}));
-    currentHighway = HIGHWAYS.find(h=>h.id===4);
-    answered=false; hintUsed=false; clearStrokes(); quizLayerGroup.clearLayers(); hideResult();
-    refitMap(quizMap); updateOfficialDenseCache(); renderQuiz(); renderInkGauge();
-    const r=ov.getBoundingClientRect();
-    const at=i=>{const q=quizMap.latLngToContainerPoint(currentHighway.path[i]);return{x:r.x+q.x,y:r.y+q.y};};
-    const n=currentHighway.path.length;
-    fire('pointerdown',at(0).x,at(0).y);
-    for(let i=1;i<n;i+=3){const q=at(i);fire('pointermove',q.x,q.y);}
-    fire('pointerup',at(n-1).x,at(n-1).y);
-    document.getElementById('quiz-submit').click();           // 採点する
+    QZ.ask(4);
+    QZ.stroke(0, QZ.points() - 1, 1, 60);
+    QZ.submit();
     const before = strokes[0] ? strokeScreenPts(strokes[0]).map(q=>[Math.round(q.x),Math.round(q.y)]) : null;
     const beforeLL = strokes[0] ? strokes[0].latlngs.slice() : null;
     // 回答後に地図を動かす

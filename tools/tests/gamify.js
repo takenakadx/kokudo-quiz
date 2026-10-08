@@ -1,5 +1,5 @@
 // Issue #4: ストリーク・習熟度バッジ・制覇率・学習モードの閲覧記録
-const { chromium, EXEC, APP, STUB } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const fail = [];
 function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'  '+JSON.stringify(e):''}`); if(!c) fail.push(n); }
 (async () => {
@@ -12,37 +12,20 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   await p.goto('file://' + APP);
   await p.waitForTimeout(400);
 
+  await openQuiz(p);
   // 採点を直接呼ぶのではなく、実際になぞって答える（記録は採点経路でしか動かないため）
   await p.addScriptTag({ content: `
     window.G = {
       answer(id, correct) {
-        currentHighway = HIGHWAYS.find(h => h.id === id);
-        hintUsed = false; answered = false;
-        clearStrokes(); quizLayerGroup.clearLayers(); hideResult();
-        refitMap(quizMap);
-        quizMap.fitBounds(highwayBounds(currentHighway), { padding: [40, 40], animate: false });
-        updateOfficialDenseCache(); renderQuiz(); renderInkGauge();
-        const ov = document.getElementById('quiz-overlay'), r = ov.getBoundingClientRect();
-        const fire = (t, x, y) => ov.dispatchEvent(new PointerEvent(t, {
-          pointerId: 1, pointerType: 'touch', bubbles: true, cancelable: true, clientX: x, clientY: y }));
-        const h = currentHighway;
-        const at = i => { const q = quizMap.latLngToContainerPoint(h.path[i]); return { x: r.x + q.x, y: r.y + q.y }; };
-        if (correct) {
-          fire('pointerdown', at(0).x, at(0).y);
-          for (let i = 1; i < h.path.length; i++) { const q = at(i); fire('pointermove', q.x, q.y); }
-          fire('pointerup', at(h.path.length - 1).x, at(h.path.length - 1).y);
-        } else {
-          // 起点だけ触れて離す＝ほとんど塗れないので不正解になる
-          const q = at(0);
-          fire('pointerdown', q.x, q.y); fire('pointermove', q.x + 4, q.y); fire('pointerup', q.x + 4, q.y);
-        }
-        document.getElementById('quiz-submit').click();
+        QZ.ask(id, 'route');
+        if (correct) QZ.traceAll();
+        else QZ.dab(0);   // 起点だけ触れて離す＝ほとんど塗れないので不正解になる
+        QZ.submit();
         return { grade: document.getElementById('quiz-result').className, stats: loadStats() };
       },
       reset() { localStorage.removeItem('kokudoQuizStats.v1'); renderStats(); renderStudyList(); },
     };
   `});
-  await p.click('#tab-quiz'); await p.waitForTimeout(150);
 
   // ---- ストリーク ----
   let r = await p.evaluate(() => { G.reset();
@@ -56,7 +39,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   check('成績表示に連続正解数と制覇率が出る',
     banner.includes('3問連続') && /制覇 3 \/ \d+/.test(banner), banner);
 
-  const reward = await p.evaluate(() => document.getElementById('quiz-result-body').innerHTML);
+  const reward = await p.evaluate(() => QZ.resultHtml());
   check('3問連続で結果パネルにごほうびが出る', reward.includes('3問連続正解'), reward.slice(0, 120));
 
   // ---- 不正解で途切れる ----
@@ -70,7 +53,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
     for (let i = 0; i < 3; i++) {
       const x = G.answer(4, true);
       out.push({ correct: x.stats.byHighway[4].correct,
-                 reward: document.getElementById('quiz-result-body').innerHTML.includes('マスター') });
+                 reward: QZ.resultHtml().includes('マスター') });
     }
     return out; });
   check('同じ国道を3回正解するとマスターになる', r[2].correct === 3 && r[2].reward === true, r);

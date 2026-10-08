@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 
 (async () => {
@@ -52,11 +52,10 @@ const path = require('path');
   console.log('study renders ok:', studyResults.filter(Boolean).length, '/', studyResults.length);
 
   // 3. quiz mode: run several questions end to end, tracing the real route each time
-  await page.click('#tab-quiz');
-  await page.waitForTimeout(200);
+  await openQuiz(page, 200);
   const quizLog = [];
   for (let round = 0; round < 6; round++) {
-    await page.click('#quiz-start');
+    await page.evaluate(() => QZ.startRandom());
     await page.waitForTimeout(200);
     const target = await page.evaluate(() => {
       // trace the actual answer route so scoring runs over real geometry
@@ -67,40 +66,21 @@ const path = require('path');
     // trace the true answer route by projecting its own lat/lngs to screen points,
     // so scoring runs over real geometry (a correct answer should score high)
     const traced = await page.evaluate(() => {
-      const overlay = document.getElementById('quiz-overlay');
-      const r = overlay.getBoundingClientRect();
-      const h = (typeof currentHighway !== "undefined" && currentHighway) ? currentHighway : null;
+      const h = QZ.current();
       if (!h) return null;
-      const pts = [];
-      const step = Math.max(1, Math.floor(h.path.length / 60));
-      for (let i = 0; i < h.path.length; i += step) {
-        const p = quizMap.latLngToContainerPoint(h.path[i]);
-        pts.push([r.x + p.x, r.y + p.y]);
-      }
-      const fire = (type, xy) => overlay.dispatchEvent(new PointerEvent(type, {
-        pointerId: 1, bubbles: true, cancelable: true, clientX: xy[0], clientY: xy[1],
-      }));
-      fire('pointerdown', pts[0]);
-      for (const xy of pts.slice(1)) fire('pointermove', xy);
-      fire('pointerup', pts[pts.length - 1]);
-      return { id: h.id, points: pts.length };
+      QZ.stroke(0, h.path.length - 1, 1, 60);   // 正解ルートをなぞる
+      return { id: h.id, points: 61 };
     });
     // 一筆ごとに採点されなくなったので、明示的に採点ボタンを押す
-    await page.evaluate(() => {
-      const b = document.getElementById('quiz-submit');
-      if (b && !b.disabled) b.click();
-    });
+    await page.evaluate(() => { if (QZ.can().submit) QZ.submit(); });
     await page.waitForTimeout(250);
     const res0 = traced; const res = await page.evaluate(() => ({
-      prompt: document.getElementById('quiz-prompt').textContent.trim().slice(0, 30),
-      result: document.getElementById('quiz-result-body').textContent.trim().slice(0, 45),
+      prompt: QZ.prompt().slice(0, 30),
+      result: QZ.result().slice(0, 45),
     }));
     quizLog.push(Object.assign({traced: res0}, res));
-    const nextEnabled = await page.evaluate(() => {
-      const b = document.getElementById('quiz-next');
-      return !!b && !b.disabled && b.offsetParent !== null;
-    });
-    if (nextEnabled) { await page.click('#quiz-next'); await page.waitForTimeout(150); }
+    const nextEnabled = await page.evaluate(() => QZ.can().next);
+    if (nextEnabled) { await page.evaluate(() => QZ.next()); await page.waitForTimeout(150); }
     else quizLog[quizLog.length - 1].nextDisabled = true;
   }
   console.log('quiz rounds:');

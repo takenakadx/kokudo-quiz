@@ -12,6 +12,38 @@ Node.js と [Playwright](https://playwright.dev/) が要ります。地図タイ
 Playwright と Chromium の場所は `harness.js` が解決します。見つからない場合は
 `PLAYWRIGHT_CHROMIUM=/path/to/chrome` で指定してください。
 
+## クイズを操作するヘルパー（`harness.js` の `QZ`）
+
+クイズ画面を触るテストは、ボタンのIDや地図の座標を直接いじらず、`harness.js` が
+ページに注入する `window.QZ` を通します。**クイズのUIを変えたときに直すのは
+`harness.js` だけで済む**ようにするためです（#16 の画面遷移化に備えた作り）。
+
+```js
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
+...
+await openQuiz(page);                  // クイズ画面に入り、QZ を使えるようにする
+await page.evaluate(() => {
+  QZ.ask(4);                           // 国道4号を1問出す（'route' を渡すとその国道に寄る）
+  QZ.stroke(0, QZ.points() - 1, 1, 60);// 正解ルートをなぞる
+  QZ.submit();                         // 採点する
+  return QZ.score();                   // 網羅率とペン消費
+});
+```
+
+| 種類 | メソッド |
+| --- | --- |
+| 画面の操作 | `enter` `startRandom` `ask` `submit` `next` `hint` `undo` `clearAll` |
+| 画面の状態 | `can`（押せるボタン）`prompt` `result` `resultHtml` `hintText` `state` |
+| なぞる | `at` `atT` `ev` `stroke` `strokeT` `traceAll` `dab` |
+| 測る | `score` `routePx` `firstStrokeScreen` |
+
+ボタンが押せるかどうかは `disabled` を直接見ずに `QZ.can()` を使います。
+ボタンの配置や有無が変わってもテストが壊れないようにするためです。
+
+なぞる操作は、1ストロークの間は最初に測った地図の位置を使い続けます。なぞっている
+最中にヒントの文言が変わると地図の高さが1px動き、路線によっては網羅率が
+5〜12ポイント変わるためです（実際の指も、画面が少しずれても同じ場所を触り続けます）。
+
 | テスト | 見ていること |
 | --- | --- |
 | `test_fetch_raw.py` | 取得スクリプトの番号解釈・欠番の扱い・クエリの正規表現・Overpass JSONの変換 |

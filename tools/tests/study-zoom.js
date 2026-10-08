@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 
 const fail = [];
@@ -59,7 +59,7 @@ function check(name, cond, extra) {
   check('環状路線(16号)でもズームする', loopState.highwayId === 16 && loopState.zoom > 5, loopState);
 
   // ---- 5. クイズタブへ行って学習タブに戻っても、選んでいた国道の表示を維持する ----
-  await page.click('#tab-quiz');
+  await openQuiz(page);
   await page.waitForTimeout(150);
   await page.click('#tab-study');
   await page.waitForTimeout(150);

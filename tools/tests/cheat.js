@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 
 const fail = [];
@@ -20,76 +20,24 @@ function check(name, cond, extra) {
   await page.goto('file://' + APP);
   await page.waitForTimeout(400);
 
-  await page.addScriptTag({ content: `
-    window.C = {
-      // 国道4号(東京-青森)に固定。日本全体の縮尺でも十分な長さがある
-      reset() {
-        currentHighway = HIGHWAYS.find(h => h.id === 4);
-        hintUsed = false; answered = false;
-        clearStrokes(); quizLayerGroup.clearLayers(); hideResult();
-        refitMap(quizMap); updateOfficialDenseCache(); renderQuiz(); renderInkGauge();
-      },
-      at(tt) {
-        const h = currentHighway, r = document.getElementById('quiz-overlay').getBoundingClientRect();
-        const i = Math.min(h.path.length - 1, Math.max(0, Math.round(tt * (h.path.length - 1))));
-        const p = quizMap.latLngToContainerPoint(h.path[i]);
-        return { x: r.x + p.x, y: r.y + p.y };
-      },
-      ev(type, o) {
-        document.getElementById('quiz-overlay').dispatchEvent(new PointerEvent(type, Object.assign({
-          pointerId: 1, pointerType: 'touch', button: 0, buttons: 1, bubbles: true, cancelable: true
-        }, o)));
-      },
-      // ルート上の位置ttに、ほとんど指を動かさないストロークを置く（タップに近い操作）
-      dab(tt, id) {
-        const p = this.at(tt);
-        this.ev('pointerdown', { pointerId: id, clientX: p.x, clientY: p.y });
-        this.ev('pointermove', { pointerId: id, clientX: p.x + 3, clientY: p.y });
-        this.ev('pointerup',   { pointerId: id, clientX: p.x + 3, clientY: p.y });
-      },
-      // 区間[a,b]をきちんとなぞる
-      trace(a, b, id, steps) {
-        const n = steps || 60;
-        const p0 = this.at(a);
-        this.ev('pointerdown', { pointerId: id, clientX: p0.x, clientY: p0.y });
-        for (let k = 1; k <= n; k++) {
-          const p = this.at(a + (b - a) * k / n);
-          this.ev('pointermove', { pointerId: id, clientX: p.x, clientY: p.y });
-        }
-        const p1 = this.at(b);
-        this.ev('pointerup', { pointerId: id, clientX: p1.x, clientY: p1.y });
-      },
-      score() {
-        return {
-          coverage: scoreAttempt().score,
-          strokes: strokes.length,
-          inkPct: Math.round(drawnInk / inkBudget * 100),
-          routePx: Math.round(routeLengthPx),
-          penWidthPx: Math.round(traceTolerance * 2),
-        };
-      }
-    };
-  `});
-
-  await page.click('#tab-quiz');
-  await page.waitForTimeout(150);
+  await openQuiz(page);
 
   // ---- 1. 正攻法：1本で全体をなぞる ----
-  let s = await page.evaluate(() => { C.reset(); C.trace(0, 1, 1, 120); return C.score(); });
+  let s = await page.evaluate(() => { QZ.ask(4); QZ.strokeT(0, 1, 1, 120); return QZ.score(); });
   check('正攻法（1本で全部なぞる）は満点になる', s.coverage >= 95, s);
   const honest = s;
   const honestRate = honest.coverage / honest.inkPct;
 
   // ---- 2. ペンを置くだけでもインクを使う（タップがタダではなくなった） ----
-  s = await page.evaluate(() => { C.reset(); C.dab(0, 1); return C.score(); });
+  s = await page.evaluate(() => { QZ.ask(4); QZ.dab(0, 1); return QZ.score(); });
   check('ちょんと置くだけでもペン幅の円ぶんインクを使う', s.inkPct >= 8, s);
   const perDab = s.inkPct;
 
   // ---- 3. 短いストロークを並べる方法は、素直になぞるより効率が悪い ----
   s = await page.evaluate(() => {
-    C.reset();
-    for (let k = 0; k <= 10; k++) C.dab(k / 10, k + 1);
-    return C.score();
+    QZ.ask(4);
+    for (let k = 0; k <= 10; k++) QZ.dab(k / 10, k + 1);
+    return QZ.score();
   });
   // ペン先が円である以上、円は帯より線を覆う効率が原理的に4/π倍高いので、
   // 完全に不利にはできない。「近道にならない」程度に収まっていればよい
@@ -103,9 +51,9 @@ function check(name, cond, extra) {
   const split = await page.evaluate(() => {
     const out = [];
     for (const n of [2, 4, 8, 12]) {
-      C.reset();
-      for (let k = 0; k < n; k++) C.trace(k / n, (k + 1) / n, k + 1, Math.round(120 / n));
-      out.push(C.score());
+      QZ.ask(4);
+      for (let k = 0; k < n; k++) QZ.strokeT(k / n, (k + 1) / n, k + 1, Math.round(120 / n));
+      out.push(QZ.score());
     }
     return out;
   });
@@ -117,10 +65,10 @@ function check(name, cond, extra) {
 
   // ---- 5. 同じ所を往復してもインクは二重に減らない（塗られた面積で数えているため） ----
   s = await page.evaluate(() => {
-    C.reset();
-    C.trace(0, 1, 1, 120);
+    QZ.ask(4);
+    QZ.strokeT(0, 1, 1, 120);
     const once = drawnInk;
-    C.trace(1, 0, 2, 120); // 同じ道を逆向きにもう一度なぞる
+    QZ.strokeT(1, 0, 2, 120); // 同じ道を逆向きにもう一度なぞる
     return { once: Math.round(once), twice: Math.round(drawnInk), pct: Math.round(drawnInk / inkBudget * 100) };
   });
   check('同じ所をなぞり直してもインクはほとんど減らない', s.twice < s.once * 1.1, s);

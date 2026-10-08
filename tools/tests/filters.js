@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 const path = require('path');
 
 const fail = [];
@@ -19,7 +19,7 @@ function check(name, cond, extra) {
   await page.addInitScript({ path: STUB });
   await page.goto('file://' + APP);
   await page.waitForTimeout(400);
-  await page.click('#tab-quiz');
+  await openQuiz(page);
   await page.waitForTimeout(150);
 
   // ---- 1. selecting a map category narrows the idle-prompt count and the pool ----
