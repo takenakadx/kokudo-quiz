@@ -21,7 +21,8 @@ Playwright と Chromium の場所は `harness.js` が解決します。見つか
 ```js
 const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
 ...
-await openQuiz(page);                  // クイズ画面に入り、QZ を使えるようにする
+await openQuiz(page);                  // タイトル→ステージ選択→出題と進み、QZ を使えるようにする
+// 図鑑（学習モード）なら await openStudy(page);
 await page.evaluate(() => {
   QZ.ask(4);                           // 国道4号を1問出す（'route' を渡すとその国道に寄る）
   QZ.stroke(0, QZ.points() - 1, 1, 60);// 正解ルートをなぞる
@@ -32,8 +33,8 @@ await page.evaluate(() => {
 
 | 種類 | メソッド |
 | --- | --- |
-| 画面の操作 | `enter` `startRandom` `ask` `submit` `next` `hint` `undo` `clearAll` |
-| 画面の状態 | `can`（押せるボタン）`prompt` `result` `resultHtml` `hintText` `state` |
+| 画面の操作 | `enter` `openStage` `openStudy` `startRandom` `ask` `submit` `next` `hint` `undo` `clearAll` `quit` |
+| 画面の状態 | `screen` `can`（押せるボタン）`prompt` `result` `resultHtml` `hintText` `startLabel` `state` |
 | なぞる | `at` `atT` `ev` `stroke` `strokeT` `traceAll` `dab` |
 | 測る | `score` `routePx` `firstStrokeScreen` |
 
@@ -51,6 +52,7 @@ await page.evaluate(() => {
 | `test_format_equivalence.py` | `fetch_raw.py` の出力形式でも復元結果が現行と完全一致する |
 | `test_difficulty.py` | 難易度がどの段階にも実用的な数で割れているか、主要幹線が★1か、豆知識が効いているか |
 | `smoke.js` | 全路線のデータ健全性、学習モードの表示、クイズを通しで6問、フィルターの選択肢 |
+| `screens.js` | 画面遷移（タイトル→ステージ選択→出題→判定）と、その場面で出るボタン |
 | `ux.js` | 複数ストローク、2本指=pan・1本指=描画、中ボタンpan、ヒント、採点 |
 | `fit.js` | 6種類の画面サイズで1画面に収まる（スクロールせずボタンに届く） |
 | `filters.js` | マップ×難易度の絞り込み、山札方式、0件時のフォールバック |

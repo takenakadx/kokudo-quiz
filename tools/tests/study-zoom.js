@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz, openStudy } = require('./harness');
 const path = require('path');
 
 const fail = [];
@@ -25,6 +25,8 @@ function check(name, cond, extra) {
     pan: [studyMap._state.panX, studyMap._state.panY],
     highwayId: studyHighway && studyHighway.id
   }));
+
+  await openStudy(page);
 
   // ---- 1. 初期表示（1号）で、日本全体表示より拡大されている ----
   let s = await state();
@@ -58,13 +60,12 @@ function check(name, cond, extra) {
   const loopState = await state();
   check('環状路線(16号)でもズームする', loopState.highwayId === 16 && loopState.zoom > 5, loopState);
 
-  // ---- 5. クイズタブへ行って学習タブに戻っても、選んでいた国道の表示を維持する ----
+  // ---- 5. クイズへ行って図鑑に戻っても、選んでいた国道の表示を維持する ----
   await openQuiz(page);
   await page.waitForTimeout(150);
-  await page.click('#tab-study');
-  await page.waitForTimeout(150);
+  await openStudy(page);
   const backState = await state();
-  check('タブを行き来しても選択中の国道の表示を維持する',
+  check('画面を行き来しても選択中の国道の表示を維持する',
     backState.highwayId === 16 && Math.abs(backState.zoom - loopState.zoom) < 0.5,
     { before: loopState, after: backState });
 

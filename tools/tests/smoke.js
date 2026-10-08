@@ -1,4 +1,4 @@
-const { chromium, EXEC, APP, STUB, openQuiz } = require('./harness');
+const { chromium, EXEC, APP, STUB, openQuiz, openStudy } = require('./harness');
 const path = require('path');
 
 (async () => {
@@ -37,6 +37,7 @@ const path = require('path');
   console.log('data:', JSON.stringify(data));
 
   // 2. study mode: click through every highway in the list, confirm info renders
+  await openStudy(page);
   const studyCount = await page.evaluate(() => document.querySelectorAll('#study-hwy-list button, #study-hwy-list li').length);
   console.log('study list entries:', studyCount);
   const studyResults = [];

@@ -52,8 +52,21 @@ const EXEC = exe ? { executablePath: exe } : {};
 const QUIZ_HELPER = `
 window.QZ = {
   /* ===== 画面の操作（UIを変えたらここを直す） ===== */
-  enter() { document.getElementById('tab-quiz').click(); },
+  /* タイトル → ステージ選択 → 出題 と進んで、なぞれる状態にする */
+  enter() {
+    showScreen('title');
+    document.getElementById('go-play').click();   // ステージ選択へ
+    this.startRandom();                            // 出題へ
+  },
   startRandom() { document.getElementById('quiz-start').click(); },
+  quit() { document.getElementById('quiz-quit').click(); },
+  screen() { return screen; },
+  /* 図鑑（学習モード）を開く */
+  openStudy() { showScreen('title'); document.getElementById('go-study').click(); },
+  /* ステージ選択を開く */
+  openStage() { showScreen('title'); document.getElementById('go-play').click(); },
+  /* 「このマップで始める」ボタンの文言（対象問題数が入る） */
+  startLabel() { return document.getElementById('quiz-start').textContent; },
   submit() { document.getElementById('quiz-submit').click(); },
   next() { document.getElementById('quiz-next').click(); },
   hint() { document.getElementById('quiz-hint-btn').click(); },
@@ -61,7 +74,10 @@ window.QZ = {
   clearAll() { document.getElementById('quiz-retry').click(); },
   /* いまどのボタンが押せるか。disabled属性を直接見ずにこれを使う */
   can() {
-    const d = id => { const b = document.getElementById(id); return !!b && !b.disabled; };
+    const d = id => {
+      const b = document.getElementById(id);
+      return !!b && !b.disabled && !b.hidden;
+    };
     return { submit: d('quiz-submit'), undo: d('quiz-undo'), clear: d('quiz-retry'),
              next: d('quiz-next'), hint: d('quiz-hint-btn'), start: d('quiz-start') };
   },
@@ -198,10 +214,17 @@ async function openQuiz(page, waitMs) {
   await page.waitForTimeout(waitMs === undefined ? 150 : waitMs);
 }
 
-/* クイズ画面には入らず、ヘルパーだけ読み込む（学習モードのテスト用） */
+/* クイズ画面には入らず、ヘルパーだけ読み込む */
 async function loadHelper(page) {
   await page.addScriptTag({ content: QUIZ_HELPER });
 }
 
-module.exports = { chromium, EXEC, ROOT, APP, SPEC, STUB, DATA, openQuiz, loadHelper };
+/* 図鑑（学習モード）を開く。タブが無くなったので、テストもタイトルから入る */
+async function openStudy(page, waitMs) {
+  await page.addScriptTag({ content: QUIZ_HELPER });
+  await page.evaluate(() => QZ.openStudy());
+  await page.waitForTimeout(waitMs === undefined ? 150 : waitMs);
+}
+
+module.exports = { chromium, EXEC, ROOT, APP, SPEC, STUB, DATA, openQuiz, openStudy, loadHelper };
 

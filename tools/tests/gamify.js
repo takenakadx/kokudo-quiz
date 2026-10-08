@@ -60,7 +60,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   check('2回目まではマスターにならない', r[0].reward === false && r[1].reward === false, r);
 
   const marked = await p.evaluate(() => {
-    document.getElementById('tab-study').click();
+    QZ.openStudy();
     document.getElementById('study-search').value = '4';
     document.getElementById('study-search').dispatchEvent(new Event('input'));
     const btn = [...document.querySelectorAll('#study-hwy-list button')].find(b => b.textContent.includes('国道4号'));

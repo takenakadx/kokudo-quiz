@@ -1,5 +1,5 @@
 // 学習モードの分類セレクト・番号検索の回帰テスト
-const { chromium, EXEC, APP, SPEC, STUB, DATA } = require('./harness');
+const { chromium, EXEC, APP, STUB, openStudy } = require('./harness');
 const path = require('path');
 const fail = [];
 function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'  '+JSON.stringify(e):''}`); if(!c) fail.push(n); }
@@ -12,6 +12,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   await p.addInitScript({ path: STUB });
   await p.goto('file://' + APP);
   await p.waitForTimeout(400);
+  await openStudy(p);
 
   const nums = () => p.evaluate(() => [...document.querySelectorAll('#study-hwy-list button')].map(b => b.textContent));
   const total = await p.evaluate(() => HIGHWAYS.length);
@@ -73,6 +74,7 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   await p.selectOption('#study-cat-select', 'region-kyushu');
   await p.reload();
   await p.waitForTimeout(400);
+  await openStudy(p);
   check('分類の選択がリロード後も残る',
     await p.evaluate(() => document.getElementById('study-cat-select').value) === 'region-kyushu');
   check('検索欄はリロードで空に戻る（絞り込みが残って混乱しないように）',

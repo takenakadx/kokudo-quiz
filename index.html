@@ -85,34 +85,118 @@
     #panel-quiz .controls button { min-width: 0; flex-basis: 40%; }
   }
 
-  .tabs {
+  /* 画面ごとの見出しと「もどる」 */
+  .screen-head {
     flex: none;
     display: flex;
-    width: 100%;
-    max-width: 720px;
-    margin: 8px auto 0;
-    padding: 0 12px;
+    align-items: center;
     gap: 8px;
   }
-  .tabs button {
-    flex: 1;
-    padding: 10px;
+  .screen-head h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .back-btn {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--panel);
-    border-radius: 10px 10px 0 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--muted);
+    color: var(--blue);
+    font-size: 17px;
     cursor: pointer;
   }
-  .tabs button.active {
+
+  /* タイトル画面 */
+  .screen-title {
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .title-stats {
+    font-size: 13.5px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.9;
+  }
+  .title-stats strong {
+    display: block;
+    font-size: 26px;
+    color: var(--blue);
+    font-variant-numeric: tabular-nums;
+  }
+  .title-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(100%, 280px);
+  }
+  button.big {
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 12px;
+    border: 1px solid var(--blue-light);
+    background: var(--panel);
+    color: var(--blue);
+    cursor: pointer;
+  }
+  button.big.primary {
+    background: var(--blue-light);
+    border-color: var(--blue-light);
+    color: #fff;
+  }
+
+  /* ステージ選択 */
+  .stage-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    align-content: start;
+  }
+  .stage-card {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .stage-card.active {
+    border-color: var(--blue-light);
+    background: var(--blue-pale, #eaf1fa);
+  }
+  .stage-card .name { display: block; font-weight: 700; font-size: 14px; }
+  .stage-card .count { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stage-foot {
+    flex: none;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stage-foot .filter-select { flex: 1 1 auto; }
+  .stage-foot button {
+    flex: 2 1 auto;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--blue-light);
     background: var(--blue-light);
     color: #fff;
-    border-color: var(--blue-light);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   main {
     flex: 1;
+    margin-top: 8px;
     min-height: 0; /* 中の地図が縮めるようにする（flexの既定では縮まない） */
     width: 100%;
     max-width: 720px;
@@ -129,7 +213,7 @@
     gap: 8px;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 0 0 12px 12px;
+    border-radius: 12px;
     padding: 10px;
   }
   /* 学習モードも1画面に収める。収まらないのは国道一覧と補足情報だけなので、
@@ -504,14 +588,43 @@
   <p>国道がどこからどこまで続いているか、指でなぞって覚えよう</p>
 </header>
 
-<div class="tabs">
-  <button id="tab-study" class="active">学習モード</button>
-  <button id="tab-quiz">クイズモード</button>
-</div>
-
 <main>
+  <!-- タイトル -->
+  <section id="panel-title" class="panel screen-title">
+    <div class="title-stats" id="title-stats"></div>
+    <div class="title-actions">
+      <button id="go-play" class="big primary">あそぶ</button>
+      <button id="go-study" class="big">国道を見る</button>
+    </div>
+    <button class="sound-toggle" id="sound-toggle" aria-label="効果音の切り替え" title="効果音の切り替え">🔊</button>
+    <p class="fine-print">
+      地図タイル・ルート形状ともに <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> のデータを利用しています（地図の表示にはインターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。
+    </p>
+  </section>
+
+  <!-- ステージ選択 -->
+  <section id="panel-stage" class="panel" hidden>
+    <div class="screen-head">
+      <button class="back-btn" id="stage-back" aria-label="タイトルへもどる">←</button>
+      <h2>どこから出題する？</h2>
+    </div>
+    <div class="stage-list" id="stage-list"></div>
+    <div class="stage-foot">
+      <select class="filter-select" id="quiz-diff-select" aria-label="難易度">
+        <option value="">すべての難易度</option>
+        <option value="1">かんたん</option>
+        <option value="2">ふつう</option>
+        <option value="3">むずかしい</option>
+      </select>
+      <button id="quiz-start" class="primary">このマップで始める</button>
+    </div>
+  </section>
   <!-- 学習モード -->
-  <section id="panel-study" class="panel">
+  <section id="panel-study" class="panel" hidden>
+    <div class="screen-head">
+      <button class="back-btn" id="study-back" aria-label="タイトルへもどる">←</button>
+      <h2>国道を見る</h2>
+    </div>
     <div class="study-filter-row">
       <select class="filter-select" id="study-cat-select" aria-label="表示する国道の分類"></select>
       <input class="filter-search" id="study-search" type="search" inputmode="numeric"
@@ -526,24 +639,12 @@
     <div class="controls">
       <button id="study-replay">ルートをもう一度再生</button>
     </div>
-    <p class="fine-print">
-      地図タイル・ルート形状ともに <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> のデータを利用しています（地図の表示にはインターネット接続が必要です）。成績等のデータは端末内(localStorage)にのみ保存され、外部サーバーへは送信されません。
-    </p>
   </section>
 
   <!-- クイズモード -->
   <section id="panel-quiz" class="panel" hidden>
-    <div class="quiz-top-row">
-      <select class="filter-select" id="quiz-map-select" aria-label="出題するマップ"></select>
-      <select class="filter-select" id="quiz-diff-select" aria-label="難易度">
-        <option value="">すべての難易度</option>
-        <option value="1">かんたん</option>
-        <option value="2">ふつう</option>
-        <option value="3">むずかしい</option>
-      </select>
-      <button class="sound-toggle" id="sound-toggle" aria-label="効果音の切り替え" title="効果音の切り替え">🔊</button>
-    </div>
-    <div class="prompt-banner" id="quiz-prompt">「クイズを始める」を押してください</div>
+    <select class="filter-select" id="quiz-map-select" aria-label="出題するマップ" hidden></select>
+    <div class="prompt-banner" id="quiz-prompt"></div>
     <div class="ink-gauge-wrap" id="ink-gauge-wrap" hidden>
       <span class="ink-gauge-label">ペン残量 <span id="ink-gauge-pct">100%</span></span>
       <span class="ink-gauge-track"><span class="ink-gauge-fill" id="ink-gauge-fill"></span></span>
@@ -562,13 +663,14 @@
       </div>
     </div>
     <div class="hint-text" id="quiz-hint"></div>
+    <!-- ボタンはその場面で押せるものだけを出す（disabledで見せない） -->
     <div class="controls">
-      <button id="quiz-start" class="primary">クイズを始める</button>
-      <button id="quiz-hint-btn" disabled>ヒント</button>
-      <button id="quiz-submit" disabled>採点する</button>
-      <button id="quiz-undo" disabled>1本消す</button>
-      <button id="quiz-retry" disabled>全部消す</button>
-      <button id="quiz-next" disabled>次の問題へ</button>
+      <button id="quiz-submit" class="primary" hidden>採点する</button>
+      <button id="quiz-next" class="primary" hidden>次の問題へ</button>
+      <button id="quiz-hint-btn" hidden>ヒント</button>
+      <button id="quiz-undo" hidden>1本消す</button>
+      <button id="quiz-retry" hidden>全部消す</button>
+      <button id="quiz-quit" hidden>やめる</button>
     </div>
     <div class="stats" id="quiz-stats"></div>
   </section>
@@ -1076,16 +1178,14 @@ function currentPool() {
   return withDiff.length ? withDiff : mapPool;
 }
 
-// 出題前（まだ「クイズを始める」を押していないとき）だけ、対象問題数を表示する。
-// 出題中の見出しを上書きしないよう、currentHighwayがある間は何もしない。
+// 絞り込みが変わったら、ステージ選択の表示を合わせる。
+// 対象問題数は、始めるボタンに出す。
 function refreshIdlePrompt() {
-  if (currentHighway) return;
   const n = currentPool().length;
-  quizPrompt.textContent = n < HIGHWAYS.length
-    ? `この設定では${n}問が対象です。「クイズを始める」を押してください`
-    : "「クイズを始める」を押してください";
+  btnStart.textContent = `このマップで始める（${n}問）`;
+  mapSelectEl.value = selectedMapKey;   // 表には出していないが、状態の控えとして同期しておく
+  if (screen === "stage") renderStageList();
 }
-refreshIdlePrompt(); // 前回の絞り込みを端末に保存している場合、初期表示にも反映する
 
 /* ---- 効果音（Web Audio APIで簡易生成。音声ファイルは使わない） ---- */
 const SOUND_KEY = "kokudoQuizSoundEnabled.v1";
@@ -1207,9 +1307,8 @@ function startQuestion() {
   quizLayerGroup.clearLayers();
   hideResult();
   quizHintText.textContent = "";
-  btnHint.disabled = false;
-  btnNext.disabled = true;
   renderQuizPrompt();
+  showScreen("playing");
   refitMap(quizMap); // pan/zoomしていた場合も、毎回同じ構図(日本全体)からスタートする
   // 起点はヒントを使うか回答するまでは地図上にも表示しない（覚えているかどうかを試すため）
   updateOfficialDenseCache();
@@ -1237,13 +1336,8 @@ function clearStrokes() {
   updateDrawButtons();
 }
 
-// 採点・消去ボタンは「なぞった線が1本以上あるか」で出し入れする
-function updateDrawButtons() {
-  const has = strokes.length > 0;
-  btnSubmit.disabled = !has || answered;
-  btnUndo.disabled = !has || answered;
-  btnRetry.disabled = !has && !answered;
-}
+// なぞった線が増減したら、出すボタンも変わる（判断は updateControls にまとめてある）
+function updateDrawButtons() { updateControls(); }
 
 // なぞっている最中にリアルタイムで逸脱チェック・ペン残量計算をするための下ごしらえ（地図のサイズ・ズームが変わったら呼び直す）
 function updateOfficialDenseCache() {
@@ -1502,9 +1596,7 @@ function finishAttempt() {
     `${headline}${rewardHtml}<div class="result-info">` +
     `${currentHighway.number}：${currentHighway.startLabel} → ${currentHighway.endLabel}<br>` +
     `${routeInfoHtml(currentHighway)}</div>`);
-  btnHint.disabled = true;
-  btnNext.disabled = false;
-  updateDrawButtons();
+  showScreen("judge");
 }
 
 /* ---- ポインター操作 ----
@@ -1726,13 +1818,10 @@ quizOverlay.addEventListener("wheel", evt => {
 // 中ボタンドラッグ中に出るブラウザ既定のオートスクロールを抑える
 quizOverlay.addEventListener("auxclick", evt => { if (evt.button === 1) evt.preventDefault(); });
 
-btnStart.addEventListener("click", () => {
-  btnStart.textContent = "別の国道で挑戦";
-  startQuestion();
-});
+btnStart.addEventListener("click", startQuestion);
 btnHint.addEventListener("click", () => {
   hintUsed = true;
-  btnHint.disabled = true;
+  updateControls();
   quizHintText.textContent = "都市名と起点・終点を表示しました（「正解」判定にはならず、スコアも半分になります）";
   revealMarkers();
   renderQuizPrompt();
@@ -1755,29 +1844,102 @@ btnRetry.addEventListener("click", () => {
   answered = false;
   hideResult();
   quizHintText.textContent = "";
-  btnNext.disabled = true;
+  showScreen("playing");
   refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
   afterMapMoved();
 });
 btnNext.addEventListener("click", startQuestion);
 
-/* ================= タブ切替 ================= */
-const tabStudy = document.getElementById("tab-study");
-const tabQuiz = document.getElementById("tab-quiz");
-const panelStudy = document.getElementById("panel-study");
-const panelQuiz = document.getElementById("panel-quiz");
-tabStudy.addEventListener("click", () => {
-  tabStudy.classList.add("active"); tabQuiz.classList.remove("active");
-  panelStudy.hidden = false; panelQuiz.hidden = true;
-  if (studyHighway) renderStudy(studyHighway, false); // 選択中の国道いっぱいの表示に戻す
-  else fitStudyMap(null, false);
+/* ================= 画面遷移 =================
+   タイトル → ステージ選択 → 出題 → 判定 と進む。画面の状態は screen 1つに持ち、
+   どのボタンを出すかもそこから決める。以前はボタンを常に6つ並べて押せないものを
+   disabled にしていたが、「いま何をすればいいか」が伝わりにくかったため、
+   その場面で押せるものだけを出す方式にしている。 */
+const SCREENS = {
+  title:   "panel-title",
+  stage:   "panel-stage",
+  playing: "panel-quiz",
+  judge:   "panel-quiz",   // 判定は地図を見せたままなので出題画面を使い回す
+  study:   "panel-study",
+};
+let screen = "title";
+
+function showScreen(name) {
+  screen = name;
+  const show = SCREENS[name];
+  for (const id of new Set(Object.values(SCREENS))) {
+    document.getElementById(id).hidden = (id !== show);
+  }
+  if (name === "title") renderTitle();
+  if (name === "stage") renderStageList();
+  if (name === "playing" || name === "judge") {
+    refitMap(quizMap);
+    if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
+  }
+  if (name === "study") {
+    if (studyHighway) renderStudy(studyHighway, false); // 選択中の国道いっぱいの表示に戻す
+    else fitStudyMap(null, false);
+  }
+  updateControls();
+}
+
+function renderTitle() {
+  const st = loadStats();
+  const cleared = clearedCount(st);
+  document.getElementById("title-stats").innerHTML =
+    `<strong>${cleared} / ${HIGHWAYS.length}</strong>制覇した国道` +
+    (st.best > 1 ? `<br>連続正解の最高記録 ${st.best}問` : "");
+}
+
+/* ステージ選択。いまはマップ（桁数・地方）をカードで並べるだけで、
+   番号帯で区切ったステージと進捗は次の段階で入れる。 */
+const stageList = document.getElementById("stage-list");
+function renderStageList() {
+  stageList.innerHTML = "";
+  MAP_CATEGORIES.forEach(cat => {
+    const n = highwaysInCategory(cat).length;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "stage-card" + (cat.key === selectedMapKey ? " active" : "");
+    btn.innerHTML = `<span class="name">${cat.label}</span><span class="count">${n}問</span>`;
+    btn.addEventListener("click", () => {
+      selectedMapKey = cat.key;
+      saveMapCategoryKey(cat.key);
+      refreshIdlePrompt();   // 中で renderStageList() も呼ぶ
+    });
+    stageList.appendChild(btn);
+  });
+}
+
+/* その場面で押せるボタンだけを出す */
+function updateControls() {
+  const playing = screen === "playing" || screen === "judge";
+  const has = strokes.length > 0 || !!activeStroke;
+  const show = (id, on) => { document.getElementById(id).hidden = !on; };
+  show("quiz-submit", playing && screen === "playing" && has);
+  show("quiz-next", playing && screen === "judge");
+  show("quiz-hint-btn", playing && screen === "playing" && !hintUsed);
+  show("quiz-undo", playing && screen === "playing" && has);
+  show("quiz-retry", playing && screen === "playing" && has);
+  show("quiz-quit", playing);
+}
+
+document.getElementById("go-play").addEventListener("click", () => showScreen("stage"));
+document.getElementById("go-study").addEventListener("click", () => showScreen("study"));
+document.getElementById("stage-back").addEventListener("click", () => showScreen("title"));
+document.getElementById("study-back").addEventListener("click", () => showScreen("title"));
+document.getElementById("quiz-quit").addEventListener("click", () => {
+  if (!answered && strokes.length && !confirm("この問題をやめますか？")) return;
+  currentHighway = null;
+  clearStrokes();
+  quizLayerGroup.clearLayers();
+  hideResult();
+  showScreen("title");
 });
-tabQuiz.addEventListener("click", () => {
-  tabQuiz.classList.add("active"); tabStudy.classList.remove("active");
-  panelQuiz.hidden = false; panelStudy.hidden = true;
-  refitMap(quizMap);
-  if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
-});
+
+// 絞り込みの初期表示と、最初の画面
+refreshIdlePrompt();
+showScreen("title");
 
 /* ================= リサイズ対応 ================= */
 window.addEventListener("resize", () => {

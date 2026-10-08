@@ -31,7 +31,9 @@ function check(name, cond, extra) {
   });
   check('一桁国道を選ぶと対象が9問になる', s.pool.length === 9, s.pool);
   check('全部一桁の番号だけになる', s.pool.every(id => id < 10), s.pool);
-  check('バナーに対象問題数が出る', s.prompt.includes('9問'), s.prompt);
+  check('始めるボタンに対象問題数が出る',
+    (await page.evaluate(() => QZ.startLabel())).includes('問'),
+    await page.evaluate(() => QZ.startLabel()));
 
   // ---- 2. every question drawn stays within the selected category, none repeats until the bag is exhausted ----
   // pickHighway()自体の挙動を見たいので、実際の解答UI操作(なぞって採点)は経由せず
