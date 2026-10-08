@@ -33,8 +33,9 @@ await page.evaluate(() => {
 
 | 種類 | メソッド |
 | --- | --- |
-| 画面の操作 | `enter` `openStage` `openStudy` `startRandom` `ask` `submit` `next` `hint` `undo` `clearAll` `quit` |
+| 画面の操作 | `enter` `openStage` `openStudy` `startRandom` `startStageByKey` `ask` `submit` `next` `hint` `undo` `clearAll` `quit` |
 | 画面の状態 | `screen` `can`（押せるボタン）`prompt` `result` `resultHtml` `hintText` `startLabel` `state` |
+| ステージ | `stageKeys` `round` `progress` `clearProgress` |
 | なぞる | `at` `atT` `ev` `stroke` `strokeT` `traceAll` `dab` |
 | 測る | `score` `routePx` `firstStrokeScreen` |
 
@@ -53,6 +54,7 @@ await page.evaluate(() => {
 | `test_difficulty.py` | 難易度がどの段階にも実用的な数で割れているか、主要幹線が★1か、豆知識が効いているか |
 | `smoke.js` | 全路線のデータ健全性、学習モードの表示、クイズを通しで6問、フィルターの選択肢 |
 | `screens.js` | 画面遷移（タイトル→ステージ選択→出題→判定）と、その場面で出るボタン |
+| `stages.js` | 番号帯ステージの区切り、進捗の保存と再開、リザルト画面 |
 | `ux.js` | 複数ストローク、2本指=pan・1本指=描画、中ボタンpan、ヒント、採点 |
 | `fit.js` | 6種類の画面サイズで1画面に収まる（スクロールせずボタンに届く） |
 | `filters.js` | マップ×難易度の絞り込み、山札方式、0件時のフォールバック |

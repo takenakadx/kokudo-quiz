@@ -150,10 +150,20 @@
   }
 
   /* ステージ選択 */
-  .stage-list {
+  .stage-scroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+  }
+  .stage-group {
+    margin: 10px 2px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .stage-scroll > .stage-group:first-child { margin-top: 0; }
+  .stage-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 8px;
@@ -175,6 +185,30 @@
   }
   .stage-card .name { display: block; font-weight: 700; font-size: 14px; }
   .stage-card .count { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stage-card .bar {
+    display: block;
+    height: 4px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .stage-card .bar i { display: block; height: 100%; background: var(--blue-light); }
+  .stage-card.cleared .name::after { content: " ✓"; color: var(--done, #2f7d4f); }
+  .result-stage { margin: 0; font-size: 17px; text-align: center; }
+  .result-mastered {
+    font-size: 13px;
+    color: #a87c0c;
+    text-align: center;
+    line-height: 1.7;
+    max-width: 280px;
+  }
+  .q-progress {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
   .stage-foot {
     flex: none;
     display: flex;
@@ -608,7 +642,12 @@
       <button class="back-btn" id="stage-back" aria-label="タイトルへもどる">←</button>
       <h2>どこから出題する？</h2>
     </div>
-    <div class="stage-list" id="stage-list"></div>
+    <div class="stage-scroll">
+      <h3 class="stage-group">番号で区切って進む</h3>
+      <div class="stage-list" id="stage-list-range"></div>
+      <h3 class="stage-group">まとめて遊ぶ</h3>
+      <div class="stage-list" id="stage-list-map"></div>
+    </div>
     <div class="stage-foot">
       <select class="filter-select" id="quiz-diff-select" aria-label="難易度">
         <option value="">すべての難易度</option>
@@ -638,6 +677,18 @@
     <div class="info-box" id="study-info">上のボタンから国道を選んでください。</div>
     <div class="controls">
       <button id="study-replay">ルートをもう一度再生</button>
+    </div>
+  </section>
+
+  <!-- リザルト -->
+  <section id="panel-result" class="panel screen-title" hidden>
+    <h2 class="result-stage" id="result-stage"></h2>
+    <div class="title-stats" id="result-stats"></div>
+    <div class="result-mastered" id="result-mastered"></div>
+    <div class="title-actions">
+      <button id="result-again" class="big primary">もう一度このステージ</button>
+      <button id="result-stage-select" class="big">別のステージへ</button>
+      <button id="result-title" class="big">タイトルへ</button>
     </div>
   </section>
 
@@ -887,6 +938,49 @@ function isMastered(id, s) {
 // 1問でも正解した国道の数。「制覇率」の分子
 function clearedCount(s) {
   return Object.values(s.byHighway).filter(h => h.correct > 0).length;
+}
+
+/* ================= ステージ =================
+   「どこから出題するか」のまとまり。番号帯で30本ずつ区切ったものと、
+   これまでのマップ（桁数・地方）の2系統がある。どちらも同じ形で扱い、
+   出題する国道の並び（山札）と、どこまで進んだかを端末内に保存する。
+
+   番号帯は欠番（59〜100号など）があるので、一桁・二桁は 1〜30 / 31〜58 の
+   2つに分け、三桁は101号から30刻みにしている。 */
+const STAGE_RANGES = [[1, 30], [31, 58]];
+for (let lo = 101; lo <= 507; lo += 30) STAGE_RANGES.push([lo, Math.min(lo + 29, 507)]);
+
+const STAGES = [];
+STAGE_RANGES.forEach(([lo, hi]) => {
+  const list = HIGHWAYS.filter(h => { const n = routeNumber(h); return n >= lo && n <= hi; });
+  if (list.length) {
+    STAGES.push({ key: `r${lo}-${hi}`, label: `国道${lo}〜${hi}号`, kind: "range",
+                  test: h => { const n = routeNumber(h); return n >= lo && n <= hi; } });
+  }
+});
+MAP_CATEGORIES.filter(c => c.key).forEach(cat => {
+  STAGES.push({ key: `m${cat.key}`, label: cat.label, kind: "map",
+                test: h => matchesCategory(h, cat) });
+});
+STAGES.push({ key: "mall", label: "すべての国道", kind: "map", test: () => true });
+
+function stageByKey(key) { return STAGES.find(s => s.key === key) || STAGES[0]; }
+function stageHighways(stage) { return HIGHWAYS.filter(stage.test); }
+
+/* 進捗は通算成績とは別に持つ。{ ステージkey: {queue, index, correct, best} } */
+const PROGRESS_KEY = "kokudoQuizProgress.v1";
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveProgress(all) {
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(all)); } catch (e) { /* ignore */ }
+}
+function stageProgress(key) { return loadProgress()[key] || null; }
+function putStageProgress(key, value) {
+  const all = loadProgress();
+  if (value) all[key] = value; else delete all[key];
+  saveProgress(all);
 }
 
 /* ================= 学習モード ================= */
@@ -1181,8 +1275,12 @@ function currentPool() {
 // 絞り込みが変わったら、ステージ選択の表示を合わせる。
 // 対象問題数は、始めるボタンに出す。
 function refreshIdlePrompt() {
-  const n = currentPool().length;
-  btnStart.textContent = `このマップで始める（${n}問）`;
+  const st = stageByKey(selectedStageKey);
+  const pr = stageProgress(st.key);
+  const resuming = pr && pr.index > 0 && pr.index < pr.queue.length;
+  btnStart.textContent = resuming
+    ? `つづきから（${pr.index + 1}問目〜）`
+    : `はじめる（${stageHighways(st).length}問）`;
   mapSelectEl.value = selectedMapKey;   // 表には出していないが、状態の控えとして同期しておく
   if (screen === "stage") renderStageList();
 }
@@ -1253,8 +1351,6 @@ renderStats();
 // 出し、山札を使い切ったら次の山を作る。これにより、対象が少ない絞り込みでも
 // 全問一巡するまでは同じ問題が繰り返し出ない（単純な毎回ランダムだと、対象が
 // 少ないほど早い段階で同じ問題に当たりやすくループ感が強くなってしまう）。
-let questionBag = [];
-let questionBagKey = null;
 
 function shuffled(arr) {
   const a = arr.slice();
@@ -1265,21 +1361,43 @@ function shuffled(arr) {
   return a;
 }
 
-function pickHighway() {
-  const pool = currentPool();
-  const key = selectedMapKey + ":" + (selectedDifficulty || "");
-  if (questionBagKey !== key || questionBag.length === 0) {
-    questionBag = shuffled(pool.map(h => h.id));
-    questionBagKey = key;
-    // 絞り込みを変えた直後などに、直前の問題がたまたま新しい山の先頭に来て
-    // 連続してしまうことがあるので、その場合だけ2番目と入れ替える
-    if (questionBag.length > 1 && questionBag[0] === lastHighwayId) {
-      [questionBag[0], questionBag[1]] = [questionBag[1], questionBag[0]];
-    }
+/* いま遊んでいるステージ。queueは出題順（シャッフル済み）、indexは何問目か。
+   中断しても続きから遊べるよう、1問終えるたびに端末内へ保存する。 */
+let round = null;
+
+function startStage(stageKey, fresh) {
+  const stage = stageByKey(stageKey);
+  const saved = fresh ? null : stageProgress(stage.key);
+  if (saved && saved.queue && saved.index < saved.queue.length) {
+    round = Object.assign({ stageKey: stage.key, mastered: [] }, saved);
+  } else {
+    // 難易度の絞り込みは山札を作るときだけ効かせる。組み合わせで0問になったら
+    // 難易度の方を諦める（ステージを選んだ意図を優先する）
+    const all = stageHighways(stage);
+    const byDiff = selectedDifficulty ? all.filter(h => h.difficulty === selectedDifficulty) : all;
+    const pool = byDiff.length ? byDiff : all;
+    round = { stageKey: stage.key, queue: shuffled(pool.map(h => h.id)),
+              index: 0, correct: 0, best: 0, streak: 0, mastered: [] };
   }
-  const id = questionBag.shift();
+  persistRound();
+  startQuestion();
+}
+
+function persistRound() {
+  if (!round) return;
+  putStageProgress(round.stageKey, {
+    queue: round.queue, index: round.index,
+    correct: round.correct, best: round.best, streak: round.streak,
+  });
+}
+
+function roundStage() { return stageByKey(round.stageKey); }
+function roundDone() { return !round || round.index >= round.queue.length; }
+
+function pickHighway() {
+  const id = round.queue[round.index];
   lastHighwayId = id;
-  return pool.find(h => h.id === id) || HIGHWAYS.find(h => h.id === id);
+  return HIGHWAYS.find(h => h.id === id);
 }
 
 function setupOverlay() {
@@ -1296,7 +1414,10 @@ function setupOverlay() {
 function renderQuizPrompt() {
   const showRoute = hintUsed || answered;
   const routeText = showRoute ? `：${currentHighway.startLabel} → ${currentHighway.endLabel}` : "";
-  quizPrompt.innerHTML = `<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}${routeText}`;
+  const progress = round
+    ? `<span class="q-progress">${round.index + 1} / ${round.queue.length}問目</span>` : "";
+  quizPrompt.innerHTML =
+    `${progress}<span class="num">${currentHighway.number}</span>${diffStars(currentHighway.difficulty)}${routeText}`;
 }
 
 function startQuestion() {
@@ -1555,6 +1676,15 @@ function finishAttempt() {
   else if (result.grade === "partial") playPartialSound();
   else playIncorrectSound();
 
+  if (round) {
+    if (result.grade === "correct") {
+      round.correct++;
+      round.streak++;
+      round.best = Math.max(round.best, round.streak);
+    } else {
+      round.streak = 0;
+    }
+  }
   const s = loadStats();
   s.total++;
   const hs = s.byHighway[currentHighway.id] || { attempts: 0, correct: 0 };
@@ -1573,6 +1703,7 @@ function finishAttempt() {
   renderStats();
   renderStudyList();   // マスターの印を学習モードの一覧にも反映する
   const justMastered = !wasMastered && hs.correct >= MASTER_CORRECT;
+  if (justMastered && round) round.mastered.push(currentHighway.number);
 
   const pct = result.score;
   const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
@@ -1818,7 +1949,7 @@ quizOverlay.addEventListener("wheel", evt => {
 // 中ボタンドラッグ中に出るブラウザ既定のオートスクロールを抑える
 quizOverlay.addEventListener("auxclick", evt => { if (evt.button === 1) evt.preventDefault(); });
 
-btnStart.addEventListener("click", startQuestion);
+btnStart.addEventListener("click", () => startStage(selectedStageKey));
 btnHint.addEventListener("click", () => {
   hintUsed = true;
   updateControls();
@@ -1848,7 +1979,12 @@ btnRetry.addEventListener("click", () => {
   refitMap(quizMap); // pan/zoomしていた場合に備えて表示を戻す
   afterMapMoved();
 });
-btnNext.addEventListener("click", startQuestion);
+btnNext.addEventListener("click", () => {
+  round.index++;
+  persistRound();
+  if (roundDone()) showResultScreen();
+  else startQuestion();
+});
 
 /* ================= 画面遷移 =================
    タイトル → ステージ選択 → 出題 → 判定 と進む。画面の状態は screen 1つに持ち、
@@ -1861,6 +1997,7 @@ const SCREENS = {
   playing: "panel-quiz",
   judge:   "panel-quiz",   // 判定は地図を見せたままなので出題画面を使い回す
   study:   "panel-study",
+  result:  "panel-result",
 };
 let screen = "title";
 
@@ -1871,7 +2008,8 @@ function showScreen(name) {
     document.getElementById(id).hidden = (id !== show);
   }
   if (name === "title") renderTitle();
-  if (name === "stage") renderStageList();
+  if (name === "result") { /* 中身は showResultScreen が作る */ }
+  if (name === "stage") refreshIdlePrompt();   // 中で renderStageList() も呼ぶ
   if (name === "playing" || name === "judge") {
     refitMap(quizMap);
     if (currentHighway) { updateOfficialDenseCache(); renderQuiz(); }
@@ -1891,24 +2029,59 @@ function renderTitle() {
     (st.best > 1 ? `<br>連続正解の最高記録 ${st.best}問` : "");
 }
 
-/* ステージ選択。いまはマップ（桁数・地方）をカードで並べるだけで、
-   番号帯で区切ったステージと進捗は次の段階で入れる。 */
-const stageList = document.getElementById("stage-list");
+/* ステージ選択。番号帯のステージと、まとめて遊ぶマップを別の枠に並べる。
+   途中まで進んでいるステージは、どこまで終わったかをカードに出す。 */
+const STAGE_KEY = "kokudoQuizStage.v1";
+function loadStageKey() {
+  try {
+    const v = localStorage.getItem(STAGE_KEY) || "";
+    return STAGES.some(st => st.key === v) ? v : STAGES[0].key;
+  } catch (e) { return STAGES[0].key; }
+}
+let selectedStageKey = loadStageKey();
+
 function renderStageList() {
-  stageList.innerHTML = "";
-  MAP_CATEGORIES.forEach(cat => {
-    const n = highwaysInCategory(cat).length;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "stage-card" + (cat.key === selectedMapKey ? " active" : "");
-    btn.innerHTML = `<span class="name">${cat.label}</span><span class="count">${n}問</span>`;
-    btn.addEventListener("click", () => {
-      selectedMapKey = cat.key;
-      saveMapCategoryKey(cat.key);
-      refreshIdlePrompt();   // 中で renderStageList() も呼ぶ
+  const progress = loadProgress();
+  [["stage-list-range", "range"], ["stage-list-map", "map"]].forEach(([id, kind]) => {
+    const box = document.getElementById(id);
+    box.innerHTML = "";
+    STAGES.filter(st => st.kind === kind).forEach(st => {
+      const total = stageHighways(st).length;
+      const pr = progress[st.key];
+      const done = pr ? Math.min(pr.index, pr.queue.length) : 0;
+      const finished = pr && pr.index >= pr.queue.length;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "stage-card" + (st.key === selectedStageKey ? " active" : "")
+        + (finished ? " cleared" : "");
+      const detail = finished
+        ? `${pr.correct} / ${pr.queue.length}問 正解`
+        : done ? `${done} / ${pr.queue.length}問まで` : `${total}問`;
+      const bar = pr && !finished
+        ? `<span class="bar"><i style="width:${Math.round(done / pr.queue.length * 100)}%"></i></span>` : "";
+      btn.innerHTML = `<span class="name">${st.label}</span><span class="count">${detail}</span>${bar}`;
+      btn.addEventListener("click", () => {
+        selectedStageKey = st.key;
+        try { localStorage.setItem(STAGE_KEY, st.key); } catch (e) { /* ignore */ }
+        refreshIdlePrompt();   // 中で renderStageList() も呼ぶ
+      });
+      box.appendChild(btn);
     });
-    stageList.appendChild(btn);
   });
+}
+
+/* ステージを1つ終えたときのまとめ */
+function showResultScreen() {
+  const st = roundStage();
+  document.getElementById("result-stage").textContent = st.label;
+  const n = round.queue.length;
+  const rate = n ? Math.round(round.correct / n * 100) : 0;
+  document.getElementById("result-stats").innerHTML =
+    `<strong>${round.correct} / ${n}</strong>正解（${rate}%）` +
+    (round.best > 1 ? `<br>最長 ${round.best}問連続` : "");
+  document.getElementById("result-mastered").textContent =
+    round.mastered.length ? `★ ${round.mastered.join("・")} をマスター！` : "";
+  showScreen("result");
 }
 
 /* その場面で押せるボタンだけを出す */
@@ -1924,6 +2097,9 @@ function updateControls() {
   show("quiz-quit", playing);
 }
 
+document.getElementById("result-again").addEventListener("click", () => startStage(round.stageKey, true));
+document.getElementById("result-stage-select").addEventListener("click", () => showScreen("stage"));
+document.getElementById("result-title").addEventListener("click", () => showScreen("title"));
 document.getElementById("go-play").addEventListener("click", () => showScreen("stage"));
 document.getElementById("go-study").addEventListener("click", () => showScreen("study"));
 document.getElementById("stage-back").addEventListener("click", () => showScreen("title"));

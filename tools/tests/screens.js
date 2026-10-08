@@ -36,9 +36,13 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   v = await view();
   check('「あそぶ」でステージ選択へ', v.screen === 'stage' && v.panels.join() === 'panel-stage', v);
   check('ステージ選択に出題数つきの開始ボタンがある',
-    v.buttons.some(t => /このマップで始める（\d+問）/.test(t)), v.buttons);
-  const stageCards = await p.evaluate(() => document.querySelectorAll('.stage-card').length);
-  check('マップがカードで並ぶ', stageCards >= 8, stageCards);
+    v.buttons.some(t => /はじめる（\d+問）/.test(t)), v.buttons);
+  const cards = await p.evaluate(() => ({
+    range: document.querySelectorAll('#stage-list-range .stage-card').length,
+    map: document.querySelectorAll('#stage-list-map .stage-card').length,
+  }));
+  check('番号帯のステージが16個並ぶ', cards.range === 16, cards);
+  check('まとめて遊ぶマップも並ぶ', cards.map >= 9, cards);
 
   // ---- ステージ選択 → 出題 ----
   await p.click('#quiz-start'); await p.waitForTimeout(150);

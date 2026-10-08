@@ -35,26 +35,29 @@ function check(name, cond, extra) {
     (await page.evaluate(() => QZ.startLabel())).includes('問'),
     await page.evaluate(() => QZ.startLabel()));
 
-  // ---- 2. every question drawn stays within the selected category, none repeats until the bag is exhausted ----
-  // pickHighway()自体の挙動を見たいので、実際の解答UI操作(なぞって採点)は経由せず
-  // startQuestion()を直接何度も呼ぶ(採点フローのテストはux.js側でカバー済み)。
+  // ---- 2. ステージの山札は、そのマップの国道をちょうど1回ずつ並べたもの ----
   const seen = await page.evaluate(() => {
-    const out = [];
-    for (let i = 0; i < 9; i++) { startQuestion(); out.push(currentHighway.id); }
-    return out;
+    QZ.clearProgress();
+    QZ.startStageByKey('mdigit1');
+    return round.queue.slice();
   });
-  check('9回引いても全部「一桁国道」の範囲内', seen.every(id => id < 10), seen);
-  check('9回引く間、山を使い切るまでは重複しない（9問すべて別）',
-    new Set(seen).size === 9, { seen, unique: new Set(seen).size });
+  check('山札は全部「一桁国道」の範囲内', seen.every(id => id < 10), seen);
+  check('山札に重複がない（9問すべて別）', new Set(seen).size === 9, { seen, unique: new Set(seen).size });
+  check('山札がマップの全問を含む', seen.length === 9, seen.length);
 
-  // ---- 3. after exhausting the bag of 9, the 10th draw reshuffles and still stays in-category ----
-  const tenth = await page.evaluate(() => { startQuestion(); return currentHighway.id; });
-  check('山を使い切った後もカテゴリ内から出題され続ける', tenth < 10, tenth);
+  // ---- 3. 9問すべて解き終えるとリザルトになる（山札は使い切りで、勝手に続かない） ----
+  const after = await page.evaluate(() => {
+    while (!roundDone()) {
+      QZ.ask(round.queue[round.index], 'route');
+      QZ.traceAll(); QZ.submit(); QZ.next();
+    }
+    return QZ.screen();
+  });
+  check('山札を使い切るとリザルト画面へ進む', after === 'result', after);
 
   // ---- 4. switching to a narrow region category that has no "むずかしい" falls back gracefully ----
   s = await page.evaluate(() => {
-    document.getElementById('quiz-map-select').value = 'region-hokkaido-tohoku';
-    document.getElementById('quiz-map-select').dispatchEvent(new Event('change'));
+    selectedMapKey = 'region-hokkaido-tohoku';
     document.getElementById('quiz-diff-select').value = '3'; // むずかしい: 北海道・東北地方には0件
     document.getElementById('quiz-diff-select').dispatchEvent(new Event('change'));
     const cat = MAP_CATEGORIES.find(c => c.key === 'region-hokkaido-tohoku');
@@ -71,8 +74,7 @@ function check(name, cond, extra) {
   s = await page.evaluate(() => {
     document.getElementById('quiz-diff-select').value = '';
     document.getElementById('quiz-diff-select').dispatchEvent(new Event('change'));
-    document.getElementById('quiz-map-select').value = '';
-    document.getElementById('quiz-map-select').dispatchEvent(new Event('change'));
+    selectedMapKey = '';
     return { pool: currentPool().length, total: HIGHWAYS.length };
   });
   check('「すべての国道」に戻すと収録している全問が対象になる', s.pool === s.total, s);

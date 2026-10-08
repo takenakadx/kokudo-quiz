@@ -59,6 +59,17 @@ window.QZ = {
     this.startRandom();                            // 出題へ
   },
   startRandom() { document.getElementById('quiz-start').click(); },
+  /* ステージを選んで始める（keyを省略すると選択中のもの） */
+  startStageByKey(key) {
+    if (key) { selectedStageKey = key; refreshIdlePrompt(); }
+    document.getElementById('quiz-start').click();
+  },
+  stageKeys() { return STAGES.map(st => st.key); },
+  round() { return round && { stageKey: round.stageKey, index: round.index,
+                              total: round.queue.length, correct: round.correct,
+                              best: round.best, mastered: round.mastered.slice() }; },
+  progress() { return loadProgress(); },
+  clearProgress() { localStorage.removeItem('kokudoQuizProgress.v1'); refreshIdlePrompt(); },
   quit() { document.getElementById('quiz-quit').click(); },
   screen() { return screen; },
   /* 図鑑（学習モード）を開く */

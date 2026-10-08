@@ -26,7 +26,7 @@ for t in test_fetch_raw test_stitch test_format_equivalence test_difficulty; do
 done
 
 # アプリ本体（Playwright + leaflet-stub.js。地図タイルは読まない）
-for t in smoke screens ux fit filters studyfilter study-zoom cheat zoomink issue7 gamify speccheck allroutes; do
+for t in smoke screens stages ux fit filters studyfilter study-zoom cheat zoomink issue7 gamify speccheck allroutes; do
   run "$t" node "$t.js"
 done
 
