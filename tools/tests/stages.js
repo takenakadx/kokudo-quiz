@@ -70,7 +70,11 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
     return { text: c.textContent, start: QZ.startLabel() };
   });
   check('途中のステージはカードに進捗が出る', card.text.includes('3 /'), card.text);
-  check('開始ボタンが「つづきから」になる', card.start.includes('つづきから'), card.start);
+  check('開始ボタンが「つづきから」になる', card.start.trim() === 'つづきから', card.start);
+
+  // 「最初から」のボタンは、途中のステージのときだけ出る
+  check('途中のステージには「最初から」が出る',
+    await p.evaluate(() => !document.getElementById('quiz-restart').hidden));
 
   r = await p.evaluate(() => {
     QZ.startStageByKey('r101-130');
@@ -110,6 +114,31 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   });
   check('終えたステージには✓と正解数が出る',
     cleared.cls.includes('cleared') && cleared.text.includes('正解'), cleared);
+
+  // ---- 途中のステージを「最初から」やり直せる ----
+  r = await p.evaluate(() => {
+    QZ.quit();
+    selectedStageKey = 'r131-160';
+    QZ.openStage();
+    QZ.startStageByKey('r131-160');
+    QZ.ask(round.queue[0], 'route'); QZ.traceAll(); QZ.submit(); QZ.next();   // 1問だけ進める
+    QZ.quit();
+    QZ.openStage();
+    const resuming = QZ.startLabel();
+    const restartShown = !document.getElementById('quiz-restart').hidden;
+    document.getElementById('quiz-restart').click();                          // 最初から
+    return { resuming, restartShown, round: QZ.round() };
+  });
+  check('1問解くと「つづきから」になる', r.resuming.includes('つづきから'), r.resuming);
+  check('そのとき「最初から」ボタンも出ている', r.restartShown);
+  check('「最初から」を押すと1問目に戻る', r.round.index === 0 && r.round.correct === 0, r.round);
+
+  // ---- 手をつけていないステージでは「最初から」は出さない ----
+  check('まだ遊んでいないステージでは「最初から」を出さない',
+    await p.evaluate(() => {
+      QZ.quit(); selectedStageKey = 'r401-430'; QZ.openStage();
+      return document.getElementById('quiz-restart').hidden;
+    }));
 
   // ---- もう一度やると最初から ----
   r = await p.evaluate(() => {

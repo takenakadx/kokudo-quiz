@@ -215,7 +215,7 @@
     gap: 8px;
     align-items: center;
   }
-  .stage-foot .filter-select { flex: 1 1 auto; }
+  .stage-foot .filter-select { flex: 1 1 110px; min-width: 0; }
   .stage-foot button {
     flex: 2 1 auto;
     min-height: 44px;
@@ -226,6 +226,16 @@
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
+  }
+  /* 途中のステージでも最初からやり直せるようにする。ただし控えめに */
+  .stage-foot button#quiz-restart {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border-color: var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 12px;
   }
 
   main {
@@ -502,8 +512,22 @@
     touch-action: manipulation;
   }
   .controls button.primary {
+    flex: 3;            /* 主役は大きく。隣のボタンを誤って押しにくくする */
     background: var(--blue-light);
     color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  /* 「やめる」は押し間違えると進行が失われるので、小さく控えめにして
+     主役のボタンから離す（間に余白を入れる） */
+  .controls button.quiet {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 64px;
+    margin-left: 18px;   /* 主役のボタンから離して、押し間違いを防ぐ */
+    border-color: var(--border);
+    color: var(--muted);
+    font-size: 13px;
   }
   .controls button:disabled {
     opacity: 0.4;
@@ -655,7 +679,8 @@
         <option value="2">ふつう</option>
         <option value="3">むずかしい</option>
       </select>
-      <button id="quiz-start" class="primary">このマップで始める</button>
+      <button id="quiz-start" class="primary">はじめる</button>
+      <button id="quiz-restart" hidden>最初から</button>
     </div>
   </section>
   <!-- 学習モード -->
@@ -721,7 +746,7 @@
       <button id="quiz-hint-btn" hidden>ヒント</button>
       <button id="quiz-undo" hidden>1本消す</button>
       <button id="quiz-retry" hidden>全部消す</button>
-      <button id="quiz-quit" hidden>やめる</button>
+      <button id="quiz-quit" class="quiet" hidden>やめる</button>
     </div>
     <div class="stats" id="quiz-stats"></div>
   </section>
@@ -1162,6 +1187,7 @@ document.getElementById("quiz-result-close").addEventListener("click", () => {
 });
 const quizStatsEl = document.getElementById("quiz-stats");
 const btnStart = document.getElementById("quiz-start");
+const btnRestart = document.getElementById("quiz-restart");
 const btnHint = document.getElementById("quiz-hint-btn");
 const btnRetry = document.getElementById("quiz-retry");
 const btnNext = document.getElementById("quiz-next");
@@ -1278,9 +1304,10 @@ function refreshIdlePrompt() {
   const st = stageByKey(selectedStageKey);
   const pr = stageProgress(st.key);
   const resuming = pr && pr.index > 0 && pr.index < pr.queue.length;
-  btnStart.textContent = resuming
-    ? `つづきから（${pr.index + 1}問目〜）`
-    : `はじめる（${stageHighways(st).length}問）`;
+  // 何問目まで進んだかはステージのカードに出ているので、ボタンは短くする
+  btnStart.textContent = resuming ? "つづきから" : `はじめる（${stageHighways(st).length}問）`;
+  // 途中のステージは「つづきから」が主役だが、最初からやり直す道も残す
+  btnRestart.hidden = !resuming;
   mapSelectEl.value = selectedMapKey;   // 表には出していないが、状態の控えとして同期しておく
   if (screen === "stage") renderStageList();
 }
@@ -1950,6 +1977,7 @@ quizOverlay.addEventListener("wheel", evt => {
 quizOverlay.addEventListener("auxclick", evt => { if (evt.button === 1) evt.preventDefault(); });
 
 btnStart.addEventListener("click", () => startStage(selectedStageKey));
+btnRestart.addEventListener("click", () => startStage(selectedStageKey, true));
 btnHint.addEventListener("click", () => {
   hintUsed = true;
   updateControls();
