@@ -579,9 +579,38 @@
   .route-meta { color: inherit; opacity: 0.85; }
   .result.show { display: block; animation: resultPop 0.28s ease-out; }
   @keyframes resultPop {
-    0% { transform: scale(0.92); opacity: 0; }
-    60% { transform: scale(1.02); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
+    0% { transform: translateY(10px) scale(0.96); opacity: 0; }
+    60% { transform: translateY(0) scale(1.01); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  /* 正解のときだけ、縁がふわっと光る */
+  .result.show.correct { animation: resultPop 0.28s ease-out, correctGlow 0.9s ease-out 0.1s; }
+  @keyframes correctGlow {
+    0% { box-shadow: 0 0 0 0 rgba(47, 125, 79, 0.45); }
+    100% { box-shadow: 0 0 0 14px rgba(47, 125, 79, 0); }
+  }
+
+  /* 画面が切り替わったとき、少し下から入る */
+  .panel.screen-in { animation: screenIn 0.22s ease-out; }
+  @keyframes screenIn {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ごほうびは、結果が出たすこし後に飛び出す */
+  .reward { animation: rewardPop 0.34s cubic-bezier(0.34, 1.6, 0.5, 1) backwards; }
+  .reward.master { animation-delay: 0.22s; }
+  .reward.streak { animation-delay: 0.34s; }
+  @keyframes rewardPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  .pct-count, .score-count { font-variant-numeric: tabular-nums; }
+
+  /* OSで「視差効果を減らす」を選んでいる人には動かさない */
+  @media (prefers-reduced-motion: reduce) {
+    .result.show, .result.show.correct, .panel.screen-in, .reward { animation: none; }
   }
   .result.correct { background: #e9f8ee; border: 1px solid var(--green); color: #1d6b34; }
   .result.partial { background: #fdf5e3; border: 1px solid var(--amber); color: #8a6209; }
@@ -781,6 +810,38 @@ function createMap(containerId, interactive) {
   }).addTo(map);
   map.fitBounds(JAPAN_BOUNDS, { padding: [4, 4], animate: false });
   return map;
+}
+
+/* ================= 演出 =================
+   画面の切り替わりや数字の数え上げなど、見た目だけの動き。
+   OSで「視差効果を減らす」を選んでいる人には動かさず、最終状態をすぐ出す
+   （動きが苦手な人への配慮であり、テストが時間に左右されないためでもある）。 */
+const reduceMotion = window.matchMedia
+  ? window.matchMedia("(prefers-reduced-motion: reduce)")
+  : { matches: false };
+function animates() { return !reduceMotion.matches; }
+
+/* 要素のアニメーションをかけ直す（同じクラスを付け直しても再生されないため） */
+function replay(el, cls) {
+  if (!animates()) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;   // 直前の状態を確定させてから付け直す
+  el.classList.add(cls);
+}
+
+/* 数字を0から数え上げる。動きを減らす設定なら最終値をそのまま出す */
+function countUp(el, to, durationMs, format) {
+  const fmt = format || (v => String(v));
+  if (!animates() || to <= 0) { el.textContent = fmt(to); return; }
+  const dur = durationMs || 500;
+  const t0 = performance.now();
+  (function step(now) {
+    const t = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);   // 終わりに向かってゆっくり止まる
+    el.textContent = fmt(Math.round(to * eased));
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(to);
+  })(t0);
 }
 
 // 日本全体の構図に戻す。新しい問題に移るときだけ使う
@@ -1742,10 +1803,12 @@ function finishAttempt() {
 
   const pct = result.score;
   const penNote = penEmpty ? "（ペンが途中でなくなりました）" : "";
+  // 網羅率は0から数え上げる。span に入れておいて、表示後に動かす
+  const pctHtml = `<span class="pct-count">${pct}</span>`;
   const headline = {
-    correct: `<strong>正解！</strong>（ルート網羅率 ${pct}%）`,
-    partial: `<strong>惜しい！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`,
-    incorrect: `<strong>もう少し！</strong>（ルート網羅率 ${pct}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`
+    correct: `<strong>正解！</strong>（ルート網羅率 ${pctHtml}%）`,
+    partial: `<strong>惜しい！</strong>（ルート網羅率 ${pctHtml}%）${penNote}実際のルート（緑の点線）と見比べてみましょう。`,
+    incorrect: `<strong>もう少し！</strong>（ルート網羅率 ${pctHtml}%）${penNote}実際のルート（緑の点線）を確認して、もう一度挑戦してみましょう。`
   }[result.grade];
   // ごほうびの表示。連続正解とマスター到達は、そのときだけ出す
   const rewards = [];
@@ -1762,6 +1825,8 @@ function finishAttempt() {
     `${headline}${rewardHtml}<div class="result-info">` +
     `${currentHighway.number}：${currentHighway.startLabel} → ${currentHighway.endLabel}<br>` +
     `${routeInfoHtml(currentHighway)}</div>`);
+  const pctEl = quizResultBody.querySelector(".pct-count");
+  if (pctEl) countUp(pctEl, pct, 480);
   showScreen("judge");
 }
 
@@ -2041,7 +2106,10 @@ function showScreen(name) {
   screen = name;
   const show = SCREENS[name];
   for (const id of new Set(Object.values(SCREENS))) {
-    document.getElementById(id).hidden = (id !== show);
+    const el = document.getElementById(id);
+    const wasHidden = el.hidden;
+    el.hidden = (id !== show);
+    if (!el.hidden && wasHidden) replay(el, "screen-in");
   }
   if (name === "title") renderTitle();
   if (name === "result") { /* 中身は showResultScreen が作る */ }
@@ -2116,11 +2184,13 @@ function showResultScreen() {
   const n = round.queue.length;
   const rate = n ? Math.round(round.correct / n * 100) : 0;
   document.getElementById("result-stats").innerHTML =
-    `<strong>${round.correct} / ${n}</strong>正解（${rate}%）` +
+    `<strong><span class="score-count">${round.correct}</span> / ${n}</strong>正解（${rate}%）` +
     (round.best > 1 ? `<br>最長 ${round.best}問連続` : "");
   document.getElementById("result-mastered").textContent =
     round.mastered.length ? `★ ${round.mastered.join("・")} をマスター！` : "";
   showScreen("result");
+  // 正解数を数え上げる。画面が出てから動かす
+  countUp(document.querySelector("#result-stats .score-count"), round.correct, 700);
 }
 
 /* その場面で押せるボタンだけを出す */
