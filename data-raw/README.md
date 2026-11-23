@@ -4,9 +4,10 @@
 経路データ）から `tools/process_routes.py` が生成します。国道を追加するには、
 まずその国道の生データをこのフォルダに置く必要があります。
 
-この開発環境からは Overpass API をはじめ OSM 系のサーバーに一切アクセスできない
-（ネットワークポリシーで遮断されている）ため、取得はユーザー側の環境で行います。
-取得後の取り込み・経路の組み立て・確認はこちらで行います。
+開発環境のネットワークポリシーで Overpass への接続を許可すれば、取得も
+こちらで行えます（`overpass-api.de` と `overpass.kumi.systems`）。許可されて
+いない場合はユーザー側の環境で取得し、取り込み・経路の組み立て・確認を
+こちらで行います。どちらの場合も手順は同じです。
 
 ## 取得方法は2つ
 
@@ -45,6 +46,28 @@ python3 tools/fetch_raw.py --dry-run 1-20   # 投げるクエリを見るだけ
 python3 tools/process_routes.py
 python3 tools/gen_highways_data.py
 ```
+
+## 県境データ（通過都道府県の判定用）
+
+`prefectures.json` は、経路上の点がどの都道府県にあるかを判定するための
+県境の多角形です。これが無いと、自動生成した路線の通過都道府県は OSM の
+`from`/`to` タグから分かる**起点・終点の2県だけ**になります（issue #11）。
+
+```
+python3 tools/fetch_prefectures.py              # 取得して多角形を作る
+python3 tools/fetch_prefectures.py --fetch-only # 取得だけ
+python3 tools/fetch_prefectures.py --build-only # 取得済みの生データから作り直す
+```
+
+- OpenStreetMap の `admin_level=4`（都道府県）のリレーションを47件取ります。
+  路線データと同じ OSM / ODbL なので、出典表記の追加は要りません
+- 1県ずつ取り、取得済みは飛ばすので、途中で止めても打ち直せば続きます。
+  47県で30分〜1時間かかります
+- 生の応答は `data-raw/prefectures-raw/` に残りますが、gitには入れません
+  （多角形を作り直すときに使うだけなので、消して取り直しても構いません）
+- 日本の県境は海の上にも引かれているため、OSM のリレーションは
+  **陸地＋周辺海域**の外形になっています。海岸線の細かい形は入っていないので、
+  判定に必要な精度を保ったまま小さく収まります
 
 ### overpass-turbo で実行した結果を取り込む
 
