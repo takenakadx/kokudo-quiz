@@ -47,6 +47,19 @@ python3 tools/process_routes.py
 python3 tools/gen_highways_data.py
 ```
 
+## 起終点の地名（from/toタグが無い路線用）
+
+`place-labels.json` は、起終点の地名が OSM のタグから取れない路線のための
+地名です。経路の両端のいちばん近い市町村を OSM から引きます（issue #8）。
+
+```
+python3 tools/fetch_place_labels.py           # タグが無い路線を自動で探して取る
+python3 tools/fetch_place_labels.py 175 259   # 番号を指定する
+python3 tools/fetch_place_labels.py --list    # 対象を表示するだけ
+```
+
+`tools/process_routes.py` を先に実行しておいてください（経路の両端を使うため）。
+
 ## 県境データ（通過都道府県の判定用）
 
 `prefectures.json` は、経路上の点がどの都道府県にあるかを判定するための
@@ -123,6 +136,16 @@ python3 tools/fetch_raw.py --from-json ダウンロードしたファイル.json
 
 **458路線ぶんが取得済み**です（実在する459路線のうち、497号だけクエリに引っかかりませんでした）。
 追加・更新したいときは `python3 tools/fetch_raw.py 〈番号〉` を実行してください。
+
+### 名前が「国道N号」でない路線
+
+リレーションの名前が「国道N号」とは限りません。国道170号の本線は
+**「大阪外環状線」**という名前で、名前だけで探すと支線と旧道しか取れませんでした。
+`tools/fetch_raw.py` は `network=JP:national` と `ref` の完全一致で引く条件も
+足して union で取ります（県道も同じ ref を持つので、`network` で国道に絞る）。
+
+`ref` を正規表現にすると Overpass が索引を使えず、1路線でも数十分かかります。
+番号ごとに完全一致の行を並べてください。
 
 ### クエリのテンプレート
 

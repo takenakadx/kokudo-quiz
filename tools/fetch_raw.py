@@ -27,6 +27,7 @@ overpass-turbo をブラウザで開いて1路線ずつ Export する作業を�
 そのまま tools/process_routes.py にかけられる。
 """
 import argparse
+import http.client
 import json
 import os
 import re
@@ -51,13 +52,22 @@ ALL_ROUTES = [n for n in range(1, MAX_ROUTE + 1) if n not in VACANT]
 # 「国道13号」「国道13号線」「国道50号支線」などにマッチさせ、番号だけ取り出す
 NAME_RE = re.compile(r"^国道(\d+)号")
 
+# 名前が「国道N号」でないリレーションもある。国道170号の本線は「大阪外環状線」で、
+# 名前だけで探すと支線と旧道しか取れない。network=JP:national と ref で引く条件を
+# 足して union で取る（県道も ref を持つので、network で国道だけに絞る）。
 QUERY_TEMPLATE = """[out:json][timeout:{timeout}];
 area["ISO3166-1"="JP"][admin_level=2]->.jp;
-relation(area.jp)["route"="road"]["name"~"^国道({alt})号"];
+(
+  relation(area.jp)["route"="road"]["name"~"^国道({alt})号"];
+{refs}
+);
 out body;
 >;
 out skel qt;
 """
+# ref は正規表現ではなく番号ごとの完全一致で書く。正規表現だとOverpassが索引を
+# 使えず、1路線でも数十分かかることがある
+REF_CLAUSE = '  relation(area.jp)["route"="road"]["network"="JP:national"]["ref"="{num}"];'
 
 
 def parse_targets(tokens):
@@ -89,7 +99,10 @@ def out_path(num):
 
 
 def build_query(nums, timeout=300):
-    return QUERY_TEMPLATE.format(timeout=timeout, alt="|".join(str(n) for n in nums))
+    return QUERY_TEMPLATE.format(
+        timeout=timeout,
+        alt="|".join(str(n) for n in nums),
+        refs="\n".join(REF_CLAUSE.format(num=n) for n in nums))
 
 
 def stitch(lines):
@@ -196,8 +209,8 @@ def write_geojson(num, features):
     return sum(len(c) for feat in features for c in feat["geometry"]["coordinates"])
 
 
-def fetch(endpoint, query, tries=4):
-    """Overpass に問い合わせる。混雑(429)やタイムアウト(504)は待って繰り返す。"""
+def fetch(endpoint, query, tries=6):
+    """Overpass に問い合わせる。混雑(429)やサーバ側の不調(502/503/504)は待って繰り返す。"""
     data = query.encode("utf-8")
     for attempt in range(1, tries + 1):
         req = urllib.request.Request(
@@ -207,13 +220,15 @@ def fetch(endpoint, query, tries=4):
             with urllib.request.urlopen(req, timeout=600) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            if e.code not in (429, 504) or attempt == tries:
+            if e.code not in (429, 502, 503, 504) or attempt == tries:
                 raise
             wait = int(e.headers.get("Retry-After") or 0) or 30 * attempt
             print(f"    サーバが混雑中(HTTP {e.code})。{wait}秒待って再試行します"
                   f"({attempt}/{tries - 1})", flush=True)
             time.sleep(wait)
-        except (urllib.error.URLError, TimeoutError) as e:
+        except (OSError, http.client.HTTPException) as e:
+            # 接続の切断(RemoteDisconnected)やタイムアウトもここに来る。
+            # OSError は urllib.error.URLError と ConnectionError を含む
             if attempt == tries:
                 raise
             wait = 15 * attempt

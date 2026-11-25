@@ -419,6 +419,8 @@
     border-color: var(--blue-light);
     color: #fff;
   }
+  /* 短すぎてクイズに出せない国道。見るだけなので枠を点線にする */
+  .hwy-list button.study-only { border-style: dashed; }
 
   /* 結果パネルのごほうび表示 */
   .rewards {
@@ -577,6 +579,7 @@
     font-size: 13px;
   }
   .route-meta { color: inherit; opacity: 0.85; }
+  .study-only-note { color: inherit; opacity: 0.7; font-size: 12px; }
   .result.show { display: block; animation: resultPop 0.28s ease-out; }
   @keyframes resultPop {
     0% { transform: translateY(10px) scale(0.96); opacity: 0; }
@@ -994,7 +997,13 @@ function matchesCategory(h, cat) {
   if (cat.regions) return highwayRegions(h).some(r => cat.regions.includes(r));
   return cat.test(h);
 }
-function highwaysInCategory(cat) { return HIGHWAYS.filter(h => matchesCategory(h, cat)); }
+/* クイズに出せる国道。studyOnly が立っている国道は、日本全体の縮尺では数pxしか
+   無くてなぞりようがないので（国道174号は全長187m）、学習モードだけに置く。 */
+const QUIZ_HIGHWAYS = HIGHWAYS.filter(h => !h.studyOnly);
+
+function highwaysInCategory(cat) { return QUIZ_HIGHWAYS.filter(h => matchesCategory(h, cat)); }
+/* 学習モードは studyOnly の国道も載せるので、件数は HIGHWAYS 全体から数える */
+function studyHighwaysInCategory(cat) { return HIGHWAYS.filter(h => matchesCategory(h, cat)); }
 
 
 /* 番号での絞り込み。"17" と入れたら17号だけでなく171号・176号も出す
@@ -1031,7 +1040,9 @@ function isMastered(id, s) {
 }
 // 1問でも正解した国道の数。「制覇率」の分子
 function clearedCount(s) {
-  return Object.values(s.byHighway).filter(h => h.correct > 0).length;
+  // 出題対象の国道だけ数える。以前は出題していた国道が studyOnly に移ることが
+  // あるので、記録をそのまま数えると「440 / 438」のようになってしまう
+  return QUIZ_HIGHWAYS.filter(h => ((s.byHighway[h.id] || {}).correct || 0) > 0).length;
 }
 
 /* ================= ステージ =================
@@ -1046,7 +1057,7 @@ for (let lo = 101; lo <= 507; lo += 30) STAGE_RANGES.push([lo, Math.min(lo + 29,
 
 const STAGES = [];
 STAGE_RANGES.forEach(([lo, hi]) => {
-  const list = HIGHWAYS.filter(h => { const n = routeNumber(h); return n >= lo && n <= hi; });
+  const list = QUIZ_HIGHWAYS.filter(h => { const n = routeNumber(h); return n >= lo && n <= hi; });
   if (list.length) {
     STAGES.push({ key: `r${lo}-${hi}`, label: `国道${lo}〜${hi}号`, kind: "range",
                   test: h => { const n = routeNumber(h); return n >= lo && n <= hi; } });
@@ -1059,7 +1070,7 @@ MAP_CATEGORIES.filter(c => c.key).forEach(cat => {
 STAGES.push({ key: "mall", label: "すべての国道", kind: "map", test: () => true });
 
 function stageByKey(key) { return STAGES.find(s => s.key === key) || STAGES[0]; }
-function stageHighways(stage) { return HIGHWAYS.filter(stage.test); }
+function stageHighways(stage) { return QUIZ_HIGHWAYS.filter(stage.test); }
 
 /* 進捗は通算成績とは別に持つ。{ ステージkey: {queue, index, correct, best} } */
 const PROGRESS_KEY = "kokudoQuizProgress.v1";
@@ -1095,7 +1106,7 @@ const studySearch = document.getElementById("study-search");
 const studyCountEl = document.getElementById("study-count");
 
 studyCatSelect.innerHTML = MAP_CATEGORIES
-  .map(cat => `<option value="${cat.key}">${cat.label}（${highwaysInCategory(cat).length}本）</option>`)
+  .map(cat => `<option value="${cat.key}">${cat.label}（${studyHighwaysInCategory(cat).length}本）</option>`)
   .join("");
 try {
   const saved = localStorage.getItem(STUDY_CAT_KEY) || "";
@@ -1131,6 +1142,10 @@ function renderStudyList() {
       btn.classList.add("seen");
       btn.title = "学習モードで見た国道";
     }
+    if (h.studyOnly) {
+      btn.classList.add("study-only");
+      btn.title = "短すぎて日本全体の地図ではなぞれないため、クイズには出ない国道";
+    }
     // 選択中の国道は、絞り込みを変えて再描画しても選択状態を保つ
     if (studyHighway && studyHighway.id === h.id) btn.classList.add("active");
     btn.addEventListener("click", () => selectStudyHighway(h));
@@ -1164,7 +1179,10 @@ function routeInfoHtml(h) {
   const len = h.lengthKm ? `　総距離：約${h.lengthKm.toLocaleString()}km` : "";
   // 豆知識は手で書いた路線にしか無い。無い路線では行ごと出さない
   const fact = h.fact ? `<br>${h.fact}` : "";
-  return `<span class="route-meta">${via}${len}</span>${fact}`;
+  // 短くてなぞれない国道は、なぜクイズに出ないのかをその場で説明する
+  const only = h.studyOnly
+    ? `<br><span class="study-only-note">短いので、なぞるクイズには出ません</span>` : "";
+  return `<span class="route-meta">${via}${len}</span>${only}${fact}`;
 }
 
 function selectStudyHighway(h) {
@@ -1438,7 +1456,7 @@ function renderStats() {
   const parts = [`正解 ${s.correct} / 出題 ${s.total}（${rate}%）`];
   if (s.streak > 0) parts.push(`${s.streak}問連続`);
   if (s.best > 1) parts.push(`最高 ${s.best}`);
-  parts.push(`制覇 ${clearedCount(s)} / ${HIGHWAYS.length}`);
+  parts.push(`制覇 ${clearedCount(s)} / ${QUIZ_HIGHWAYS.length}`);
   quizStatsEl.textContent = parts.join("　");
 }
 renderStats();
@@ -2132,7 +2150,7 @@ function renderTitle() {
   const st = loadStats();
   const cleared = clearedCount(st);
   document.getElementById("title-stats").innerHTML =
-    `<strong>${cleared} / ${HIGHWAYS.length}</strong>制覇した国道` +
+    `<strong>${cleared} / ${QUIZ_HIGHWAYS.length}</strong>制覇した国道` +
     (st.best > 1 ? `<br>連続正解の最高記録 ${st.best}問` : "");
 }
 

@@ -293,6 +293,7 @@
     border: 1px solid var(--line);
   }
   .legend i.done { background: var(--done); border-color: var(--done); }
+  .legend i.study { background: var(--done-soft); border-color: var(--done); border-style: dashed; }
   .legend i.prep { background: var(--p2); border-color: var(--p2); }
   .legend i.todo { background: var(--panel); }
   .legend i.vacant { background: var(--line); }
@@ -340,6 +341,13 @@
     background: var(--done-soft);
     border-color: var(--done);
     color: var(--done);
+    font-weight: 700;
+  }
+  .cov-cell.study {
+    background: var(--done-soft);
+    border-color: var(--done);
+    color: var(--done);
+    border-style: dashed;
     font-weight: 700;
   }
   .cov-cell.prep {
@@ -392,7 +400,7 @@
     </p>
     <div class="stats">
       <div class="stat total"><div class="n" id="statAll">459</div><div class="l">国道 総数</div></div>
-      <div class="stat done"><div class="n" id="statDone">438</div><div class="l">実装済み</div></div>
+      <div class="stat done"><div class="n" id="statDone">458</div><div class="l">実装済み</div></div>
       <div class="stat p2"><div class="n" id="statPrep">17</div><div class="l">収録見送り</div></div>
       <div class="stat p3"><div class="n" id="statTodo">1</div><div class="l">未着手</div></div>
     </div>
@@ -424,10 +432,11 @@
       一般国道は<strong>459路線</strong>あります。番号は1号から507号まで振られていますが、
       59〜100号は将来の一級国道用に空けられたまま使われておらず、109・110・111号と214・215・216号は
       他の国道に編入されて廃止されたため、計48個が欠番です。
-      緑が収録済み、オレンジが収録を見送った路線（短すぎてなぞれない、タグが足りないなど。理由は表に出ています）。番号を押すと上の表の該当行へ移動します。
+      緑が収録済み、点線の緑は学習モードだけに置いた路線（短すぎて日本全体の地図ではなぞれないもの。国道174号は全長187m）、オレンジが収録を見送った路線（タグが足りないなど。理由は表に出ています）。番号を押すと上の表の該当行へ移動します。
     </p>
     <div class="legend">
       <span><i class="done"></i>実装済み</span>
+      <span><i class="study"></i>学習モードのみ</span>
       <span><i class="prep"></i>収録を見送った路線</span>
       <span><i class="todo"></i>未着手</span>
       <span><i class="vacant"></i>欠番</span>
@@ -525,20 +534,22 @@ const ROWS = SPEC_ROUTES.map(r => {
     ? '<span class="auto-badge" title="OpenStreetMapのタグと経路から自動生成">自動</span> '
     : "";
   return {
-    status: r.excluded ? "p3" : "done",
+    status: r.excluded ? "p3" : (r.studyOnly ? "study" : "done"),
     num: String(r.num),
     name: "国道" + r.num + "号",
     start: r.start,
     end: r.end,
     note: r.excluded
       ? `収録見送り：${r.excluded}`
-      : auto + (NOTES[r.num] || `${via}　約${r.len}km`),
+      : auto + (r.studyOnly ? `学習モードのみ（${r.studyOnly}）　` : "")
+        + (NOTES[r.num] || `${via}　約${r.len}km`),
     src: "osm",
   };
 });
 
 const STATUS_META = {
   done: { label: "実装済み", pillClass: "done", groupTitle: "実装済み" },
+  study: { label: "学習のみ", pillClass: "p2", groupTitle: "学習モードのみ（短くてなぞれない）" },
   p2:   { label: "データ待ち", pillClass: "p2",   groupTitle: "収録候補：二桁国道" },
   p3:   { label: "データ待ち", pillClass: "p3",   groupTitle: "収録候補：三桁国道" }
 };
@@ -550,7 +561,7 @@ function digitClass(num) {
 
 function renderRows() {
   const tbody = document.getElementById("tbody");
-  const order = ["done", "p2", "p3"];
+  const order = ["done", "study", "p2", "p3"];
   let html = "";
   order.forEach(status => {
     const rows = ROWS.filter(r => r.status === status);
@@ -611,7 +622,8 @@ function coverageStatus(num) {
   if (VACANT.has(num)) return "vacant";
   const row = ROWS.find(r => Number(r.num) === num);
   if (!row) return "todo";
-  return row.status === "done" ? "done" : "prep";
+  if (row.status === "done") return "done";
+  return row.status === "study" ? "study" : "prep";
 }
 
 // 桁数ごとに帯を分けて並べる（欠番が42個続く59〜100号だけは1行の注記にまとめる）
@@ -654,7 +666,8 @@ function renderStats() {
     const st = coverageStatus(n);
     if (st === "vacant") continue;
     all++;
-    if (st === "done") done++;
+    // 学習モードのみの路線もデータとしては収録済みなので「実装済み」に数える
+    if (st === "done" || st === "study") done++;
     else if (st === "prep") prep++;
   }
   document.getElementById("statAll").textContent = all;

@@ -16,7 +16,9 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
 
   const nums = () => p.evaluate(() => [...document.querySelectorAll('#study-hwy-list button')].map(b => b.textContent));
   const total = await p.evaluate(() => HIGHWAYS.length);
-  const inCat = key => p.evaluate(k => highwaysInCategory(MAP_CATEGORIES.find(c => c.key === k)).length, key);
+  // 学習モードは studyOnly の国道も載せるので、HIGHWAYS 全体で数える
+  const inCat = key => p.evaluate(k => HIGHWAYS.filter(h =>
+    matchesCategory(h, MAP_CATEGORIES.find(c => c.key === k))).length, key);
   const count = () => p.evaluate(() => document.getElementById('study-count').textContent);
 
   check('初期表示は全国道', (await nums()).length === total, await count());

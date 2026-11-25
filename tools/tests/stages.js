@@ -22,9 +22,11 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
   check('二桁の区切りは欠番の手前(58号)まで', stages[1].label === '国道31〜58号', stages[1]);
   check('三桁は101号から始まる', stages[2].label === '国道101〜130号', stages[2]);
   check('最後は507号まで', stages[15].label === '国道491〜507号', stages[15]);
-  check('全ステージの合計が収録数と一致する',
-    stages.reduce((a, s) => a + s.n, 0) === await p.evaluate(() => HIGHWAYS.length),
+  check('全ステージの合計が出題対象の数と一致する',
+    stages.reduce((a, s) => a + s.n, 0) === await p.evaluate(() => QUIZ_HIGHWAYS.length),
     stages.reduce((a, s) => a + s.n, 0));
+  check('ステージにstudyOnlyの国道は入らない',
+    await p.evaluate(() => STAGES.every(s => stageHighways(s).every(h => !h.studyOnly))));
   check('欠番の区間だけのステージは作らない', stages.every(s => s.n > 0));
 
   // ---- ステージを始めると、その番号帯からしか出ない ----

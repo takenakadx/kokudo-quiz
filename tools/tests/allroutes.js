@@ -11,7 +11,8 @@ const path = require('path');
   await openQuiz(p);
   const res = await p.evaluate(() => {
     const out = [];
-    for (const h of HIGHWAYS) {
+    // studyOnly の国道はクイズに出ないので対象外（学習モードだけに置いている）
+    for (const h of QUIZ_HIGHWAYS) {
       // 短い国道は日本全体だとなぞれないので、その国道が画面いっぱいになるまで寄る
       QZ.ask(h.id, 'route');
       QZ.traceAll();

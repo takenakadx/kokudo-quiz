@@ -7533,20 +7533,15 @@
     "used_checkpoints": false,
     "checkpoint_snap_km": [],
     "legs": [],
-    "raw_points": 55,
-    "simplified_points": 7,
-    "len_km": 25.2,
-    "max_jump_km": 19.9,
-    "jumps_over_10km": [
-      19.9
-    ],
+    "raw_points": 1561,
+    "simplified_points": 54,
+    "len_km": 73.1,
+    "max_jump_km": 0.7,
+    "jumps_over_10km": [],
     "start_mismatch_km": 0.0,
     "end_mismatch_km": 0.0,
-    "num_bridges": 2,
-    "bridge_dists_km": [
-      3.5,
-      19.9
-    ]
+    "num_bridges": 0,
+    "bridge_dists_km": []
   },
   {
     "id": 171,

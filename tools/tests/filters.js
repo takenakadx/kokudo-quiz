@@ -75,9 +75,12 @@ function check(name, cond, extra) {
     document.getElementById('quiz-diff-select').value = '';
     document.getElementById('quiz-diff-select').dispatchEvent(new Event('change'));
     selectedMapKey = '';
-    return { pool: currentPool().length, total: HIGHWAYS.length };
+    return { pool: currentPool().length, total: QUIZ_HIGHWAYS.length,
+             all: HIGHWAYS.length,
+             studyOnly: HIGHWAYS.filter(h => h.studyOnly).length };
   });
-  check('「すべての国道」に戻すと収録している全問が対象になる', s.pool === s.total, s);
+  check('「すべての国道」に戻すと出題できる全問が対象になる', s.pool === s.total, s);
+  check('studyOnlyの国道は出題対象に入らない', s.studyOnly > 0 && s.pool === s.all - s.studyOnly, s);
 
   console.log('\nerrors:', errors.length ? errors : 'none');
   await browser.close();

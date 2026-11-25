@@ -17,12 +17,14 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
     prep: +document.getElementById('statPrep').textContent,
     todo: +document.getElementById('statTodo').textContent,
     cells: document.querySelectorAll('.cov-cell').length,
-    doneCells: [...document.querySelectorAll('.cov-cell.done')].map(c => +c.textContent),
+    // 学習モードのみの路線も「収録済み」として数えている（マスは点線の緑）
+    doneCells: [...document.querySelectorAll('.cov-cell.done, .cov-cell.study')].map(c => +c.textContent),
+    studyCells: [...document.querySelectorAll('.cov-cell.study')].map(c => +c.textContent),
     prepCells: [...document.querySelectorAll('.cov-cell.prep')].map(c => +c.textContent),
     vacantCells: [...document.querySelectorAll('.cov-cell.vacant')].map(c => +c.textContent),
     rowIds: [...document.querySelectorAll('tbody tr[id]')].map(t => t.id).slice(0, 3),
   }));
-  console.log(JSON.stringify({ ...o, doneCells: o.doneCells.length, prepCells: o.prepCells, vacantCells: o.vacantCells }, null, 1));
+  console.log(JSON.stringify({ ...o, doneCells: o.doneCells.length, studyCells: o.studyCells.length, prepCells: o.prepCells, vacantCells: o.vacantCells }, null, 1));
   check('総数459', o.all === 459);
   check('内訳の合計が総数と一致する', o.done + o.prep + o.todo === o.all, o);
   check('実装済みの数がアプリの収録数と一致する', o.done === appCount, { spec: o.done, app: appCount });
@@ -30,11 +32,12 @@ function check(n, c, e) { console.log(`${c?'PASS':'FAIL'}  ${n}${e!==undefined?'
     JSON.stringify(o.vacantCells) === JSON.stringify([109,110,111,214,215,216]));
   check('マス目の総数=1..58 + 101..507', o.cells === 58 + 407);
   check('実装済みのマスの数が件数表示と一致する', o.doneCells.length === o.done);
+  check('学習モードのみの路線にも色が付く', o.studyCells.length > 0, o.studyCells.length);
   check('色が付かないのは生データが無い路線だけ', o.todo <= 2, { todo: o.todo });
-  check('収録を見送った路線は一覧に理由付きで残る', o.prepCells.length === o.prep && o.prep > 0,
+  check('収録を見送った路線の数とマスの数が一致する', o.prepCells.length === o.prep,
     { prep: o.prep, cells: o.prepCells.length });
-  // 番号を押すと該当行へ飛ぶ
-  await p.click('.cov-cell.prep');
+  // 番号を押すと該当行へ飛ぶ（見送りが0本のときは学習モードのみのマスで試す）
+  await p.click(o.prepCells.length ? '.cov-cell.prep' : '.cov-cell.study');
   await p.waitForTimeout(400);
   const jumped = await p.evaluate(() => {
     const r = document.querySelector('tbody tr.flash');

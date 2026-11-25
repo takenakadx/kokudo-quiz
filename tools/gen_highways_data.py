@@ -243,6 +243,10 @@ META = {
 # ---------------------------------------------------------------------------
 RAW_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data-raw")
 PREF_FILE = os.path.join(RAW_DIR, "prefectures.json")
+# from/to タグが無い路線の地名（tools/fetch_place_labels.py が作る）
+PLACE_FILE = os.path.join(RAW_DIR, "place-labels.json")
+PLACE_LABELS = (json.load(open(PLACE_FILE, encoding="utf-8"))
+                if os.path.exists(PLACE_FILE) else {})
 # 神奈川県・和歌山県・鹿児島県は「3文字＋県」なので、..県 では取りこぼす
 PREF_RE = re.compile(r"^(北海道|東京都|京都府|大阪府|.{2,3}県)")
 SIDE_RE = re.compile(r"(旧道|支線|バイパス|旧線|廃道|延伸|事業)")
@@ -347,7 +351,7 @@ def oriented(seq, frm_pref, to_pref):
 
     自動で組み立てた経路の向きは生データ次第で、from/to と逆になることがある。
     並びの端が from の県と一致するかを見て、必要なら裏返す。"""
-    if len(seq) < 2 or frm_pref == to_pref:
+    if len(seq) < 2 or not frm_pref or frm_pref == to_pref:
         return seq
     if seq[0] == frm_pref or seq[-1] == to_pref:
         return seq
@@ -359,27 +363,41 @@ def oriented(seq, frm_pref, to_pref):
 def auto_meta(route_id, path, length_km, seeds, pref_index=None):
     """タグから1路線ぶんのメタデータを作る。作れなければ (None, 理由) を返す。"""
     frm, to = raw_endpoints(route_id)
-    if not frm or not to:
+    mf = PREF_RE.match(frm) if frm else None
+    mt = PREF_RE.match(to) if to else None
+    places = PLACE_LABELS.get(str(route_id))
+    frm_pref = to_pref = None
+    if mf and mt:
+        start_label, end_label = city_label(frm), city_label(to)
+        frm_pref, to_pref = mf.group(1), mt.group(1)
+        prefs = [frm_pref] + ([to_pref] if to_pref != frm_pref else [])
+    elif places and pref_index is not None:
+        # from/to タグが無い路線（国道170号・175号・259号・260号）。
+        # 経路の両端のいちばん近い市町村を地名に使う（tools/fetch_place_labels.py）
+        start_label, end_label = places["from"], places["to"]
+        prefs = []
+    elif not frm or not to:
         return None, "from/toタグが無い"
-    mf, mt = PREF_RE.match(frm), PREF_RE.match(to)
-    if not mf or not mt:
+    else:
         return None, "from/toから都道府県を読み取れない"
-    prefs = [mf.group(1)] + ([mt.group(1)] if mt.group(1) != mf.group(1) else [])
+
     regions = None
     if pref_index is not None:
-        seq = [p for p in prefecture_sequence(pref_index, path,
-                                              keep_ends=(mf.group(1), mt.group(1)))
+        keep = tuple(x for x in (frm_pref, to_pref) if x)
+        seq = [p for p in prefecture_sequence(pref_index, path, keep_ends=keep)
                if p in PREF_REGION]
         if seq:
-            prefs = oriented(seq, mf.group(1), mt.group(1))
-    else:
+            prefs = oriented(seq, frm_pref, to_pref) if frm_pref else seq
+    elif prefs:
         # 県境データが無いときだけの代用。起終点の2県しか分からないので、
         # 地方は経路上の点から近似して補う
         regions = sorted(regions_of(path, seeds) | {PREF_REGION[p] for p in prefs})
+    if not prefs:
+        return None, "通過都道府県を決められない"
     meta = {
         "number": "国道%d号" % route_id,
-        "startLabel": city_label(frm),
-        "endLabel": city_label(to),
+        "startLabel": start_label,
+        "endLabel": end_label,
         "prefectures": prefs,
         # 長い路線ほど名前が知られているので、そこだけ難易度を分ける
         "difficulty": 2 if length_km >= 200 else 3,
@@ -474,6 +492,9 @@ if os.path.exists(report_file):
 MIN_LENGTH_KM = 10.0       # 日本全体の縮尺では数pxしかなく、なぞりようがない
 MIN_POINTS = 10            # 形が無さすぎるとなぞりようがない
 MAX_JUMP_RATIO = 0.6       # 全長の6割が1回の飛び＝つながりが復元できていない
+MIN_JUMP_KM = 5.0          # 数百mの「飛び」は地図の上では飛びに見えない。
+                           # これが無いと、全長187mの国道174号のように全体が
+                           # 1区間しかない路線が「大半が飛び」に当たってしまう
 
 paths = {}
 for f in os.listdir(PROCESSED_DIR):
@@ -499,6 +520,7 @@ seeds = [] if pref_index else build_region_seeds(paths)
 blocks = []
 missing = []
 excluded = []
+study_only = {}   # クイズには出さず学習モードだけに置く路線 {番号: 理由}
 difficulties = {}   # 仕様書ページ用に、決まった難易度を控えておく
 auto_count = 0
 for hid in sorted(set(META) | set(paths)):
@@ -519,17 +541,18 @@ for hid in sorted(set(META) | set(paths)):
         number = meta["number"]
         start_label, end_label = meta["startLabel"], meta["endLabel"]
         prefs, regions, diff = meta["prefectures"], meta.get("regions"), None
-        # 手で内容を確かめていない路線は、品質の基準を満たすものだけ収録する
+        # 手で内容を確かめていない路線は、品質の基準を満たすものだけ出題する。
+        # 日本全体の縮尺でなぞれないだけの路線（短い・形が無い）は、クイズには
+        # 出さず学習モードだけに置く（studyOnly。issue #8）。組み立てに失敗して
+        # いる路線は、形そのものが信用できないので収録しない。
         jump = jumps.get(hid, 0)
-        if length_km < MIN_LENGTH_KM:
-            excluded.append((hid, f"短すぎる({length_km}km)"))
-            continue
-        if len(pts) < MIN_POINTS:
-            excluded.append((hid, f"経路の点が少なすぎる({len(pts)}点)"))
-            continue
-        if length_km and jump > length_km * MAX_JUMP_RATIO:
+        if length_km and jump > MIN_JUMP_KM and jump > length_km * MAX_JUMP_RATIO:
             excluded.append((hid, f"経路の大半が1回の飛び({jump}km / 全長{length_km}km)"))
             continue
+        if length_km < MIN_LENGTH_KM:
+            study_only[hid] = f"短すぎる({length_km}km)"
+        elif len(pts) < MIN_POINTS:
+            study_only[hid] = f"経路の点が少なすぎる({len(pts)}点)"
         auto_count += 1
     # 難易度は、METAで手で指定していなければ経路と起終点から決める
     if diff is None:
@@ -550,6 +573,8 @@ for hid in sorted(set(META) | set(paths)):
         f"    difficulty: {diff}",
         f"    lengthKm: {round(length_km)}",
     ]
+    if hid in study_only:
+        fields.append("    studyOnly: true")
     if fact:
         fields.append(f'    fact: "{fact}"')
     fields.append(f"    path: {fmt_path(pts)}")
@@ -603,7 +628,8 @@ for hid in sorted(set(META) | set(paths)):
         difficulties.get(hid, 0),   # 収録を見送った路線は難易度を決めていないので0
         round(lengths.get(hid, 0)),
         "true" if auto else "false",
-        ', excluded: "%s"' % why if why else ""))
+        (', excluded: "%s"' % why if why else "")
+        + (', studyOnly: "%s"' % study_only[hid] if hid in study_only else "")))
 os.makedirs(os.path.dirname(SPEC_FILE), exist_ok=True)
 with open(SPEC_FILE, "w", encoding="utf-8") as f:
     f.write("/* tools/gen_highways_data.py が生成。直接編集しない。\n"
@@ -613,6 +639,10 @@ print("wrote", os.path.normpath(SPEC_FILE), f"({len(spec_rows)} routes)")
 
 print("wrote", os.path.normpath(OUT_FILE))
 print(f"routes: {len(blocks)} (手書きのMETA {len(blocks) - auto_count} / タグから自動生成 {auto_count})")
+if study_only:
+    print(f"うち学習モードのみ {len(study_only)}路線（日本全体の縮尺ではなぞれない）:")
+    for hid, why in sorted(study_only.items()):
+        print(f"  国道{hid}号: {why}")
 
 # 県境データで求めた通過県を、手で書いた68路線の値と突き合わせる。
 # 手書きのほうは人が確かめた値なので、食い違いの数が県境データ側の精度の目安になる。
