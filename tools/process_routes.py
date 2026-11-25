@@ -349,19 +349,23 @@ def nearest_index(chain, pt, coarse=160):
     return min(range(lo, hi), key=lambda k: haversine(chain[k], pt))
 
 def walk_leg(sig, sig_lens, used, cur_pt, target_pt, entry_radius_km=8.0,
-             max_bridge_km=30.0, arrive_km=4.0, max_steps=60):
+             max_bridge_km=30.0, arrive_km=4.0, stop_km=None, max_steps=60):
     """Checkpoint-mode leg walk: at each step, among chains whose entry point is
     reasonably close to the current position, pick whichever one's closest approach
     to THIS leg's target gets us nearest (not simply "longest nearby chain", which is
     wrong once legs are short - a long chain heading the wrong way looks tempting but
     doesn't serve a short leg). Truncate at that closest-approach point and push the
     remainder back into the pool for later legs."""
+    # 歩くのをやめる距離(stop_km)と、断片を切る窓の広さ(arrive_km)は別もの。
+    # 途中の経由地は「近くまで来たら次の区間へ」でよいが、最後の経由地＝路線の
+    # 終点では、そこで止めると終点の手前数kmで経路が終わってしまう。
+    stop = arrive_km if stop_km is None else stop_km
     path = [cur_pt]
     bridges = []
     for _ in range(max_steps):
         current = path[-1]
         d_to_target = haversine(current, target_pt)
-        if d_to_target <= arrive_km:
+        if d_to_target <= stop:
             break
         all_entries = []
         for i, c in enumerate(sig):
@@ -466,7 +470,11 @@ def bridge_via_checkpoints(chains, checkpoints, min_significant_km=0.2, max_brid
         # continuous - but if that leg failed to arrive, re-enter at this checkpoint
         # instead, otherwise one gap in the data derails every remaining leg
         start_pt = full_path[-1] if (full_path and prev_reached) else a
-        leg_path, leg_bridges, reached = walk_leg(sig, sig_lens, used, start_pt, b)
+        # 最後の区間だけは終点ぎりぎりまで歩く。途中の経由地と同じ4kmで止めると、
+        # 路線の終点がいつも数km手前になる(国道2号の門司、22号の岐阜など)
+        last_leg = (i == len(checkpoints) - 2)
+        leg_path, leg_bridges, reached = walk_leg(sig, sig_lens, used, start_pt, b,
+                                                  stop_km=0.3 if last_leg else None)
         prev_reached = reached
         end_mismatch = round(haversine(leg_path[-1], b), 1)
         legs.append({"leg": i, "reached": reached, "end_mismatch_km": end_mismatch,
@@ -570,6 +578,33 @@ def dijkstra(adj, src):
     return dist, prev
 
 
+def undouble(path, near_km=2.0, end_ratio=0.15):
+    """行って戻るだけの経路になっていたら、片道だけ残す。
+
+    上下線が別々の道として入っている区間（第三京浜=国道466号、国道129号など）では、
+    上り線を端まで行って下り線で戻る形がグラフ上の一本道になる。最短経路としては
+    正しいが、地図の上では同じところを往復していて、長さも倍になる。
+
+    「両端が近い」かつ「後半が前半をなぞっている」ときだけ折り返しと見なす。
+    環状の路線（国道468号など）は両端が近くても後半が前半から離れるので切らない。
+    """
+    if len(path) < 6:
+        return path
+    total = chain_length_km(path)
+    if total <= 0 or haversine(path[0], path[-1]) > total * end_ratio:
+        return path
+    turn = max(range(len(path)), key=lambda i: haversine(path[0], path[i]))
+    if not (0.2 < turn / (len(path) - 1) < 0.8):
+        return path
+    out, back = path[:turn + 1], path[turn:]
+    step_o = max(1, len(out) // 200)
+    step_b = max(1, len(back) // 200)
+    near = out[::step_o]
+    if any(min(haversine(q, r) for r in near) > near_km for q in back[::step_b]):
+        return path
+    return out
+
+
 def assemble_auto(segs):
     """経由地なしで1本の経路を組み立てる。木の直径と同じ要領で、Dijkstraを
     2回回して道のりが最も長くなる2点(=路線の両端)を求め、その間の最短経路を返す。"""
@@ -587,7 +622,7 @@ def assemble_auto(segs):
     path = [far_b]
     while path[-1] != far_a:
         path.append(prev[path[-1]])
-    return path[::-1], bridges
+    return undouble(path[::-1]), bridges
 
 
 def douglas_peucker(points, tolerance_km):

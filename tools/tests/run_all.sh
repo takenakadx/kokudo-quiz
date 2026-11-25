@@ -21,7 +21,7 @@ run() {  # run <表示名> <コマンド...>
 }
 
 # 生データの取得まわり（ネットワークにはつながない）
-for t in test_fetch_raw test_stitch test_format_equivalence test_difficulty test_prefectures; do
+for t in test_fetch_raw test_stitch test_format_equivalence test_difficulty test_prefectures test_assemble; do
   run "$t" python3 "$t.py"
 done
 
