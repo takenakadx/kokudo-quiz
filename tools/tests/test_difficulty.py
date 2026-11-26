@@ -44,11 +44,11 @@ for rid in (1, 2, 4, 6, 7, 8, 58):
         check(f"国道{rid}号（主要幹線）は★1", routes[rid]["diff"] == 1,
               f"{routes[rid]['start']}→{routes[rid]['end']} ★{routes[rid]['diff']}")
 
-# 豆知識を書いた路線は「特徴がある」とみなす。短くても★3には落とさない
+# 経由地を手で書き起こした路線は知名度の高いものから選んである。短くても★3には落とさない
 for rid in (134, 135):
     if rid in routes:
         r = routes[rid]
-        check(f"国道{rid}号（短いが有名、豆知識あり）は★3にならない", r["diff"] <= 2,
+        check(f"国道{rid}号（短いが有名）は★3にならない", r["diff"] <= 2,
               f"{r['len']}km ★{r['diff']}")
 
 # 長さだけで決まっていないこと（以前は200km以上かどうかの1条件だけだった）
@@ -57,12 +57,16 @@ long_hard = [i for i, r in routes.items() if r["len"] >= 200 and r["diff"] == 3]
 check("200km未満でも★1になる路線がある", len(short_easy) >= 5, f"{len(short_easy)}本")
 check("200km以上でも★3になる路線がある", len(long_hard) >= 5, f"{len(long_hard)}本")
 
-# 豆知識のある路線は、無い路線より易しい側に寄る（ボーナスが効いている）
-with_fact = [r["diff"] for r in routes.values() if r["fact"]]
-without = [r["diff"] for r in routes.values() if not r["fact"]]
-check("豆知識のある路線のほうが平均的に易しい",
-      sum(with_fact) / len(with_fact) < sum(without) / len(without),
-      f"あり {sum(with_fact)/len(with_fact):.2f} / なし {sum(without)/len(without):.2f}")
+# 豆知識は全路線に付いている（#10）
+missing = [i for i, r in routes.items() if not r["fact"]]
+check("全路線に豆知識が付いている", not missing, missing or f"{len(routes)}本すべて")
+
+# 桁数が効いていること（一桁国道のほうが平均的に易しい）
+one = [r["diff"] for i, r in routes.items() if i < 10]
+three = [r["diff"] for i, r in routes.items() if i >= 100]
+check("一桁国道のほうが三桁国道より平均的に易しい",
+      sum(one) / len(one) < sum(three) / len(three),
+      f"一桁 {sum(one)/len(one):.2f} / 三桁 {sum(three)/len(three):.2f}")
 
 print()
 print("FAILED:" if fail else "all checks passed", fail if fail else "")

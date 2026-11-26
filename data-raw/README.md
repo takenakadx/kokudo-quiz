@@ -60,6 +60,25 @@ python3 tools/fetch_place_labels.py --list    # 対象を表示するだけ
 
 `tools/process_routes.py` を先に実行しておいてください（経路の両端を使うため）。
 
+## 豆知識の下調べ（Wikipediaの記事）
+
+`wiki-extracts.json` は、豆知識を書くための下調べに使う各路線のWikipedia日本語版の
+記事です（issue #10）。生データのリレーションに入っている `wikipedia` タグから
+記事名を引くので、探す手間は要りません。
+
+```
+python3 tools/fetch_wikipedia.py            # 未取得の路線を全部
+python3 tools/fetch_wikipedia.py 101 102    # 番号を指定する
+python3 tools/fetch_wikipedia.py --list     # 対象と記事名を表示するだけ
+```
+
+- 50記事ずつ、10クエリで458記事を取ります
+- Wikimedia のAPIは素っ気ないUser-Agentだと429で断られます。名前と連絡の手段を
+  書いたUser-Agentを送ってください（スクリプトには書いてあります）
+- 取った本文は**gitに入れません**。そのまま配信せず、読んで1〜2文の豆知識を
+  書き起こすために使うものです。書き起こした豆知識は `tools/facts.py` にあります
+- 本文はCC BY-SAです。文章をそのまま使うときは出典とライセンスの表示が要ります
+
 ## 県境データ（通過都道府県の判定用）
 
 `prefectures.json` は、経路上の点がどの都道府県にあるかを判定するための

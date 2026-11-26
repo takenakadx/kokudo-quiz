@@ -12,6 +12,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from facts import FACTS  # noqa: E402
 from prefectures import PrefIndex, prefecture_sequence  # noqa: E402
 
 PROCESSED_DIR = os.path.join(os.path.dirname(__file__), "processed")
@@ -438,7 +439,7 @@ DIFF_EASY = 4.5     # これ以上なら ★☆☆
 DIFF_NORMAL = 2.0   # これ以上なら ★★☆
 
 
-def difficulty_score(route_id, path, length_km, labels, regions, max_jump_km, has_fact):
+def difficulty_score(route_id, path, length_km, labels, regions, max_jump_km, curated=False):
     """特徴が多いほど高くなる点数。難易度はこれを区切って決める。"""
     score = {1: 4.0, 2: 2.0, 3: 0.0}[len(str(route_id))]
     score += 1.5 * sum(1 for x in labels if x in MAJOR_CITIES)
@@ -454,9 +455,11 @@ def difficulty_score(route_id, path, length_km, labels, regions, max_jump_km, ha
             score += 1.0      # 起点と終点が近い＝環状
         elif length_km >= 50 and direct / length_km >= 0.75:
             score += 1.0      # 寄り道が少なくほぼ一直線
-    if has_fact:
-        # 豆知識を書いてあるのは、調べて特筆すべき点が見つかった路線ということ。
-        # 湘南の134号や伊豆の135号のように、短くても誰もが知っている道を拾う
+    if curated:
+        # 経由地を手で書き起こした68路線は、知名度の高いものから選んである。
+        # 湘南の134号や伊豆の135号のように、短くても誰もが知っている道を拾う。
+        # （以前は「豆知識があるか」で代用していたが、#10 で458路線すべてに
+        #   豆知識が付いて差が出なくなったため、選定そのものを見るようにした）
         score += 1.5
     return score
 
@@ -529,9 +532,10 @@ for hid in sorted(set(META) | set(paths)):
         missing.append(hid)
         continue
     length_km = lengths.get(hid, 0)
-    fact = None
+    fact = FACTS.get(hid)
     if hid in META:
-        number, start_label, end_label, prefs, diff, fact = META[hid]
+        number, start_label, end_label, prefs, diff, hand_fact = META[hid]
+        fact = hand_fact or fact
         regions = None
     else:
         meta, why = auto_meta(hid, pts, length_km, seeds, pref_index)
@@ -558,7 +562,7 @@ for hid in sorted(set(META) | set(paths)):
     if diff is None:
         diff = difficulty_of(hid, pts, length_km, [start_label, end_label],
                              regions or sorted({PREF_REGION[p] for p in prefs if p in PREF_REGION}),
-                             jumps.get(hid, 0), bool(fact))
+                             jumps.get(hid, 0), hid in META)
     difficulties[hid] = diff
     fields = [
         f"    id: {hid}",

@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 data-raw/prefectures-raw/
+data-raw/wiki-extracts.json
